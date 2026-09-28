@@ -1,0 +1,4 @@
+services:
+  worker:
+    environment:
+      STUDIO_MATRIX_RENDER_FAILURE: enabled

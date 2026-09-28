@@ -1,0 +1,7 @@
+services:
+  api:
+    environment:
+      STUDIO_SYNTHETIC_TEST_MODE: enabled
+  worker:
+    environment:
+      STUDIO_SYNTHETIC_TEST_MODE: enabled
