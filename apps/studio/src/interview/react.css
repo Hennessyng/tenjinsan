@@ -1,0 +1,59 @@
+.source-app .interview form {
+  margin-block: var(--space-6);
+}
+.source-app .interview .answer-card {
+  display: flex;
+  align-items: baseline;
+  gap: var(--space-3);
+  padding: var(--space-4);
+  margin-block: var(--space-2);
+  border: 1px solid var(--color-line);
+  background: var(--color-paper-raised);
+  cursor: pointer;
+}
+.source-app .interview .answer-card:has(:checked) {
+  background: var(--color-green-soft);
+  border-color: var(--color-green);
+}
+.source-app .interview .answer-card:focus-within {
+  outline: 3px solid var(--color-focus);
+  outline-offset: var(--space-1);
+}
+.source-app .interview textarea {
+  display: block;
+  width: 100%;
+  margin-bottom: var(--space-4);
+  padding: var(--space-4);
+  font: inherit;
+  color: var(--color-ink);
+  background: var(--color-paper-raised);
+  border: 1px solid var(--color-green);
+}
+.source-app .interview progress {
+  width: 100%;
+  accent-color: var(--color-green);
+}
+.source-app .interview nav {
+  margin-block: var(--space-6);
+}
+.source-app .interview [role="alert"] {
+  border-left: var(--space-1) solid var(--color-focus);
+  padding: var(--space-4);
+}
+.source-app .interview .response {
+  white-space: pre-wrap;
+}
+.source-app .interview h2,
+.source-app .interview legend {
+  text-wrap: balance;
+  word-break: normal;
+  overflow-wrap: break-word;
+}
+.source-app .interview ol {
+  padding-left: var(--space-6);
+  list-style: decimal;
+}
+.source-app .interview ul {
+  padding-left: var(--space-6);
+  list-style: disc;
+}

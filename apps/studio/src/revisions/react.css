@@ -1,0 +1,10 @@
+.source-app .revision-studio form {
+  margin-block: var(--space-6);
+}
+.source-app .revision-studio ul {
+  padding-left: var(--space-6);
+  list-style: disc;
+}
+.source-app .revision-studio h1 [lang="ja"] {
+  display: block;
+}

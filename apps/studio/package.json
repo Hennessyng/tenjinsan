@@ -1,0 +1,29 @@
+{
+  "name": "@reading-studio/studio",
+  "version": "0.0.0",
+  "private": true,
+  "type": "module",
+  "exports": {
+    "./revisions": "./src/revisions/page.ts",
+    "./publication": "./src/publication/page.ts",
+    "./evidence": "./src/evidence/page.ts",
+    "./source-viewer": "./src/source-viewer/page.ts",
+    "./study-setup": "./src/study-setup/page.ts",
+    "./interview": "./src/interview/page.ts",
+    "./brief": "./src/brief/page.ts",
+    "./outline": "./src/outline/page.ts"
+  },
+  "scripts": {
+    "dev": "vite",
+    "build": "vite build",
+    "preview": "vite preview",
+    "typecheck": "tsc --noEmit -p tsconfig.json"
+  },
+  "dependencies": {
+    "@reading-studio/reader": "workspace:*",
+    "@reading-studio/contracts": "workspace:*",
+    "hono": "4.13.8",
+    "react": "19.3.0",
+    "react-dom": "19.3.0"
+  }
+}

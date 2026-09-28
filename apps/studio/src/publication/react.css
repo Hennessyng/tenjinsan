@@ -1,0 +1,11 @@
+.source-app .publication-review ul {
+  padding-left: var(--space-6);
+  list-style: disc;
+}
+.source-app .publication-review > section {
+  margin-block: var(--space-6);
+}
+.source-app .publication-review [role="alert"] {
+  border-left: var(--space-1) solid var(--color-focus);
+  padding: var(--space-4);
+}
