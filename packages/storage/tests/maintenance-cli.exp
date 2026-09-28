@@ -1,0 +1,15 @@
+set timeout 15
+set executable [lindex $argv 0]
+set operation [lindex $argv 1]
+spawn -noecho node --disable-warning=ExperimentalWarning --experimental-transform-types $executable $operation
+expect {
+  -re {Type 'maintenance-recover' to confirm:} {
+    send -- "maintenance-recover\r"
+    exp_continue
+  }
+  eof {
+    catch wait result
+    exit [lindex $result 3]
+  }
+  timeout { exit 124 }
+}

@@ -1,0 +1,29 @@
+{
+  "name": "@reading-studio/reader",
+  "version": "0.0.0",
+  "private": true,
+  "type": "module",
+  "sideEffects": [
+    "./src/scene-runtime.ts",
+    "./src/spatial-runtime.ts"
+  ],
+  "exports": {
+    ".": "./src/index.ts",
+    "./testing": "./tests/server.ts",
+    "./runtime/scene": "./src/scene-runtime.ts",
+    "./runtime/spatial": "./src/spatial-runtime.ts"
+  },
+  "scripts": {
+    "build": "tsc --noEmit -p tsconfig.json",
+    "test": "vitest run"
+  },
+  "dependencies": {
+    "@reading-studio/contracts": "workspace:*",
+    "esbuild": "0.28.2",
+    "hono": "4.13.8",
+    "three": "0.186.0"
+  },
+  "devDependencies": {
+    "@types/three": "0.186.0"
+  }
+}

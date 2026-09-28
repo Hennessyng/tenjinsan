@@ -1,0 +1,45 @@
+{
+  "name": "@reading-studio/generation",
+  "version": "0.0.0",
+  "private": true,
+  "type": "module",
+  "exports": {
+    "./queue-questions": {
+      "types": "./src/queue-questions.ts",
+      "node": "./src/queue-questions.ts"
+    },
+    "./provider-stages": {
+      "types": "./src/provider-stages.ts",
+      "node": "./src/provider-stages.ts"
+    },
+    "./review": {
+      "types": "./src/review.ts",
+      "node": "./src/review.ts"
+    },
+    "./lesson": {
+      "types": "./src/lesson.ts",
+      "node": "./src/lesson.ts"
+    },
+    "./outline": {
+      "types": "./src/outline.ts",
+      "node": "./src/outline.ts"
+    },
+    ".": {
+      "types": "./src/book-map.ts",
+      "node": "./src/book-map.ts"
+    },
+    "./questions": {
+      "types": "./src/questions.ts",
+      "node": "./src/questions.ts"
+    }
+  },
+  "scripts": {
+    "build": "tsc --noEmit -p tsconfig.json"
+  },
+  "dependencies": {
+    "@reading-studio/contracts": "workspace:*",
+    "@reading-studio/providers": "workspace:*",
+    "@reading-studio/storage": "workspace:*",
+    "zod": "4.6.5"
+  }
+}

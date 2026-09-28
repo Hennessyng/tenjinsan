@@ -1,0 +1,24 @@
+set timeout 60
+log_user 0
+set executable [lindex $argv 0]
+set operation [lindex $argv 1]
+set identifier [lindex $argv 2]
+set response [lindex $argv 3]
+spawn -noecho node --experimental-transform-types $executable $operation $identifier
+expect {
+  -re {Type 'delete-project [^']+' to confirm:} {
+    if {$response eq "confirm"} {
+      send -- "$operation $identifier\r"
+    } else {
+      send -- "no\r"
+    }
+    exp_continue
+  }
+  eof {
+    catch wait result
+    set status [lindex $result 3]
+    if {$response eq "decline" && $status != 0} { exit 0 }
+    exit $status
+  }
+  timeout { exit 124 }
+}

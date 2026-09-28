@@ -1,0 +1,30 @@
+{
+  "name": "@reading-studio/storage",
+  "version": "0.0.0",
+  "private": true,
+  "type": "module",
+  "sideEffects": false,
+  "exports": {
+    ".": "./src/index.ts",
+    "./test-support": "./tests/fixtures.ts"
+  },
+  "scripts": {
+    "build": "tsc --noEmit -p tsconfig.json",
+    "test": "vitest run tests",
+    "test:integration": "vitest run tests",
+    "manual:qa": "node --disable-warning=ExperimentalWarning --experimental-transform-types scripts/manual-qa.ts",
+    "lifecycle:qa": "node --disable-warning=ExperimentalWarning --experimental-transform-types scripts/lifecycle-qa.ts",
+    "migrations:generate": "drizzle-kit generate --config drizzle.config.ts"
+  },
+  "dependencies": {
+    "@reading-studio/contracts": "workspace:*",
+    "better-sqlite3": "13.0.3",
+    "drizzle-orm": "0.45.2",
+    "zod": "4.6.5"
+  },
+  "devDependencies": {
+    "@reading-studio/ingestion": "workspace:*",
+    "@types/better-sqlite3": "9.6.0",
+    "drizzle-kit": "0.31.10"
+  }
+}
