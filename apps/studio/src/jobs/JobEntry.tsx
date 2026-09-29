@@ -141,6 +141,11 @@ export function JobEntry({ job, busy, onAction }: Props): ReactElement {
             Pause reason / <span lang="ja">停止理由</span>: {job.reason}
           </p>
         )}
+        {job.explanation && (
+          <p role="status">
+            {job.explanation} Trace: <code>{job.trace_id}</code>
+          </p>
+        )}
         {job.cancellationRequested && job.state === "running" && (
           <p role="status">
             Cancellation requested; an accepted call may still finish or incur a charge. /{" "}

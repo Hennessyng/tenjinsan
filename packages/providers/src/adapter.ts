@@ -189,6 +189,8 @@ export class ProviderAdapter {
               },
       })
     } catch (error) {
+      if (error instanceof Error && error.name === "CodexConnectionError")
+        return { kind: "error", code: "rejected", usage: { kind: "unknown" } }
       if (error instanceof ProviderError) throw error
       if (NoObjectGeneratedError.isInstance(error))
         return ProviderReceipt.parse({
@@ -269,17 +271,15 @@ export class ProviderAdapter {
       AbortSignal.timeout(this.config.timeoutMs ?? 90000),
     ])
     try {
-      const started = z
-        .object({ thread: z.object({ id: z.string() }) })
-        .parse(
-          await session.request("thread/start", {
-            model: request.model,
-            ephemeral: true,
-            approvalPolicy: "never",
-            sandbox: "read-only",
-            config: { "features.shell_tool": false, web_search: "disabled" },
-          }),
-        )
+      const started = z.object({ thread: z.object({ id: z.string() }) }).parse(
+        await session.request("thread/start", {
+          model: request.model,
+          ephemeral: true,
+          approvalPolicy: "never",
+          sandbox: "read-only",
+          config: { "features.shell_tool": false, web_search: "disabled" },
+        }),
+      )
       return await new Promise<ProviderReceipt>((resolve, reject) => {
         let text = ""
         let usage: ProviderReceipt["usage"] = { kind: "unknown" }

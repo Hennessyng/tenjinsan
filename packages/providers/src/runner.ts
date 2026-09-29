@@ -41,8 +41,12 @@ export class ProviderRunner {
       fence: job.lease.fence,
       now: this.options.clock().toISOString(),
     })
-    const fail = (code: string, retryable = false) =>
-      execution.failProviderJob({ lease: lease(), code, retryable })
+    const fail = (code: string, retryable = false) => {
+      const result = execution.failProviderJob({ lease: lease(), code, retryable })
+      const pause = execution.providerPause(job.id)
+      if (pause) console.info(JSON.stringify({ event: "provider-paused", jobId: job.id, ...pause }))
+      return result
+    }
     try {
       let schema: Record<string, unknown>
       try {
@@ -194,6 +198,11 @@ export class ProviderRunner {
         }
         if (execution.getJob(job.id)?.cancellationRequested)
           return execution.cancelClaimedJob(lease())
+        if (
+          receipt.usage.kind === "known" &&
+          receipt.usage.outputTokens > Math.min(6000, run.budget.maxOutputTokens)
+        )
+          return fail("output-limit")
         switch (receipt.kind) {
           case "error":
             return fail(

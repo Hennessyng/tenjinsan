@@ -9,6 +9,8 @@ export const JobStatus = z.strictObject({
   stage: z.string(),
   state: z.string(),
   reason: z.string().nullable(),
+  trace_id: z.string().nullable(),
+  explanation: z.string().nullable(),
   checkpoint: z.boolean(),
   section: z.strictObject({ index: z.number(), id: z.string() }).nullable(),
   cancellationRequested: z.boolean(),

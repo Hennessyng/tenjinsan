@@ -55,11 +55,15 @@ export interface ExecutionRepository {
   listAttempts(input: unknown): readonly AttemptRecord[]
   getAttemptReceipt(input: unknown): Uint8Array | null
   failProviderJob(input: unknown): JobRecord
+  providerPause(jobId: string): { readonly code: string; readonly trace_id: string } | null
   pauseUnknownProviderJob(input: unknown): JobRecord
   retryProviderJob(input: unknown): JobRecord
 }
 
 export class SqliteExecutionRepository implements ExecutionRepository {
+  providerPause(jobId: string): { readonly code: string; readonly trace_id: string } | null {
+    return this.providerOperations.pauseDetail(jobId)
+  }
   private readonly jobOperations: JobOperations
   private readonly attemptOperations: AttemptOperations
   private readonly artifactOperations: ArtifactOperations

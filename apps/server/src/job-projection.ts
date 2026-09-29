@@ -19,6 +19,8 @@ export const OwnerJob = z.strictObject({
   stage: z.string(),
   state: z.string(),
   reason: z.string().nullable(),
+  trace_id: z.string().nullable(),
+  explanation: z.string().nullable(),
   checkpoint: z.boolean(),
   section: z.strictObject({ index: z.number().int().nonnegative(), id: z.string() }).nullable(),
   cancellationRequested: z.boolean(),
@@ -79,6 +81,7 @@ export function projectOwnerJobs(storage: Storage, ownerId: string) {
 }
 
 function projectOwnerJob(storage: Storage, job: Job, setupCalls: number) {
+  const pause = storage.execution.providerPause(job.id)
   const setup = storage.sources.getSetup(job.setupRevisionId)
   if (!setup) throw new TypeError("Job setup missing")
   const run = storage.execution.getRun(job.runId)
@@ -123,6 +126,12 @@ function projectOwnerJob(storage: Storage, job: Job, setupCalls: number) {
     stage: job.stage,
     state: job.state,
     reason: job.state === "paused" ? job.reason : null,
+    trace_id: pause?.trace_id ?? null,
+    explanation: pause
+      ? pause.code === "output-limit"
+        ? "Reply exceeded the studio output-token cap. No automatic replay."
+        : "Provider access was rejected or its route or usage limit is unavailable. Check your connection before approving new work. No automatic replay or provider switch."
+      : null,
     checkpoint: job.checkpoint !== null,
     section: section ? { index: sectionIndex, id: section.id } : null,
     cancellationRequested: job.cancellationRequested,
