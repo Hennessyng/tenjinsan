@@ -29,7 +29,8 @@ COPY --from=dependencies /app /app
 COPY scripts/owner.ts ./scripts/owner.ts
 COPY scripts/library.ts ./scripts/library.ts
 COPY deploy ./deploy
-RUN apt-get update && apt-get install -y --no-install-recommends age \
+RUN npm install --global @openai/codex@0.155.1 \
+    && apt-get update && apt-get install -y --no-install-recommends age ca-certificates \
     && rm -rf /var/lib/apt/lists/*
 RUN mkdir -p /data/private && chown -R node:node /data \
     && chmod 700 /data /data/private && chmod 755 /app/deploy/entrypoint.sh

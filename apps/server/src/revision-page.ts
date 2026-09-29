@@ -1,6 +1,6 @@
 import { randomUUID } from "node:crypto"
 import { assertNever, SetupRevisionId, StudyId } from "@reading-studio/contracts"
-import { configuredCredential, modelChoices } from "@reading-studio/providers"
+import { configuredCredential } from "@reading-studio/providers"
 import { ContractBoundaryError, type Storage } from "@reading-studio/storage"
 import { revisionPage } from "@reading-studio/studio/revisions"
 import { sourcePage } from "@reading-studio/studio/source-viewer"
@@ -8,22 +8,25 @@ import type { Context, Hono } from "hono"
 import { html } from "hono/html"
 import { z } from "zod"
 import type { AppEnvironment } from "./middleware/access.ts"
+import { offeredModels } from "./provider-connections.ts"
 
 const Expected = z.strictObject({ expectedSetupRevisionId: SetupRevisionId })
 const Decision = z.discriminatedUnion("action", [
   Expected.extend({ action: z.literal("fork") }),
-  Expected.extend({ action: z.literal("provider"), provider: z.enum(["openai", "anthropic"]) }),
+  Expected.extend({
+    action: z.literal("provider"),
+    provider: z.enum(["openrouter", "codex", "anthropic"]),
+    model: z.string().optional(),
+  }),
   Expected.extend({ action: z.literal("consent") }),
 ])
 type Options = {
   readonly storage: Storage
-  readonly available?: (provider: "openai" | "anthropic") => boolean
+  readonly available?: (provider: "openai" | "anthropic" | "openrouter" | "codex") => boolean
 }
 
 export function configureRevisionPage(app: Hono<AppEnvironment>, options: Options) {
   const { storage } = options
-  const available =
-    options.available ?? ((provider) => configuredCredential(provider) !== undefined)
   app.use("/revisions/*", async (context, next) => {
     context.header("Cache-Control", "private, no-store")
     context.header(
@@ -39,6 +42,11 @@ export function configureRevisionPage(app: Hono<AppEnvironment>, options: Option
     if (json) context.header("Cache-Control", "private, no-store")
     const id = StudyId.safeParse(context.req.param("study"))
     const ownerId = context.get("ownerId")
+    const modelChoices = await offeredModels(storage, ownerId)
+    const available = (provider: "openai" | "anthropic" | "openrouter" | "codex", model: string) =>
+      modelChoices.some((choice) => choice.provider === provider && choice.model === model) &&
+      (provider !== "anthropic" ||
+        (options.available?.(provider) ?? configuredCredential(provider) !== undefined))
     const current = () =>
       storage.revisions.current({ studyId: id.success ? id.data : null, ownerId })
     try {
@@ -59,7 +67,7 @@ export function configureRevisionPage(app: Hono<AppEnvironment>, options: Option
       const view = current()
       const interview = storage.interviews.latest(view.setup.studyId)
       return revisionPage(view, {
-        available: available(view.setup.analysis.provider),
+        available: available(view.setup.analysis.provider, view.setup.analysis.model),
         error,
         canEdit: interview !== null && interview.analysisRevisionId === view.analysis?.id,
         choices: modelChoices,
@@ -70,7 +78,7 @@ export function configureRevisionPage(app: Hono<AppEnvironment>, options: Option
       const interview = storage.interviews.latest(view.setup.studyId)
       return {
         view,
-        available: available(view.setup.analysis.provider),
+        available: available(view.setup.analysis.provider, view.setup.analysis.model),
         canEdit: interview !== null && interview.analysisRevisionId === view.analysis?.id,
         choices: modelChoices,
       }
@@ -104,7 +112,13 @@ export function configureRevisionPage(app: Hono<AppEnvironment>, options: Option
             : context.redirect(`/revisions/${fork.setup.studyId}`, 303)
         }
         case "provider": {
-          const choice = modelChoices.find((choice) => choice.provider === decision.provider)
+          const choice = modelChoices.find(
+            (choice) =>
+              choice.provider === decision.provider &&
+              (decision.model === undefined
+                ? decision.provider === "anthropic"
+                : choice.model === decision.model),
+          )
           if (!choice)
             return json
               ? context.json({ error: "Unsupported provider" }, 422)
@@ -118,7 +132,8 @@ export function configureRevisionPage(app: Hono<AppEnvironment>, options: Option
         }
         case "consent": {
           if (view.grant) return conflict()
-          if (!available(view.setup.analysis.provider)) return conflict(503)
+          if (!available(view.setup.analysis.provider, view.setup.analysis.model))
+            return conflict(503)
           const installationId =
             storage.sources.getInstallation(ownerId) ??
             storage.sources.createInstallation({ id: randomUUID(), ownerId })

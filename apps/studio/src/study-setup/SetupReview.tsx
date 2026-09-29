@@ -52,20 +52,21 @@ export function SetupReview({
           ))}
       </ul>
       <p>
-        Limits per run: 64 calls; 32,000 source characters and 6,000 output tokens per call; up to 2
-        explicitly approved transient retries and 1 malformed-output repair. All attempts count
-        toward the call budget.
+        Studio limits: 64 calls; 32,000 serialized request bytes and 6,000 output tokens per call;
+        up to 2 explicitly approved transient retries and 1 malformed-output repair. All attempts
+        count toward the call budget. Codex does not enforce the studio output cap; an oversized
+        reply pauses the job after receipt.
       </p>
       <p>
         Timeouts with an unknown outcome pause for your decision. Providers may charge for accepted
         attempts. No provider switching or hidden retries.
       </p>
       {available ? (
-        <p>Server API credential configured.</p>
+        <p>Selected provider and model available.</p>
       ) : (
         <p role="status">
-          API credential missing. Configure the selected provider on the server, then return here. A
-          chat subscription is not an API credential.
+          Selected provider unavailable. Configure its server key or official Codex connection, then
+          refresh.
         </p>
       )}
       <div className="setup-actions">

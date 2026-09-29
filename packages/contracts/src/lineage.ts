@@ -29,7 +29,7 @@ export const ModelSettings = z
     reasoningEffort: z.enum(["default", "low", "medium", "high"]),
   })
   .readonly()
-export const Provider = z.enum(["openai", "anthropic"])
+export const Provider = z.enum(["openai", "anthropic", "openrouter", "codex"])
 const ScopeResource = z
   .strictObject({
     resourcePath: ResourcePath,

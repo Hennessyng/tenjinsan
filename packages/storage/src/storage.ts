@@ -14,6 +14,7 @@ import {
   releaseMaintenanceInstance,
 } from "./maintenance-process-lock.ts"
 import { OutlineRepository } from "./outlines.ts"
+import { ProviderConnections } from "./provider-connections.ts"
 import { PublicationOutputs } from "./publication-outputs.ts"
 import { parseInput, readProperty } from "./records.ts"
 import { ReviewRepository } from "./reviews.ts"
@@ -48,6 +49,7 @@ export type StorageCounts = {
 }
 
 export interface Storage {
+  readonly providerConnections: ProviderConnections
   readonly maintenance: MaintenanceAdmission
   readonly revisions: RevisionRepository
   readonly publicationOutputs: PublicationOutputs
@@ -74,6 +76,7 @@ function countRows(context: StorageContext, table: string): number {
 }
 
 class SqliteStorage implements Storage {
+  readonly providerConnections: ProviderConnections
   readonly maintenance: MaintenanceAdmission
   readonly revisions: RevisionRepository
   readonly publicationOutputs: PublicationOutputs
@@ -90,7 +93,9 @@ class SqliteStorage implements Storage {
     readonly blobs: PrivateBlobStore,
     private readonly processLock: Database.Database,
     private readonly instanceId: string,
+    privateDataRoot: string,
   ) {
+    this.providerConnections = new ProviderConnections(privateDataRoot)
     this.maintenance = new MaintenanceAdmission(context)
     const sources = new SqliteSourceRepository(context)
     this.reviews = new ReviewRepository(context)
@@ -140,6 +145,7 @@ class SqliteStorage implements Storage {
   }
 
   close(): void {
+    this.providerConnections.close()
     try {
       releaseMaintenanceInstance(this.context.sqlite, this.instanceId)
     } finally {
@@ -156,6 +162,7 @@ export function openStorage(input: unknown): Storage {
   const databasePath = readProperty(input, "storage configuration", "databasePath")
   const privateDataRoot = readProperty(input, "storage configuration", "privateDataRoot")
   if (typeof databasePath !== "string") throw new ContractBoundaryError("database path")
+  if (typeof privateDataRoot !== "string") throw new ContractBoundaryError("private data root")
   const blobs = new PrivateBlobStore(privateDataRoot)
   const role = parseInput(
     z.enum(["api", "worker", "storage"]),
@@ -167,7 +174,7 @@ export function openStorage(input: unknown): Storage {
   try {
     context = openDatabase(databasePath)
     const instanceId = registerMaintenanceInstance(context.sqlite, role)
-    return new SqliteStorage(context, blobs, processLock, instanceId)
+    return new SqliteStorage(context, blobs, processLock, instanceId, privateDataRoot)
   } catch (error) {
     context?.sqlite.close()
     processLock.close()

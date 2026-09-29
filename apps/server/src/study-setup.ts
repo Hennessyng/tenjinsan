@@ -4,23 +4,26 @@ import {
   SetupRevisionId,
   StudySetupRevision,
 } from "@reading-studio/contracts"
-import { configuredCredential, defaultSettings, modelChoices } from "@reading-studio/providers"
-import type { SourceRepository } from "@reading-studio/storage"
+import { configuredCredential, defaultSettings } from "@reading-studio/providers"
+import type { SourceRepository, Storage } from "@reading-studio/storage"
 import { setupResult, setupReview } from "@reading-studio/studio/study-setup"
 import type { Context, Hono } from "hono"
 import { z } from "zod"
 import type { AppEnvironment } from "./middleware/access.ts"
+import { offeredModels } from "./provider-connections.ts"
 import { configureSetupReadApi } from "./study-setup-read-api.ts"
 
 const Draft = z.strictObject({
-  provider: z.enum(["openai", "anthropic"]),
+  provider: z.enum(["openrouter", "codex", "anthropic"]),
+  model: z.string().min(1).optional(),
   scope: z.enum(["all-main-chapters", "partial"]),
   chapters: z.union([z.string(), z.array(z.string())]).optional(),
 })
 const Decision = z.strictObject({ decision: z.enum(["send", "revise", "cancel"]) })
 type Options = {
   readonly sources: SourceRepository
-  readonly available?: (provider: "openai" | "anthropic") => boolean
+  readonly storage?: Storage
+  readonly available?: (provider: "openai" | "anthropic" | "openrouter" | "codex") => boolean
   readonly onSend?: (input: {
     readonly setupId: string
     readonly grantId: string
@@ -39,8 +42,18 @@ export function configureStudySetup(app: Hono<AppEnvironment>, options: Options)
     context.header("Referrer-Policy", "same-origin")
     await next()
   })
-  const available =
-    options.available ?? ((provider) => configuredCredential(provider) !== undefined)
+  const choices = (ownerId: string) => offeredModels(options.storage, ownerId)
+  const available = async (
+    provider: StudySetupRevision["analysis"]["provider"],
+    model: string,
+    ownerId: string,
+  ) =>
+    provider !== "openai" &&
+    (await choices(ownerId)).some(
+      (choice) => choice.provider === provider && choice.model === model,
+    ) &&
+    (provider !== "anthropic" ||
+      (options.available?.(provider) ?? configuredCredential(provider) !== undefined))
   function owned(revision: string, ownerId: string) {
     const parsed = NormalizationRevisionId.safeParse(revision)
     if (!parsed.success) return null
@@ -58,7 +71,7 @@ export function configureStudySetup(app: Hono<AppEnvironment>, options: Options)
         "This draft is missing, cancelled, or superseded. Review a fresh setup before sending.",
       revision,
     })
-  configureSetupReadApi(app, sources, owned, available, unavailable)
+  configureSetupReadApi(app, sources, owned, available, unavailable, choices)
   async function createDraft(context: Context<AppEnvironment>) {
     const json = context.req.path.startsWith("/api/")
     if (!context.req.header("origin")) return context.text("Forbidden", 403)
@@ -103,7 +116,13 @@ export function configureStudySetup(app: Hono<AppEnvironment>, options: Options)
       return json
         ? context.json({ error: "Select available chapters explicitly" }, 400)
         : context.text("Select available chapters explicitly", 400)
-    const choice = modelChoices.find((choice) => choice.provider === provider)
+    const choice = (await choices(context.get("ownerId"))).find(
+      (choice) =>
+        choice.provider === provider &&
+        (parsed.data.model === undefined
+          ? provider === "anthropic"
+          : choice.model === parsed.data.model),
+    )
     if (!choice)
       return json
         ? context.json({ error: "Unsupported model" }, 400)
@@ -173,9 +192,12 @@ export function configureStudySetup(app: Hono<AppEnvironment>, options: Options)
       return json
         ? context.json({ error: "Setup unavailable" }, 409)
         : context.html(unavailable(revision), 409)
-    if (decision.data.decision === "send" && !available(setup.analysis.provider))
+    if (
+      decision.data.decision === "send" &&
+      !(await available(setup.analysis.provider, setup.analysis.model, context.get("ownerId")))
+    )
       return json
-        ? context.json({ error: "API credential missing" }, 503)
+        ? context.json({ error: "Selected provider unavailable" }, 503)
         : context.html(
             setupReview({ setup, normalization: source.normalization, available: false }),
             503,

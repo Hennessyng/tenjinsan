@@ -5,7 +5,7 @@ const Setup = z.object({
   studyId: z.string(),
   editionId: z.string(),
   analysis: z.object({
-    provider: z.enum(["openai", "anthropic"]),
+    provider: z.enum(["openai", "anthropic", "openrouter", "codex"]),
     model: z.string(),
     scope: z.object({
       kind: z.string(),
@@ -24,7 +24,13 @@ export const RevisionState = z.object({
   }),
   available: z.boolean(),
   canEdit: z.boolean(),
-  choices: z.array(z.object({ provider: z.enum(["openai", "anthropic"]), label: z.string() })),
+  choices: z.array(
+    z.object({
+      provider: z.enum(["anthropic", "openrouter", "codex"]),
+      model: z.string(),
+      label: z.string(),
+    }),
+  ),
 })
 export const ForkedRevision = z.object({ forkStudyId: z.string() })
 export type Revision = z.infer<typeof RevisionState>

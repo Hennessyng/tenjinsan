@@ -35,10 +35,10 @@ export async function runProductionWorker(signal: AbortSignal): Promise<void> {
     runtimeRole: "worker",
   })
   const adapters = {
-    ...(configuredCredential("openai")
+    ...(configuredCredential("openrouter")
       ? {
-          openai: new ProviderAdapter({
-            provider: "openai",
+          openrouter: new ProviderAdapter({
+            provider: "openrouter",
             ...(config.STUDIO_PROVIDER_BASE_URL
               ? { baseURL: config.STUDIO_PROVIDER_BASE_URL }
               : {}),
@@ -107,7 +107,20 @@ export async function runProductionWorker(signal: AbortSignal): Promise<void> {
         }
         return {
           kind: "structured" as const,
-          runner: new ProviderRunner({ ...authority, clock: () => new Date(), adapters }),
+          runner: new ProviderRunner({
+            ...authority,
+            clock: () => new Date(),
+            adapters: {
+              ...adapters,
+              codex: new ProviderAdapter({
+                provider: "codex",
+                codex: storage.providerConnections.codex(
+                  authority.ownerId,
+                  authority.installationId,
+                ),
+              }),
+            },
+          }),
           request:
             job.stage === "analysis"
               ? new BookMapPipeline(authority).stage(job)

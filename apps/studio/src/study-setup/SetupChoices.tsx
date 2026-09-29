@@ -1,6 +1,7 @@
 import type { FormEvent, ReactElement } from "react"
 import { useState } from "react"
-import type { z } from "zod"
+import { z } from "zod"
+import { SourceRequestError, sourceCommand } from "../source-viewer/client.ts"
 import type { SetupChoices as ChoicesSchema, SetupSelection } from "./client.ts"
 
 type Choices = z.infer<typeof ChoicesSchema>
@@ -17,16 +18,36 @@ export function SetupChoices({
   const { normalization, choices } = value
   const main = normalization.resources.filter((resource) => resource.role === "main-chapter")
   const complete = main.length > 0 && main.every((resource) => resource.status === "included")
-  const [provider, setProvider] = useState<SetupSelection["provider"]>(
-    choices[0]?.provider ?? "openai",
-  )
+  const [selection, setSelection] = useState("0")
+  const [authUrl, setAuthUrl] = useState<string | null>(null)
+  const [connectionBusy, setConnectionBusy] = useState(false)
+  const [connectionError, setConnectionError] = useState(false)
+  async function connection(action: "connect" | "disconnect") {
+    setConnectionBusy(true)
+    setConnectionError(false)
+    try {
+      const result = await sourceCommand(
+        `/api/provider-connections/codex/${action}`,
+        {},
+        z.object({ authUrl: z.url().optional() }),
+      )
+      setAuthUrl(result.authUrl ?? null)
+      if (action === "disconnect") window.location.reload()
+    } catch (error) {
+      if (error instanceof SourceRequestError) setConnectionError(true)
+      else throw error
+    } finally {
+      setConnectionBusy(false)
+    }
+  }
   const [scope, setScope] = useState<SetupSelection["scope"]>(
     complete ? "all-main-chapters" : "partial",
   )
   const [chapters, setChapters] = useState<readonly string[]>([])
   function submit(event: FormEvent<HTMLFormElement>): void {
     event.preventDefault()
-    onSubmit({ provider, scope, chapters })
+    const choice = choices[Number(selection)]
+    if (choice) onSubmit({ provider: choice.provider, model: choice.model, scope, chapters })
   }
   return (
     <section className="setup">
@@ -42,13 +63,11 @@ export function SetupChoices({
         <label htmlFor="provider">Provider and model</label>
         <select
           id="provider"
-          value={provider}
-          onChange={(event) =>
-            setProvider(event.target.value === "anthropic" ? "anthropic" : "openai")
-          }
+          value={selection}
+          onChange={(event) => setSelection(event.target.value)}
         >
-          {choices.map((choice) => (
-            <option key={choice.provider} value={choice.provider}>
+          {choices.map((choice, index) => (
+            <option key={`${choice.provider}/${choice.model}`} value={index}>
               {choice.label}
             </option>
           ))}
@@ -103,12 +122,41 @@ export function SetupChoices({
           )}
         </fieldset>
         <p>
-          API access is separate from ChatGPT or Claude chat subscriptions. Keys stay on the server.
+          OpenRouter and Anthropic use server-owned API keys. Codex uses official subscription
+          sign-in. Studio caps: 64 calls, 32,000 request bytes, 6,000 output tokens. Codex output is
+          checked after receipt.
         </p>
-        <button type="submit" disabled={busy}>
+        <button type="submit" disabled={busy || !choices[Number(selection)]}>
           Review transmission
         </button>
       </form>
+      <h2>Codex connection</h2>
+      <p role="status">
+        {choices.some((choice) => choice.provider === "codex") ? "Connected" : "Unavailable"}
+      </p>
+      {connectionError && <p role="alert">Official Codex route unavailable. No study was sent.</p>}
+      {authUrl && (
+        <p>
+          <a href={authUrl} target="_blank" rel="noreferrer">
+            Continue official Codex sign-in
+          </a>
+        </p>
+      )}
+      <div className="setup-actions">
+        <button type="button" disabled={connectionBusy} onClick={() => void connection("connect")}>
+          Connect Codex
+        </button>
+        <button
+          type="button"
+          disabled={connectionBusy}
+          onClick={() => void connection("disconnect")}
+        >
+          Disconnect Codex
+        </button>
+        <button type="button" onClick={() => window.location.reload()}>
+          Refresh connection and models
+        </button>
+      </div>
     </section>
   )
 }

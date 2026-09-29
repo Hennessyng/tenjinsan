@@ -1,7 +1,7 @@
 import { NormalizationRevision } from "@reading-studio/contracts/source"
 import { z } from "zod"
 
-const Provider = z.enum(["openai", "anthropic"])
+const Provider = z.enum(["openai", "anthropic", "openrouter", "codex"])
 const Scope = z.enum(["all-main-chapters", "partial"])
 export const SetupChoices = z.object({
   normalization: NormalizationRevision,
@@ -31,6 +31,7 @@ export const SetupDecision = z.discriminatedUnion("decision", [
 ])
 export type SetupSelection = {
   readonly provider: z.infer<typeof Provider>
+  readonly model: string
   readonly scope: z.infer<typeof Scope>
   readonly chapters: readonly string[]
 }

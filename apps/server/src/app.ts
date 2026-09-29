@@ -21,6 +21,7 @@ import {
   type SecurityConfig,
 } from "./middleware/access.ts"
 import { configureOutline } from "./outline.ts"
+import { configureProviderConnections } from "./provider-connections.ts"
 import { configurePublication } from "./publication.ts"
 import { configureRevisionPage } from "./revision-page.ts"
 import { configureRevisions } from "./revisions.ts"
@@ -65,7 +66,9 @@ export type AppDependencies = {
     setupRevisionId: string,
     grantId: string,
   ) => void
-  readonly providerAvailable?: (provider: "openai" | "anthropic") => boolean
+  readonly providerAvailable?: (
+    provider: "openai" | "anthropic" | "openrouter" | "codex",
+  ) => boolean
   readonly onSetupSend?: NonNullable<Parameters<typeof configureStudySetup>[1]["onSend"]>
   readonly renderOutputsInWorker?: boolean
 }
@@ -206,6 +209,7 @@ export function createApp({
     })
   if (reviewStorage) configureRevisions(app, reviewStorage)
   if (reviewStorage) configureJobs(app, reviewStorage)
+  if (reviewStorage) configureProviderConnections(app, reviewStorage)
   if (reviewStorage)
     configureRevisionPage(app, {
       storage: reviewStorage,
@@ -230,6 +234,7 @@ export function createApp({
   if (sources !== undefined)
     configureStudySetup(app, {
       sources,
+      ...(reviewStorage ? { storage: reviewStorage } : {}),
       ...(providerAvailable ? { available: providerAvailable } : {}),
       ...(onSetupSend ? { onSend: onSetupSend } : {}),
     })

@@ -10,7 +10,7 @@ export function RevisionRoutes(): ReactElement {
   const study = window.location.pathname.split("/")[2] ?? ""
   const endpoint = `/api/revision-page/${encodeURIComponent(study)}`
   const [state, setState] = useState<Revision | null>(null)
-  const [provider, setProvider] = useState<"openai" | "anthropic">("openai")
+  const [provider, setProvider] = useState("0")
   const [busy, setBusy] = useState(false)
   const [error, setError] = useState(false)
   const alert = useRef<HTMLParagraphElement>(null)
@@ -19,7 +19,7 @@ export function RevisionRoutes(): ReactElement {
     sourceRequest(endpoint, RevisionState, controller.signal).then(
       (value) => {
         setState(value)
-        setProvider(value.view.setup.analysis.provider)
+        setProvider("0")
       },
       (failure: unknown) => {
         if (controller.signal.aborted) return
@@ -39,7 +39,12 @@ export function RevisionRoutes(): ReactElement {
     const input = {
       action,
       expectedSetupRevisionId: state.view.setup.id,
-      ...(action === "provider" ? { provider } : {}),
+      ...(action === "provider"
+        ? {
+            provider: state.choices[Number(provider)]?.provider,
+            model: state.choices[Number(provider)]?.model,
+          }
+        : {}),
     }
     try {
       if (action === "fork") {
@@ -48,7 +53,7 @@ export function RevisionRoutes(): ReactElement {
       } else {
         const updated = await sourceCommand(endpoint, input, RevisionState)
         setState(updated)
-        setProvider(updated.view.setup.analysis.provider)
+        setProvider("0")
       }
     } catch (failure) {
       if (failure instanceof SourceRequestError) {
@@ -167,12 +172,10 @@ export function RevisionRoutes(): ReactElement {
           <select
             id="revision-provider"
             value={provider}
-            onChange={(event) =>
-              setProvider(event.target.value === "anthropic" ? "anthropic" : "openai")
-            }
+            onChange={(event) => setProvider(event.target.value)}
           >
-            {choices.map((choice) => (
-              <option value={choice.provider} key={choice.provider}>
+            {choices.map((choice, index) => (
+              <option value={index} key={`${choice.provider}/${choice.model}`}>
                 {choice.label}
               </option>
             ))}

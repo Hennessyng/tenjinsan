@@ -1,10 +1,9 @@
 import type { StudySetupRevision } from "@reading-studio/contracts"
 
 export const modelChoices = [
-  { provider: "openai", model: "gpt-4.1-mini", label: "OpenAI / GPT-4.1 mini" },
   { provider: "anthropic", model: "claude-sonnet-4-6", label: "Anthropic / Claude Sonnet 4.6" },
 ] as const
-export type ProviderName = (typeof modelChoices)[number]["provider"]
+export type ProviderName = StudySetupRevision["analysis"]["provider"]
 export type Settings = StudySetupRevision["analysis"]["settings"]
 export class ProviderError extends Error {
   override readonly name = "ProviderError"
@@ -21,7 +20,11 @@ export class ProviderError extends Error {
   }
 }
 export function validateModel(provider: ProviderName, model: string, settings: Settings) {
-  if (!modelChoices.some((choice) => choice.provider === provider && choice.model === model))
+  if (
+    provider === "openai" ||
+    !model.trim() ||
+    (provider === "anthropic" && !modelChoices.some((choice) => choice.model === model))
+  )
     throw new ProviderError("unsupported-model")
   if (
     settings.temperature !== 0 ||

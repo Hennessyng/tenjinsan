@@ -35,7 +35,7 @@ it("providers setup persists a draft without granting or enqueuing any cloud wor
     method: "POST",
     headers: fixture.headers,
     body: new URLSearchParams({
-      provider: "openai",
+      provider: "anthropic",
       scope: "partial",
       chapters: "chapter-one.xhtml",
     }),

@@ -23,6 +23,21 @@ const settings = {
 async function wire(status: number, body: unknown) {
   const requests: unknown[] = []
   const server = createServer(async (request, response) => {
+    if (request.method === "GET") {
+      response.setHeader("content-type", "application/json")
+      response.end(
+        JSON.stringify({
+          data: [
+            {
+              id: "openai/gpt-4.1-mini",
+              name: "Fixture",
+              supported_parameters: ["structured_outputs"],
+            },
+          ],
+        }),
+      )
+      return
+    }
     const chunks: Buffer[] = []
     for await (const chunk of request) chunks.push(Buffer.from(chunk))
     requests.push(JSON.parse(Buffer.concat(chunks).toString()))
@@ -36,12 +51,12 @@ async function wire(status: number, body: unknown) {
   if (!address || typeof address === "string") throw new TypeError("Missing wire address")
   return { requests, baseURL: `http://127.0.0.1:${address.port}/v1` }
 }
-for (const provider of ["openai", "anthropic"] as const) {
-  const model = provider === "openai" ? "gpt-4.1-mini" : "claude-sonnet-4-6"
+for (const provider of ["openrouter", "anthropic"] as const) {
+  const model = provider === "openrouter" ? "openai/gpt-4.1-mini" : "claude-sonnet-4-6"
   it(`${provider} measures the SDK envelope before any wire call`, async () => {
     const fixture = await wire(
       200,
-      provider === "openai"
+      provider === "openrouter"
         ? {
             id: "chatcmpl-measure",
             object: "chat.completion",
@@ -87,7 +102,7 @@ for (const provider of ["openai", "anthropic"] as const) {
     // Given
     const fixture = await wire(
       200,
-      provider === "openai"
+      provider === "openrouter"
         ? {
             id: "chatcmpl-fixture",
             object: "chat.completion",
@@ -133,7 +148,7 @@ for (const provider of ["openai", "anthropic"] as const) {
     })
     expect(fixture.requests).toHaveLength(1)
     expect(fixture.requests[0]).toMatchObject(
-      provider === "openai"
+      provider === "openrouter"
         ? { response_format: { type: "json_schema", json_schema: { strict: true } } }
         : { output_config: { format: { type: "json_schema" } } },
     )
@@ -178,15 +193,16 @@ for (const provider of ["openai", "anthropic"] as const) {
       baseURL: fixture.baseURL,
     })
     // When / Then
-    await expect(
-      adapter.dispatch({
-        model: "unlisted-model",
-        settings,
-        prompt: "fixture",
-        schema: z.toJSONSchema(schema),
-        signal: new AbortController().signal,
-      }),
-    ).rejects.toMatchObject({ code: "unsupported-model" })
+    const result = adapter.dispatch({
+      model: "unlisted-model",
+      settings,
+      prompt: "fixture",
+      schema: z.toJSONSchema(schema),
+      signal: new AbortController().signal,
+    })
+    if (provider === "openrouter")
+      await expect(result).resolves.toMatchObject({ kind: "error", code: "rejected" })
+    else await expect(result).rejects.toMatchObject({ code: "unsupported-model" })
     expect(fixture.requests).toHaveLength(0)
   })
   it(`${provider} rejects unsupported settings before any wire request`, async () => {

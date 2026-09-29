@@ -34,11 +34,12 @@ services:
       SERVER_HOST: 0.0.0.0
       SERVER_PORT: "8787"
       TRUST_PROXY: "1"
-      OPENAI_API_KEY: ${OPENAI_API_KEY:-}
+      OPENROUTER_API_KEY: ${OPENROUTER_API_KEY:-}
       ANTHROPIC_API_KEY: ${ANTHROPIC_API_KEY:-}
     cpus: 1.0
     mem_limit: 512m
     pids_limit: 128
+    networks: [backend, worker-egress]
 
   worker:
     <<: *app
@@ -46,7 +47,7 @@ services:
     environment:
       DATABASE_PATH: /data/studio.sqlite
       PRIVATE_DATA_ROOT: /data/private
-      OPENAI_API_KEY: ${OPENAI_API_KEY:-}
+      OPENROUTER_API_KEY: ${OPENROUTER_API_KEY:-}
       ANTHROPIC_API_KEY: ${ANTHROPIC_API_KEY:-}
       XDG_CONFIG_HOME: /tmp/chromium-config
       XDG_CACHE_HOME: /tmp/chromium-cache
