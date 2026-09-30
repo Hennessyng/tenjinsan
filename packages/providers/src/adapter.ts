@@ -189,8 +189,10 @@ export class ProviderAdapter {
               },
       })
     } catch (error) {
-      if (error instanceof Error && error.name === "CodexConnectionError")
+      if (error instanceof Error && error.name === "CodexConnectionError") {
+        await this.config.codex?.disconnect()
         return { kind: "error", code: "rejected", usage: { kind: "unknown" } }
+      }
       if (error instanceof ProviderError) throw error
       if (NoObjectGeneratedError.isInstance(error))
         return ProviderReceipt.parse({
@@ -263,8 +265,10 @@ export class ProviderAdapter {
   private async codexDispatch(request: StructuredRequest): Promise<ProviderReceipt> {
     const connection = this.config.codex
     if (!connection) throw new ProviderError("missing-credentials")
-    if (!(await connection.models()).some((choice) => choice.model === request.model))
+    if (!(await connection.models()).some((choice) => choice.model === request.model)) {
+      await connection.disconnect()
       return { kind: "error", code: "rejected", usage: { kind: "unknown" } }
+    }
     const session = await connection.open()
     const signal = AbortSignal.any([
       request.signal,
@@ -280,7 +284,7 @@ export class ProviderAdapter {
           config: { "features.shell_tool": false, web_search: "disabled" },
         }),
       )
-      return await new Promise<ProviderReceipt>((resolve, reject) => {
+      const receipt = await new Promise<ProviderReceipt>((resolve, reject) => {
         let text = ""
         let usage: ProviderReceipt["usage"] = { kind: "unknown" }
         const abort = () => {
@@ -333,6 +337,8 @@ export class ProviderAdapter {
             resolve({ kind: "error", code: "rejected", usage })
           })
       })
+      if (receipt.kind === "error") await connection.disconnect()
+      return receipt
     } finally {
       session.close()
     }
