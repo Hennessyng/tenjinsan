@@ -1,5 +1,13 @@
-import { expect, test } from "@playwright/test"
+import { expect, type Page, test } from "@playwright/test"
 import { interviewFixture } from "@reading-studio/server/interview-fixture"
+
+async function saveAndNavigate(page: Page, name: string): Promise<void> {
+  await Promise.all([
+    page.waitForEvent("framenavigated", (frame) => frame === page.mainFrame()),
+    page.getByRole("button", { name, exact: true }).click(),
+  ])
+  await page.waitForLoadState("load")
+}
 
 test.describe("React interview", () => {
   let fixture: Awaited<ReturnType<typeof interviewFixture>>
@@ -31,17 +39,17 @@ test.describe("React interview", () => {
       await expect(page.getByRole("heading", { name: "Shape your reading" })).toBeVisible()
       // When: a single choice is saved, then a multi-choice is replaced by custom text.
       await page.getByLabel("Ask a more open question").check()
-      await page.getByRole("button", { name: "Save choices" }).click()
+      await saveAndNavigate(page, "Save choices")
       await expect(page.getByRole("status")).toContainText("Answer saved")
       await page.reload()
       await expect(page.getByLabel("Ask a more open question")).toBeChecked()
       await page.getByRole("link", { name: "Next", exact: true }).click()
       await page.getByLabel("At work", { exact: true }).check()
       await page.getByLabel("At home", { exact: true }).check()
-      await page.getByRole("button", { name: "Save choices" }).click()
+      await saveAndNavigate(page, "Save choices")
       await expect(page.getByRole("status")).toContainText("Answer saved")
       await page.getByLabel("Your own response").fill("Listen first.\n相手の話を聞く。")
-      await page.getByRole("button", { name: "Save custom response" }).click()
+      await saveAndNavigate(page, "Save custom response")
       await expect
         .poll(
           () =>
@@ -78,7 +86,7 @@ test.describe("React interview", () => {
     await page.getByRole("button", { name: "Save choices" }).click()
     await expect(page.getByRole("alert")).toBeVisible()
     await page.getByLabel("Defer this decision").check()
-    await page.getByRole("button", { name: "Save choices" }).click()
+    await saveAndNavigate(page, "Save choices")
     await page.reload()
     await expect(page.getByLabel("Defer this decision")).toBeChecked()
     expect(fixture.storage.counts()).toMatchObject({ approvals: 0, grants: 0, jobs: 0 })
@@ -87,14 +95,14 @@ test.describe("React interview", () => {
   test("replaces a choice with unsure then skip and browses optional lenses", async ({ page }) => {
     await page.goto("http://127.0.0.1:4173/interviews/study-fixture")
     await page.getByLabel("Listen before interpreting").check()
-    await page.getByRole("button", { name: "Save choices" }).click()
+    await saveAndNavigate(page, "Save choices")
     await expect(page.getByRole("status")).toContainText("Answer saved")
-    await page.getByRole("button", { name: "Not sure yet" }).click()
+    await saveAndNavigate(page, "Not sure yet")
     await expect
       .poll(() => fixture.storage.interviews.answers("interview-fixture")[0]?.answer.kind)
       .toBe("unsure")
     await page.reload()
-    await page.getByRole("button", { name: "Skip this question" }).click()
+    await saveAndNavigate(page, "Skip this question")
     await expect
       .poll(() => fixture.storage.interviews.answers("interview-fixture")[0]?.answer.kind)
       .toBe("skipped")
