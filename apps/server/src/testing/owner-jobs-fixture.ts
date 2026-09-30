@@ -1,7 +1,7 @@
 import { defaultSettings } from "@reading-studio/providers"
 import { sourceViewerFixture } from "./source-viewer-fixture.ts"
 
-export async function ownerJobsFixture() {
+export async function ownerJobsFixture(provider: "openrouter" | "openai" = "openrouter") {
   const fixture = await sourceViewerFixture()
   const storage = fixture.storage
   const owner = storage.sources.listStudiesByEdition("edition-fixture")[0]
@@ -24,7 +24,7 @@ export async function ownerJobsFixture() {
           selected: [{ resourcePath: "chapter-one.xhtml", blockIds: ["opening"] }],
           exclusions: [],
         },
-        provider: "openai",
+        provider,
         model: "gpt-4.1-mini",
         analysisPromptVersion: "analysis-1",
         analysisSchemaVersion: "analysis-1",
@@ -65,7 +65,7 @@ export async function ownerJobsFixture() {
     runId: "run-jobs",
     inputRevisionId,
     setupRevisionId: "setup-jobs",
-    provider: "openai",
+    provider,
     model: "gpt-4.1-mini",
     promptVersion: "analysis-1",
     schemaVersion: "analysis-1",

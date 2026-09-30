@@ -35,7 +35,9 @@ test.describe("React study setup", () => {
       await page.setViewportSize({ width, height: 900 })
       await page.goto("http://127.0.0.1:4173/sources/revision-fixture/setup")
       await expect(page.getByRole("heading", { name: "Set up a study" })).toBeVisible()
-      await page.getByLabel("Provider and model").selectOption("anthropic")
+      await page
+        .getByLabel("Provider and model")
+        .selectOption({ label: "Anthropic / Claude Sonnet 4.6" })
       await page.getByLabel("Choose specific chapters").check()
       await page.getByLabel("chapter-one.xhtml", { exact: true }).check()
       const grantsBefore = fixture.storage.counts().grants
@@ -67,7 +69,9 @@ test.describe("React study setup", () => {
     const stale = page.url()
     // When: a newer draft replaces it.
     await page.getByRole("button", { name: "Revise", exact: true }).click()
-    await page.getByLabel("Provider and model").selectOption("anthropic")
+    await page
+      .getByLabel("Provider and model")
+      .selectOption({ label: "Anthropic / Claude Sonnet 4.6" })
     await page.getByRole("button", { name: "Review transmission" }).click()
     await expect(page.getByRole("heading", { name: "Review transmission" })).toBeVisible()
     const current = page.url()
@@ -102,7 +106,7 @@ test.describe("React study setup", () => {
       })
       await page.goto("http://127.0.0.1:4173/sources/revision-fixture/setup")
       await page.getByRole("button", { name: "Review transmission" }).click()
-      await expect(page.getByRole("status")).toContainText("API credential missing")
+      await expect(page.getByRole("status")).toContainText("Selected provider unavailable")
       await expect(page.getByRole("button", { name: "Send", exact: true })).toBeDisabled()
       expect(missing.storage.counts()).toMatchObject({ grants: 0, jobs: 0, attempts: 0 })
       await page.getByRole("button", { name: "Cancel", exact: true }).click()

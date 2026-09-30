@@ -28,6 +28,40 @@ test("lists only sanitized owned jobs when signed in", async () => {
   expect(JSON.stringify(body)).not.toMatch(/grant|lease|promptVersion|responseBody|apiKey|opening/)
 })
 
+test("shows direct-OpenAI history but refuses dispatch and retry", async () => {
+  const historical = await ownerJobsFixture("openai")
+  try {
+    const response = await fetch(`${historical.fixture.origin}/api/study-jobs`, {
+      headers: { cookie: historical.cookie },
+    })
+    expect((await response.json()).jobs[0]).toMatchObject({
+      provider: "openai",
+      state: "historical-inert",
+      canRetry: false,
+    })
+    const retry = await fetch(`${historical.fixture.origin}/api/study-jobs/job-jobs/retry`, {
+      method: "POST",
+      headers: {
+        cookie: historical.cookie,
+        origin: historical.fixture.origin,
+        "content-type": "application/json",
+      },
+      body: JSON.stringify({ expectedSetupRevisionId: "setup-jobs" }),
+    })
+    expect(retry.status).toBe(409)
+    expect(
+      historical.fixture.storage.execution.claimNextJob({
+        token: "retired",
+        now: "2026-01-01T00:00:00Z",
+        expiresAt: "2026-01-01T00:01:00Z",
+      }),
+    ).toBeNull()
+    expect(historical.fixture.storage.execution.listAttempts("run-jobs")).toHaveLength(0)
+  } finally {
+    await historical.fixture.close()
+  }
+})
+
 test("cancels a queued job only with the current revision and same-origin owner session", async () => {
   // Given: the queued job above.
   // When: a revision-bound owner cancel is submitted.

@@ -32,7 +32,9 @@ test.describe("React revisions and provider choice", () => {
       await page.goto("http://127.0.0.1:4173/revisions/study-fixture")
       await expect(page.getByRole("heading", { name: "Study revisions /" })).toBeVisible()
       // When: a different provider is selected.
-      await page.getByLabel("Provider and model /").selectOption("anthropic")
+      await page
+        .getByLabel("Provider and model /")
+        .selectOption({ label: "Anthropic / Claude Sonnet 4.6" })
       await page.getByRole("button", { name: "Review provider change /" }).click()
       // Then: no grant or job is created until consent is explicit.
       await expect(page.getByRole("status")).toContainText("Fresh consent required")
