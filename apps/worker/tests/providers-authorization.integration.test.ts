@@ -3,7 +3,7 @@ import { Job, TransmissionGrant } from "@reading-studio/contracts"
 import { ProviderAdapter, ProviderRunner } from "@reading-studio/providers"
 import { afterEach, expect, it } from "vitest"
 import { z } from "zod"
-import { seedQueuedJob } from "./fixtures.ts"
+import { seedActiveJob as seedQueuedJob } from "./fixtures.ts"
 import { protocolOutput, providerWire } from "./providers-wire.ts"
 
 const fixtures: ReturnType<typeof seedQueuedJob>[] = []
@@ -107,15 +107,15 @@ for (const scenario of [
       default:
         throw new TypeError(`Unhandled scenario ${scenario satisfies never}`)
     }
-    const wire = await providerWire([protocolOutput("openai")])
+    const wire = await providerWire([protocolOutput("openrouter")])
     const runner = new ProviderRunner({
       storage,
       installationId: "installation-1",
       ownerId: "owner-1",
       clock: () => new Date("2026-01-01T00:00:01Z"),
       adapters: {
-        openai: new ProviderAdapter({
-          provider: "openai",
+        openrouter: new ProviderAdapter({
+          provider: "openrouter",
           apiKey: "fixture",
           baseURL: wire.baseURL,
         }),

@@ -60,7 +60,7 @@ it("persists selectable book-cited model questions from the real SDK wire after 
       },
     ],
   }
-  const wire = await providerWire([protocolOutput("openai", JSON.stringify(draft))])
+  const wire = await providerWire([protocolOutput("openrouter", JSON.stringify(draft))])
   try {
     queueQuestions(fixture.storage, "setup-1", "grant-1", analysis)
     const authority = {
@@ -72,8 +72,8 @@ it("persists selectable book-cited model questions from the real SDK wire after 
       ...authority,
       clock: () => new Date(),
       adapters: {
-        openai: new ProviderAdapter({
-          provider: "openai",
+        openrouter: new ProviderAdapter({
+          provider: "openrouter",
           apiKey: "fixture",
           baseURL: wire.baseURL,
         }),

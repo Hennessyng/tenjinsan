@@ -82,7 +82,7 @@ it("checkpoints three ordered sections and publishes only after all bounded call
       ],
     }))
     wire = await providerWire(
-      outputs.map((output) => protocolOutput("openai", JSON.stringify(output))),
+      outputs.map((output) => protocolOutput("openrouter", JSON.stringify(output))),
     )
     queueGenerationStage(storage, "lesson", draft.id, "setup-1", "grant-1")
     const runner = new ProviderRunner({
@@ -91,8 +91,8 @@ it("checkpoints three ordered sections and publishes only after all bounded call
       installationId: "installation-1",
       clock: () => new Date(),
       adapters: {
-        openai: new ProviderAdapter({
-          provider: "openai",
+        openrouter: new ProviderAdapter({
+          provider: "openrouter",
           apiKey: "fixture",
           baseURL: wire.baseURL,
         }),
@@ -167,7 +167,9 @@ it("replays a received section receipt after a crashed worker without redelivery
       revisionId: fixture.outline.id,
       action: "approve",
     })
-    const connected = await providerWire([protocolOutput("openai", JSON.stringify(fixture.draft))])
+    const connected = await providerWire([
+      protocolOutput("openrouter", JSON.stringify(fixture.draft)),
+    ])
     wire = connected
     queueGenerationStage(storage, "lesson", fixture.outline.id, "setup-1", "grant-1")
     const createWorker = (crash: boolean, clock: () => Date) =>
@@ -185,8 +187,8 @@ it("replays a received section receipt after a crashed worker without redelivery
             installationId: "installation-1",
             clock,
             adapters: {
-              openai: new ProviderAdapter({
-                provider: "openai",
+              openrouter: new ProviderAdapter({
+                provider: "openrouter",
                 apiKey: "fixture",
                 baseURL: connected.baseURL,
               }),

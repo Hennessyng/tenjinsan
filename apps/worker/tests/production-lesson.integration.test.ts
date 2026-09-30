@@ -24,7 +24,7 @@ for (const consent of [true, false]) {
       privateDataRoot: join(directory, "private"),
     })
     const fixture = lessonFixture(storage, "gpt-4.1-mini")
-    const wire = await providerWire([protocolOutput("openai", JSON.stringify(fixture.draft))])
+    const wire = await providerWire([protocolOutput("openrouter", JSON.stringify(fixture.draft))])
     try {
       const grant = completeGraphFixtures().grant
       storage.sources.appendGrant(
@@ -46,8 +46,8 @@ for (const consent of [true, false]) {
         ...authority,
         clock: () => new Date(),
         adapters: {
-          openai: new ProviderAdapter({
-            provider: "openai",
+          openrouter: new ProviderAdapter({
+            provider: "openrouter",
             apiKey: "fixture",
             baseURL: wire.baseURL,
           }),

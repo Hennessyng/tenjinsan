@@ -2,7 +2,7 @@ import { rmSync } from "node:fs"
 import { openMaintenanceDatabase, withMaintenance } from "@reading-studio/storage"
 import { expect, it } from "vitest"
 import { WorkerRuntime } from "../src/runtime.ts"
-import { HASH_A, seedQueuedJob } from "./fixtures.ts"
+import { HASH_A, seedActiveJob as seedQueuedJob } from "./fixtures.ts"
 
 it("keeps a stopped unknown call admitted until the provider actually returns", async () => {
   const fixture = seedQueuedJob({ maxCalls: 1 })

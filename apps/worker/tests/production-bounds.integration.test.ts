@@ -35,7 +35,7 @@ it("rejects eight overlapping 12 KB evidence claims before any paid attempt", as
     })
     const brief = storage.briefs.current("study-1")?.draft
     if (!brief) throw new TypeError("Missing approved brief")
-    wire = await providerWire([protocolOutput("openai", "{}")])
+    wire = await providerWire([protocolOutput("openrouter", "{}")])
     queueGenerationStage(storage, "outline", brief.id, "setup-1", "grant-1")
     const runner = new ProviderRunner({
       storage,
@@ -43,8 +43,8 @@ it("rejects eight overlapping 12 KB evidence claims before any paid attempt", as
       installationId: "installation-1",
       clock: () => new Date(),
       adapters: {
-        openai: new ProviderAdapter({
-          provider: "openai",
+        openrouter: new ProviderAdapter({
+          provider: "openrouter",
           apiKey: "fixture",
           baseURL: wire.baseURL,
         }),

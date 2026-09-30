@@ -2,15 +2,15 @@ import { rmSync } from "node:fs"
 import { ProviderAdapter, ProviderRunner } from "@reading-studio/providers"
 import { expect, it } from "vitest"
 import { z } from "zod"
-import { seedQueuedJob } from "./fixtures.ts"
+import { seedActiveJob as seedQueuedJob } from "./fixtures.ts"
 import { providerWire } from "./providers-wire.ts"
 
-for (const provider of ["openai", "anthropic"] as const) {
+for (const provider of ["openrouter", "anthropic"] as const) {
   it(`${provider} pauses an accepted request on actual SDK timeout with no retry`, async () => {
     // Given
     const fixture = seedQueuedJob({
       provider,
-      model: provider === "openai" ? "gpt-4.1-mini" : "claude-sonnet-4-6",
+      model: provider === "openrouter" ? "gpt-4.1-mini" : "claude-sonnet-4-6",
     })
     const wire = await providerWire(["stall"])
     const job = fixture.storage.execution.claimNextJob({

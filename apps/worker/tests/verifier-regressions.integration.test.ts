@@ -2,7 +2,7 @@ import { rmSync } from "node:fs"
 import { ExecutionTransitionError, LeaseFenceError, openStorage } from "@reading-studio/storage"
 import { afterEach, expect, it } from "vitest"
 import { type ExternalProvider, type ProviderDispatch, WorkerRuntime } from "../src/runtime.ts"
-import { HASH_A, lease, seedQueuedJob } from "./fixtures.ts"
+import { HASH_A, lease, seedActiveJob as seedQueuedJob } from "./fixtures.ts"
 
 const directories: string[] = []
 

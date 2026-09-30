@@ -95,7 +95,7 @@ it("shares the setup's 64 reservations across earlier stages and section jobs", 
     }
     wire = await providerWire([
       protocolOutput(
-        "openai",
+        "openrouter",
         JSON.stringify({
           outlineRevisionId: outline.id,
           sections: fixture.draft.sections,
@@ -109,8 +109,8 @@ it("shares the setup's 64 reservations across earlier stages and section jobs", 
       installationId: "installation-1",
       clock: () => new Date(),
       adapters: {
-        openai: new ProviderAdapter({
-          provider: "openai",
+        openrouter: new ProviderAdapter({
+          provider: "openrouter",
           apiKey: "fixture",
           baseURL: wire.baseURL,
         }),

@@ -49,7 +49,7 @@ export function bookMapFixture(text?: string, blockCount = 1, derivedConsent = f
   const databasePath = join(directory, "studio.sqlite")
   const privateDataRoot = join(directory, "private")
   const storage = openStorage({ databasePath, privateDataRoot })
-  const fixture = completeGraphFixtures()
+  const fixture = completeGraphFixtures("openrouter")
   const second = {
     path: "text/company.xhtml",
     role: "main-chapter",
@@ -127,7 +127,7 @@ export function fixtureWorker(
   const runner = new ProviderRunner({
     ...authority,
     clock: () => new Date("2026-09-23T00:00:00Z"),
-    adapters: { openai: adapter, anthropic: adapter },
+    adapters: { openrouter: adapter, anthropic: adapter },
   })
   const worker = new WorkerRuntime({
     storage,

@@ -22,7 +22,7 @@ export function seedQueuedJob(input?: {
   readonly maxCalls?: number
   readonly stage?: Job["stage"]
   readonly model?: string
-  readonly provider?: "openai" | "anthropic"
+  readonly provider?: "openai" | "anthropic" | "openrouter"
   readonly maxSchemaRepairs?: number
   readonly maxTransientRetries?: number
 }): JobStorageFixture {
@@ -87,6 +87,10 @@ export function seedQueuedJob(input?: {
   storage.execution.appendRun(run)
   storage.execution.appendJob(job)
   return { directory, databasePath, privateDataRoot, storage, job, artifact: fixture.artifact }
+}
+
+export function seedActiveJob(input?: Parameters<typeof seedQueuedJob>[0]): JobStorageFixture {
+  return seedQueuedJob({ provider: "openrouter", model: "gpt-4.1-mini", ...input })
 }
 
 export function lease(

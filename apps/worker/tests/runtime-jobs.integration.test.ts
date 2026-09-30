@@ -12,7 +12,7 @@ import {
   type ProviderResponse,
   WorkerRuntime,
 } from "../src/runtime.ts"
-import { HASH_A, HASH_B, lease, seedQueuedJob } from "./fixtures.ts"
+import { HASH_A, HASH_B, lease, seedActiveJob as seedQueuedJob } from "./fixtures.ts"
 
 const directories: string[] = []
 

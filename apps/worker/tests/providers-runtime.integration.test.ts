@@ -3,13 +3,13 @@ import { ProviderAdapter, ProviderRunner } from "@reading-studio/providers"
 import { expect, it } from "vitest"
 import { z } from "zod"
 import { WorkerRuntime } from "../src/runtime.ts"
-import { seedQueuedJob } from "./fixtures.ts"
+import { seedActiveJob as seedQueuedJob } from "./fixtures.ts"
 import { protocolOutput, providerWire } from "./providers-wire.ts"
 
 it("executes a structured provider stage through the persisted worker claim", async () => {
   // Given
   const fixture = seedQueuedJob({ model: "gpt-4.1-mini" })
-  const wire = await providerWire([protocolOutput("openai")])
+  const wire = await providerWire([protocolOutput("openrouter")])
   const clock = () => new Date("2026-01-01T00:00:00Z")
   const runner = new ProviderRunner({
     storage: fixture.storage,
@@ -17,7 +17,11 @@ it("executes a structured provider stage through the persisted worker claim", as
     installationId: "installation-1",
     ownerId: "owner-1",
     adapters: {
-      openai: new ProviderAdapter({ provider: "openai", apiKey: "fixture", baseURL: wire.baseURL }),
+      openrouter: new ProviderAdapter({
+        provider: "openrouter",
+        apiKey: "fixture",
+        baseURL: wire.baseURL,
+      }),
     },
   })
   const worker = new WorkerRuntime({

@@ -56,15 +56,15 @@ it("queues an approved-brief outline and saves model output before marking its j
     const analysis = brief && storage.workflow.getAnalysis(brief.analysisRevisionId)
     if (!brief || !analysis) throw new TypeError("Approved analysis missing")
     const output = fixtureOutlineProvider({ brief, analysis, previous: null, feedback: null })
-    wire = await providerWire([protocolOutput("openai", JSON.stringify(output))])
+    wire = await providerWire([protocolOutput("openrouter", JSON.stringify(output))])
     queueGenerationStage(storage, "outline", brief.id, "setup-2", "grant-2")
     const authority = { storage, ownerId: "owner-1", installationId: "installation-1" }
     const runner = new ProviderRunner({
       ...authority,
       clock: () => new Date(),
       adapters: {
-        openai: new ProviderAdapter({
-          provider: "openai",
+        openrouter: new ProviderAdapter({
+          provider: "openrouter",
           apiKey: "fixture",
           baseURL: wire.baseURL,
         }),

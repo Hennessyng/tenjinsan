@@ -3,7 +3,7 @@ import type { Storage } from "@reading-studio/storage"
 import { completeGraphFixtures } from "@reading-studio/storage/test-support"
 
 export function lessonFixture(storage: Storage, model = "fixture-model", sourceText?: string) {
-  const graph = completeGraphFixtures()
+  const graph = completeGraphFixtures("openrouter")
   const text =
     sourceText ?? "Listening can reveal another perspective. It does not guarantee agreement."
   const span = {

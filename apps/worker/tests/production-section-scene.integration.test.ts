@@ -48,8 +48,8 @@ it("rejects a later section reusing a completed section's scene ID before comple
       sections: [{ ...fixture.draft.sections[0], id: "section-2" }],
     }
     wire = await providerWire([
-      protocolOutput("openai", JSON.stringify(firstOutput)),
-      protocolOutput("openai", JSON.stringify(secondOutput)),
+      protocolOutput("openrouter", JSON.stringify(firstOutput)),
+      protocolOutput("openrouter", JSON.stringify(secondOutput)),
     ])
     queueGenerationStage(storage, "lesson", outline.id, "setup-1", "grant-1")
     const runner = new ProviderRunner({
@@ -58,8 +58,8 @@ it("rejects a later section reusing a completed section's scene ID before comple
       installationId: "installation-1",
       clock: () => new Date(),
       adapters: {
-        openai: new ProviderAdapter({
-          provider: "openai",
+        openrouter: new ProviderAdapter({
+          provider: "openrouter",
           apiKey: "fixture",
           baseURL: wire.baseURL,
         }),

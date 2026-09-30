@@ -2,7 +2,7 @@ import { rmSync } from "node:fs"
 import { ProviderAdapter, ProviderRunner } from "@reading-studio/providers"
 import { afterEach, expect, it } from "vitest"
 import { z } from "zod"
-import { seedQueuedJob } from "./fixtures.ts"
+import { seedActiveJob as seedQueuedJob } from "./fixtures.ts"
 import { protocolOutput, providerWire } from "./providers-wire.ts"
 
 const fixtures: ReturnType<typeof seedQueuedJob>[] = []
@@ -12,10 +12,10 @@ afterEach(() => {
     rmSync(fixture.directory, { recursive: true, force: true })
   }
 })
-function fixture(provider: "openai" | "anthropic" = "openai") {
+function fixture(provider: "openrouter" | "anthropic" = "openrouter") {
   const result = seedQueuedJob({
     provider,
-    model: provider === "openai" ? "gpt-4.1-mini" : "claude-sonnet-4-6",
+    model: provider === "openrouter" ? "gpt-4.1-mini" : "claude-sonnet-4-6",
     maxSchemaRepairs: 1,
     maxTransientRetries: 1,
     maxCalls: 3,
@@ -49,7 +49,7 @@ it("refuses an installation mismatch before reserving or sending", async () => {
   expect(storage.execution.listAttempts(job.runId)).toEqual([])
 })
 
-for (const provider of ["openai", "anthropic"] as const) {
+for (const provider of ["openrouter", "anthropic"] as const) {
   it(`${provider} repairs malformed output through exactly two persisted dispatched attempts`, async () => {
     // Given
     const { storage, job } = fixture(provider)
@@ -148,7 +148,7 @@ for (const provider of ["openai", "anthropic"] as const) {
       await wire.close()
     }
   })
-  it(`${provider} requires an explicit bounded retry after a 429`, async () => {
+  it(`${provider} pauses after a 429 without replaying or switching providers`, async () => {
     // Given
     const { storage, job } = fixture(provider)
     const wire = await providerWire([
@@ -169,25 +169,25 @@ for (const provider of ["openai", "anthropic"] as const) {
         instruction: "fixture",
       })
       expect(failed).toMatchObject({
-        state: "failed",
-        error: { code: "rate-limited", retryable: true },
+        state: "paused",
+        reason: "owner",
+      })
+      expect(storage.execution.providerPause(job.id)).toMatchObject({
+        code: "rate-limited",
+        trace_id: expect.any(String),
       })
       expect(wire.requests).toHaveLength(1)
       // When
-      storage.execution.retryProviderJob(job.id)
+      expect(() => storage.execution.retryProviderJob(job.id)).toThrow()
       const retry = storage.execution.claimNextJob({
         token: "retry",
         now: "2026-01-01T00:00:01Z",
         expiresAt: "2026-01-01T00:10:00Z",
       })
-      if (retry?.state !== "running") throw new TypeError("Expected claimed retry")
-      await runner.execute(retry, {
-        schema: z.strictObject({ answer: z.string() }),
-        instruction: "fixture",
-      })
+      expect(retry).toBeNull()
       // Then
-      expect(wire.requests).toHaveLength(2)
-      expect(storage.execution.listAttempts(job.runId)).toHaveLength(2)
+      expect(wire.requests).toHaveLength(1)
+      expect(storage.execution.listAttempts(job.runId)).toHaveLength(1)
       expect(() => storage.execution.retryProviderJob(job.id)).toThrow()
     } finally {
       await wire.close()
@@ -244,6 +244,10 @@ it("persists a missing credential error without a dispatched attempt", async () 
     instruction: "fixture",
   })
   // Then
-  expect(result).toMatchObject({ state: "failed", error: { code: "missing-credentials" } })
+  expect(result).toMatchObject({ state: "paused", reason: "owner" })
+  expect(storage.execution.providerPause(job.id)).toMatchObject({
+    code: "missing-credentials",
+    trace_id: expect.any(String),
+  })
   expect(storage.execution.listAttempts(job.runId)).toEqual([])
 })

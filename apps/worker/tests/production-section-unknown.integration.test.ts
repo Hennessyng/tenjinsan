@@ -50,8 +50,8 @@ it("pauses an unknown section attempt across lease expiry without another paid c
             installationId: "installation-1",
             clock,
             adapters: {
-              openai: new ProviderAdapter({
-                provider: "openai",
+              openrouter: new ProviderAdapter({
+                provider: "openrouter",
                 apiKey: "fixture",
                 baseURL: wire.baseURL,
               }),
