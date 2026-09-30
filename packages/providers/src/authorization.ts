@@ -13,6 +13,7 @@ export type ProviderAuthority = {
   readonly ownerId: string
 }
 export function authorizeSource(authority: ProviderAuthority, job: Job) {
+  if (job.provider === "openai") throw new ProviderError("unauthorized")
   const sources = authority.storage.sources
   const setup = sources.getSetup(job.setupRevisionId)
   const grant = sources.getGrant(job.grant.id)

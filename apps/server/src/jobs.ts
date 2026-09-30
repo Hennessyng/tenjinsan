@@ -45,6 +45,8 @@ export function configureJobs(app: Hono<AppEnvironment>, storage: Storage): void
     )
       return context.json({ error: "Job unavailable" }, 404)
     const action = context.req.param("action")
+    if (job.provider === "openai" && action !== "cancel")
+      return context.json({ error: "Historical direct-OpenAI work cannot be dispatched" }, 409)
     if (action !== "cancel" && action !== "retry" && action !== "resolve")
       return context.json({ error: "Job action unavailable" }, 404)
     const input: unknown = await context.req.json()

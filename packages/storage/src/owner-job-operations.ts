@@ -62,6 +62,11 @@ export class OwnerJobOperations {
         )
           throw new ExecutionTransitionError("job", decision.jobId, "current owned setup")
         const attempts = this.execution.listAttempts(job.runId)
+        if (
+          job.provider === "openai" &&
+          (decision.action === "retry" || decision.action === "retry-approved")
+        )
+          throw new ExecutionTransitionError("job", job.id, "historical provider is inert")
         const unknown = attempts.find(
           (attempt) =>
             attempt.state === "outcome_unknown" && attempt.resolution === "awaiting-owner",

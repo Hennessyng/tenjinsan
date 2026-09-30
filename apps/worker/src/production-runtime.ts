@@ -61,6 +61,7 @@ export async function runProductionWorker(signal: AbortSignal): Promise<void> {
     if (startupAdmission !== null)
       try {
         for (const job of storage.execution.listCompletedAnalysisJobs()) {
+          if (job.provider === "openai") continue
           const grant = storage.sources.getGrant(job.grant.id)
           const setup = storage.sources.getSetup(job.setupRevisionId)
           if (
@@ -78,6 +79,7 @@ export async function runProductionWorker(signal: AbortSignal): Promise<void> {
           queueQuestions(storage, setup.id, grant.id, analysis)
         }
         for (const job of storage.execution.listCompletedLessonJobs()) {
+          if (job.provider === "openai") continue
           const setup = storage.sources.getSetup(job.setupRevisionId)
           if (setup && storage.sources.getLatestSetup(setup.studyId)?.id === setup.id)
             advanceLessonStage(storage, job)

@@ -85,6 +85,16 @@ export class JobOperations {
           )
           continue
         }
+        if (loaded.record.provider === "openai") {
+          this.state.writeJob(
+            transitionJob(loaded.record, { state: "paused", reason: "owner" }),
+            loaded.fence,
+          )
+          this.state.writeRun(
+            GenerationRun.parse({ ...this.state.loadRun(loaded.record.runId), state: "paused" }),
+          )
+          continue
+        }
         if (
           loaded.record.cancellationRequested ||
           !jobBriefCurrent(this.state.context, loaded.record)

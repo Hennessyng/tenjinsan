@@ -57,6 +57,7 @@ export function projectOwnerJobs(storage: Storage, ownerId: string) {
   const installationId = storage.sources.getInstallation(ownerId)
   const owned = storage.execution.listOwnerJobs(ownerId).filter((job) => {
     const setup = storage.sources.getSetup(job.setupRevisionId)
+    if (job.provider === "openai") return setup !== null && job.grant.ownerId === ownerId
     return (
       setup &&
       storage.sources.getLatestSetup(setup.studyId)?.id === setup.id &&
@@ -124,14 +125,17 @@ function projectOwnerJob(storage: Storage, job: Job, setupCalls: number) {
     setupRevisionId: job.setupRevisionId,
     inputRevisionId: job.inputRevisionId,
     stage: job.stage,
-    state: job.state,
+    state: job.provider === "openai" ? "historical-inert" : job.state,
     reason: job.state === "paused" ? job.reason : null,
     trace_id: pause?.trace_id ?? null,
-    explanation: pause
-      ? pause.code === "output-limit"
-        ? "Reply exceeded the studio output-token cap. No automatic replay."
-        : "Provider access was rejected or its route or usage limit is unavailable. Check your connection before approving new work. No automatic replay or provider switch."
-      : null,
+    explanation:
+      job.provider === "openai"
+        ? "Historical direct-OpenAI work is read-only and cannot be dispatched or retried. Create a new setup and grant for another provider."
+        : pause
+          ? pause.code === "output-limit"
+            ? "Reply exceeded the studio output-token cap. No automatic replay."
+            : "Provider access was rejected or its route or usage limit is unavailable. Check your connection before approving new work. No automatic replay or provider switch."
+          : null,
     checkpoint: job.checkpoint !== null,
     section: section ? { index: sectionIndex, id: section.id } : null,
     cancellationRequested: job.cancellationRequested,
@@ -147,6 +151,7 @@ function projectOwnerJob(storage: Storage, job: Job, setupCalls: number) {
           : "provider-failure"
         : null,
     canRetry:
+      job.provider !== "openai" &&
       job.state === "failed" &&
       job.error.retryable &&
       retryRemaining > 0 &&
@@ -155,7 +160,7 @@ function projectOwnerJob(storage: Storage, job: Job, setupCalls: number) {
       run.state === "running" &&
       setupCalls < 64 &&
       run.reservedCalls < run.budget.maxCalls,
-    unknownAttemptId: unknown?.id ?? null,
+    unknownAttemptId: job.provider === "openai" ? null : (unknown?.id ?? null),
     provider: job.provider,
     model: job.model,
   }
