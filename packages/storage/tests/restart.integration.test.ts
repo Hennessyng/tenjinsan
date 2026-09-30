@@ -25,7 +25,7 @@ afterEach(() => {
 
 it("applies migrations repeatedly and reopens a complete graph with two studies on one edition", () => {
   const paths = temporaryStorage()
-  const fixture = completeGraphFixtures()
+  const fixture = completeGraphFixtures("openrouter")
   const analysis = {
     ...fixture.analysis,
     cacheKey: analysisCacheKey(AnalysisCacheInput.parse(fixture.analysis.cacheInput)),

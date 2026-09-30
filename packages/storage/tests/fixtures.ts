@@ -13,7 +13,7 @@ const settings = {
   reasoningEffort: "default",
 }
 
-export function sourceFixtures() {
+export function sourceFixtures(provider: "openai" | "openrouter" = "openai") {
   const edition = {
     id: "edition-1",
     originalHash: HASH_A,
@@ -55,7 +55,7 @@ export function sourceFixtures() {
         selected: [{ resourcePath: "text/chapter.xhtml", blockIds: ["block-1"] }],
         exclusions: [],
       },
-      provider: "openai",
+      provider,
       model: "fixture-model",
       analysisPromptVersion: "analysis-prompt-1",
       analysisSchemaVersion: "analysis-schema-1",
@@ -70,8 +70,8 @@ export function sourceFixtures() {
   return { edition, normalization, setup }
 }
 
-export function completeGraphFixtures() {
-  const source = sourceFixtures()
+export function completeGraphFixtures(provider: "openai" | "openrouter" = "openai") {
+  const source = sourceFixtures(provider)
   const span = {
     editionId: source.edition.id,
     normalizationRevisionId: source.normalization.id,
@@ -242,8 +242,8 @@ export function completeGraphFixtures() {
     runId: run.id,
     inputRevisionId: run.inputRevisionId,
     setupRevisionId: source.setup.id,
-    provider: "openai",
-    model: "fixture-model",
+    provider: source.setup.analysis.provider,
+    model: source.setup.analysis.model,
     promptVersion: "generation-prompt-1",
     schemaVersion: "generation-schema-1",
     grant,

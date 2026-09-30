@@ -2,7 +2,7 @@ import { AnalysisCacheInput, analysisCacheKey } from "@reading-studio/contracts"
 import type { Storage } from "../src/index.ts"
 import { completeGraphFixtures } from "./fixtures.ts"
 
-export const approvalGraph = completeGraphFixtures()
+export const approvalGraph = completeGraphFixtures("openrouter")
 export const approvalContent = {
   originalQuestion: { en: "What matters?", ja: "何が大切ですか？" },
   refinedQuestion: { en: "What matters when listening?", ja: "聴くとき何が大切ですか？" },
