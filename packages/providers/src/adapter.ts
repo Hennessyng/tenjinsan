@@ -287,8 +287,19 @@ export class ProviderAdapter {
       const receipt = await new Promise<ProviderReceipt>((resolve, reject) => {
         let text = ""
         let usage: ProviderReceipt["usage"] = { kind: "unknown" }
+        let completed = false
+        const finish = (receipt: ProviderReceipt) => {
+          unsubscribe()
+          signal.removeEventListener("abort", abort)
+          resolve(receipt)
+        }
         const abort = () => {
           unsubscribe()
+          signal.removeEventListener("abort", abort)
+          if (completed && !request.signal.aborted) {
+            resolve({ kind: "error", code: "unavailable", usage })
+            return
+          }
           reject(new ProviderError("outcome-unknown"))
         }
         const unsubscribe = session.subscribe((method, raw) => {
@@ -305,7 +316,10 @@ export class ProviderAdapter {
                 }),
               })
               .safeParse(raw)
-            if (tokens.success) usage = { kind: "known", ...tokens.data.tokenUsage.last }
+            if (tokens.success) {
+              usage = { kind: "known", ...tokens.data.tokenUsage.last }
+              if (completed) finish({ kind: "output", text, usage })
+            }
           }
           if (method === "item/completed") {
             const item = z
@@ -314,14 +328,32 @@ export class ProviderAdapter {
             if (item.success) text = item.data.item.text
           }
           if (method === "turn/completed") {
-            const turn = z.object({ turn: z.object({ status: z.string() }) }).safeParse(raw)
-            unsubscribe()
-            signal.removeEventListener("abort", abort)
-            resolve(
-              turn.success && turn.data.turn.status === "completed" && usage.kind === "known"
-                ? { kind: "output", text, usage }
-                : { kind: "error", code: "rejected", usage },
-            )
+            const turn = z
+              .object({
+                turn: z.object({
+                  status: z.string(),
+                  error: z.object({ codexErrorInfo: z.unknown() }).nullish(),
+                }),
+              })
+              .safeParse(raw)
+            if (turn.success && turn.data.turn.status === "completed") {
+              completed = true
+              if (usage.kind === "known") finish({ kind: "output", text, usage })
+              return
+            }
+            const error = turn.success ? turn.data.turn.error?.codexErrorInfo : undefined
+            switch (error) {
+              case "usageLimitExceeded":
+              case "rateLimitExceeded":
+              case "sessionBudgetExceeded":
+                finish({ kind: "error", code: "rate-limited", usage })
+                break
+              case "unauthorized":
+                finish({ kind: "error", code: "rejected", usage })
+                break
+              default:
+                finish({ kind: "error", code: "unavailable", usage })
+            }
           }
         })
         signal.addEventListener("abort", abort, { once: true })
@@ -337,7 +369,7 @@ export class ProviderAdapter {
             resolve({ kind: "error", code: "rejected", usage })
           })
       })
-      if (receipt.kind === "error") await connection.disconnect()
+      if (receipt.kind === "error" && receipt.code === "rejected") await connection.disconnect()
       return receipt
     } finally {
       session.close()
