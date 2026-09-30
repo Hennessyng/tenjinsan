@@ -24,7 +24,7 @@ export async function startComposeMatrix(browser: Browser): Promise<RunningMatri
     PROXY_BIND: "127.0.0.1",
     HTTP_PORT: "0",
     HTTPS_PORT: "0",
-    OPENAI_API_KEY: "wire-only-test-credential",
+    OPENROUTER_API_KEY: "wire-only-test-credential",
     ANTHROPIC_API_KEY: "wire-only-test-credential",
   }
   delete environment["STUDIO_SYNTHETIC_TEST_MODE"]

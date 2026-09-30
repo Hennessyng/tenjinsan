@@ -15,11 +15,11 @@ export async function until<T>(read: () => Promise<T | null>, label: string): Pr
 
 export async function runProviderFailureCase(
   deployment: MatrixDeployment,
-  createSetup: (provider: "openai" | "anthropic") => Promise<string>,
+  createSetup: (provider: "openrouter" | "anthropic") => Promise<string>,
   fault: "malformed-output" | "invalid-citation",
 ) {
   await deployment.fault(fault)
-  const setupId = await createSetup("openai")
+  const setupId = await createSetup("openrouter")
   const failed = await until(async () => {
     const snapshot = await deployment.snapshot(setupId)
     return snapshot.setup?.jobs.find((job) => job.state === "failed") ?? null

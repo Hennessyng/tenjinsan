@@ -33,6 +33,7 @@ export async function restoreLocalMatrix(
   for (const key of [
     "STUDIO_SYNTHETIC_TEST_MODE",
     "OPENAI_API_KEY",
+    "OPENROUTER_API_KEY",
     "ANTHROPIC_API_KEY",
     "STUDIO_PROVIDER_BASE_URL",
   ])

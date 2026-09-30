@@ -30,7 +30,7 @@ export async function startLocalMatrix(browser: Browser): Promise<RunningMatrix>
   const wire = await startProductionWire()
   const environment: NodeJS.ProcessEnv = {
     ...fixture.environment,
-    OPENAI_API_KEY: "wire-only-test-credential",
+    OPENROUTER_API_KEY: "wire-only-test-credential",
     ANTHROPIC_API_KEY: "wire-only-test-credential",
     STUDIO_PROVIDER_BASE_URL: wire.baseURL,
     STUDIO_MATRIX_RENDER_FAILURE: "enabled",

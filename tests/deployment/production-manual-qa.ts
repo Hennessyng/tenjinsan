@@ -16,7 +16,7 @@ const launcher =
   fixture && wire
     ? new LocalLauncher({
         ...environment,
-        OPENAI_API_KEY: "wire-only-test-credential",
+        OPENROUTER_API_KEY: "wire-only-test-credential",
         ANTHROPIC_API_KEY: "",
         STUDIO_PROVIDER_BASE_URL: wire.baseURL,
       })
@@ -84,7 +84,8 @@ try {
     .update(JSON.stringify([receipt.sha256, "epub-parser-1", "epub-normalizer-1"]))
     .digest("hex")}`
   const draft = await post(`/api/study-setup/${revision}`, {
-    provider: "openai",
+    provider: "openrouter",
+    model: "gpt-4.1-mini",
     scope: "all-main-chapters",
   })
   if (draft.status !== 201) throw new TypeError(`Setup HTTP ${draft.status}`)

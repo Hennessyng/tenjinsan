@@ -22,6 +22,7 @@ export async function restoreComposeMatrix(
     ...sourceEnvironment,
     AUTH_SECRET: "matrix-destination-secret-at-least-32-characters",
     OPENAI_API_KEY: "",
+    OPENROUTER_API_KEY: "",
     ANTHROPIC_API_KEY: "",
   }
   const sourcePrefix = [

@@ -4,7 +4,7 @@ import type { MatrixDeployment } from "./matrix-driver.ts"
 import { recordCase } from "./matrix-evidence.ts"
 import { until } from "./matrix-provider-failures.ts"
 
-type CreateSetup = (provider: "openai" | "anthropic") => Promise<string>
+type CreateSetup = (provider: "openrouter" | "anthropic") => Promise<string>
 type Post = (path: string, data: object) => Promise<APIResponse>
 
 export async function runAcceptedCrashCase(
@@ -13,7 +13,7 @@ export async function runAcceptedCrashCase(
   post: Post,
 ) {
   await deployment.fault("hold")
-  const setupId = await createSetup("openai")
+  const setupId = await createSetup("openrouter")
   const dispatched = await until(async () => {
     const snapshot = await deployment.snapshot(setupId)
     return (
@@ -84,7 +84,7 @@ export async function runCancelledStaleCase(
   post: Post,
 ) {
   await deployment.fault("hold")
-  const staleSetupId = await createSetup("openai")
+  const staleSetupId = await createSetup("openrouter")
   const running = await until(async () => {
     const snapshot = await deployment.snapshot(staleSetupId)
     return (

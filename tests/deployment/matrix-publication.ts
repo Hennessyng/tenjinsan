@@ -7,7 +7,7 @@ import { runRenewedPublication } from "./matrix-publication-renewal.ts"
 
 type PublicationCase = {
   readonly deployment: MatrixDeployment
-  readonly createSetup: (provider: "openai" | "anthropic") => Promise<string>
+  readonly createSetup: (provider: "openrouter" | "anthropic") => Promise<string>
   readonly post: (path: string, data: object) => Promise<APIResponse>
 }
 
@@ -27,7 +27,7 @@ export async function runPublicationCases(input: PublicationCase): Promise<reado
   const { deployment, post } = input
   const { page, origin } = deployment
   await deployment.fault("normal")
-  const setupId = await input.createSetup("openai")
+  const setupId = await input.createSetup("openrouter")
   let lastJobs: readonly {
     readonly stage: string
     readonly state: string

@@ -156,6 +156,21 @@ export async function startProductionWire(options?: {
   const held = new Set<ServerResponse>()
   let selectedFault: WireFault = "normal"
   const server = createServer(async (request, response) => {
+    if (request.method === "GET" && request.url === "/v1/models/user") {
+      response.writeHead(200, { "content-type": "application/json" })
+      response.end(
+        JSON.stringify({
+          data: [
+            {
+              id: "gpt-4.1-mini",
+              name: "Synthetic model",
+              supported_parameters: ["structured_outputs"],
+            },
+          ],
+        }),
+      )
+      return
+    }
     const chunks: Buffer[] = []
     for await (const chunk of request) chunks.push(Buffer.from(chunk))
     const body = Buffer.concat(chunks)

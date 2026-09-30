@@ -56,7 +56,7 @@ export async function runMatrix(deployment: MatrixDeployment): Promise<readonly 
   results.push(await recordCase(deployment, { name: "corrupt-epub", http: corrupt.status() }))
 
   const expired = await page.request.post(`${origin}/api/study-setup/absent`, {
-    data: { provider: "openai", scope: "all-main-chapters" },
+    data: { provider: "openrouter", model: "gpt-4.1-mini", scope: "all-main-chapters" },
     headers: { origin, cookie: "better-auth.session_token=expired" },
   })
   expect(expired.status()).toBe(401)
@@ -90,9 +90,10 @@ export async function runMatrix(deployment: MatrixDeployment): Promise<readonly 
       .digest("hex")}`
   }
   let revision = await uploadSource("original")
-  const createSetup = async (provider: "openai" | "anthropic") => {
+  const createSetup = async (provider: "openrouter" | "anthropic") => {
     const created = await post(`/api/study-setup/${revision}`, {
       provider,
+      model: provider === "openrouter" ? "gpt-4.1-mini" : "claude-sonnet-4-6",
       scope: "all-main-chapters",
     })
     expect(created.status()).toBe(201)
@@ -107,7 +108,7 @@ export async function runMatrix(deployment: MatrixDeployment): Promise<readonly 
   results.push(await runProviderFailureCase(deployment, createSetup, "invalid-citation"))
 
   await deployment.fault("normal")
-  const firstSetupId = await createSetup("openai")
+  const firstSetupId = await createSetup("openrouter")
   const firstAnalysis = await until(async () => {
     const current = (await deployment.snapshot(firstSetupId)).setup
     return current?.analysisId ? current : null
