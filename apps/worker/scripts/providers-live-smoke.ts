@@ -18,13 +18,24 @@ const report: {
   reason?: string
   callCount: number
   providers: { provider: string; model: string; status: string }[]
-} = { status: "BLOCKED", callCount: 0, providers: [] }
+  f4: { status: "BLOCKED"; sourceCheckedBooks: 0; reason: string }
+} = {
+  status: "BLOCKED",
+  callCount: 0,
+  providers: [],
+  f4: {
+    status: "BLOCKED",
+    sourceCheckedBooks: 0,
+    reason:
+      "Synthetic smoke cannot establish F4. Two privately permitted Codex studio studies and manual source checks are required.",
+  },
+}
 
 async function main(): Promise<void> {
   if (process.env["LIVE_SMOKE_CONSENT"] !== "yes" || choices.length === 0) {
     report.reason =
       choices.length === 0
-        ? "No OPENAI_API_KEY or ANTHROPIC_API_KEY configured; no live request made"
+        ? "No Anthropic smoke credential configured; no live request made. OpenRouter and official Codex live proof requires owner Setup/Send in the studio."
         : "LIVE_SMOKE_CONSENT=yes required; no live request made"
     process.exitCode = 2
     return

@@ -78,9 +78,9 @@ both modes without `STUDIO_SYNTHETIC_TEST_MODE`. Run it with
 
 ## Boundaries and operations
 
-- [Consent, API providers and costs](docs/CONSENT-PROVIDERS.md): OpenAI/Anthropic
-  API keys are separate from chat subscriptions; without credentials no live call
-  is possible. No live provider result is promised.
+- [Consent, providers and costs](docs/CONSENT-PROVIDERS.md): OpenRouter/Anthropic
+  server keys and official Codex subscription sign-in. Models are rechecked at Send;
+  missing access disables transmission. Historical direct OpenAI work is inert.
 - [Privacy and access](docs/PRIVACY-SECURITY.md): what remains local, what a grant
   sends externally, what a downloaded artifact contains, and deletion limits.
 - [Backup, restore and deletion](docs/BACKUP-RESTORE.md): coordinated maintenance
@@ -98,7 +98,9 @@ rendering without the synthetic flag. A local loopback protocol fixture verifies
 that path, not live OpenAI/Anthropic success, private-book teaching quality or
 public TLS. React/Vite owns the authenticated authoring flow, including `/jobs`.
 Hono serves the built app and authenticated JSON APIs, not authoring pages.
-Backend-only provider calls use the Vercel AI SDK. Ordinary local and Compose
+Anthropic uses the backend Vercel AI SDK, OpenRouter its authenticated API, and
+Codex the official OAuth/App Server. Ordinary local and Compose
 journeys were verified with synthetic loopback wire JSON replies, not live model
 semantics, paid calls or private-book quality. Real-book two-angle source studies
-remain blocked without consent and credentials; F4 is `[~]`.
+remain BLOCKED without private permission, two books/lenses and live source checks;
+F4 is `[~]`. No live Codex/OpenRouter or two-book success is claimed.

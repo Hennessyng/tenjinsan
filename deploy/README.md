@@ -50,7 +50,7 @@ Treat `deploy/.env` and Docker daemon access as privileged. `compose config` wit
 `--quiet` renders secrets; do not paste its output into tickets or public logs.
 Keep the same secret when recreating containers to preserve existing sessions.
 `deploy/.env.example` contains a documentation-only hostname, not a real domain.
-Optional `OPENAI_API_KEY` and `ANTHROPIC_API_KEY` values in `deploy/.env` are
+Optional `OPENROUTER_API_KEY` and `ANTHROPIC_API_KEY` values in `deploy/.env` are
 forwarded to both API (setup availability) and worker (dispatch). Leave them empty
 to disable calls. A key alone does not grant permission: each source scope still
 requires the owner's explicit Send decision. No live provider success is claimed
@@ -64,7 +64,7 @@ Keys reach the API and worker, never React or Caddy.
 - App/worker use UID/GID 1000, read-only root filesystems, dropped capabilities,
   no-new-privileges, private IPC and bounded tmpfs. The volume is owned by UID 1000
   with mode 0700; the launcher uses umask 077. Never serve `/data` as static content.
-- API and worker have no published ports. The API network is internal; the worker
+- API and worker have no published ports. The API also has provider egress; the worker
   has a separate egress network and no listener. It receives no authentication secret.
 - Caddy also runs as UID/GID 1000, with owned certificate/config directories.
   It keeps its admin listener on container loopback only. Its only added
@@ -174,3 +174,12 @@ token usage isn't currency; usage can be unknown. Ordinary local and Compose
 journeys passed with synthetic loopback wire JSON replies, not live model
 semantics, paid calls or private-book quality. Real-book two-angle source studies
 remain blocked without consent and credentials; F4 is `[~]`. Public TLS is unverified.
+
+The image includes official Codex CLI 0.155.1. API and worker share its
+owner/installation-scoped credential directory under `/data/private`, not personal
+host credentials. Connect/disconnect is owner-only in Setup; tokens never reach Caddy
+or React. Browser OAuth requires a private operator tunnel to the App Server callback
+on the API container's loopback port 1455. Do not expose that callback publicly.
+If the tunnel or official route is unavailable, leave Send disabled and F4 BLOCKED.
+See the [private two-book procedure](../docs/CONSENT-PROVIDERS.md). Hosted Codex live
+sign-in, real-book quality and F4 are unverified without owner-supplied access.
