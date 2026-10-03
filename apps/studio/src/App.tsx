@@ -44,29 +44,91 @@ function authoringRoute(page: ReactElement): ReactElement {
   return <Suspense fallback={<p role="status">Loading studio</p>}>{page}</Suspense>
 }
 
+const rooms = [
+  { name: "Import a book", japanese: "本を追加", href: "/imports" },
+  { name: "Your sources", japanese: "資料一覧", href: "/sources" },
+  { name: "Reading interviews", japanese: "読書の質問", href: "/interviews" },
+  { name: "Study progress", japanese: "学習の進行状況", href: "/jobs" },
+] as const
+
+function roomCurrent(href: string): "page" | undefined {
+  const path = window.location.pathname
+  if (path === href || path.startsWith(`${href}/`)) return "page"
+  return undefined
+}
+
+function RoomLink({
+  name,
+  japanese,
+  href,
+}: {
+  name: string
+  japanese: string
+  href: string
+}): ReactElement {
+  return (
+    <a href={href} aria-current={roomCurrent(href)}>
+      {name} / <span lang="ja">{japanese}</span>
+    </a>
+  )
+}
+
+function WorkspaceNavigation(): ReactElement {
+  return (
+    <nav aria-label="Workspace rooms" className="workspace-rooms">
+      <div className="workspace-links">
+        {rooms.map((room) => (
+          <RoomLink key={room.href} {...room} />
+        ))}
+      </div>
+      <details className="workspace-menu">
+        <summary>
+          Rooms <span lang="ja">部屋</span>
+        </summary>
+        <ul>
+          {rooms.map((room) => (
+            <li key={room.href}>
+              <RoomLink {...room} />
+            </li>
+          ))}
+        </ul>
+      </details>
+    </nav>
+  )
+}
+
+function withNavigation(page: ReactElement): ReactElement {
+  return (
+    <>
+      <WorkspaceNavigation />
+      {page}
+    </>
+  )
+}
+
 export function App(): ReactElement {
-  if (window.location.pathname === "/jobs") return authoringRoute(<JobRoutes />)
-  if (window.location.pathname === "/imports") return <ImportBook />
+  if (window.location.pathname === "/jobs") return withNavigation(authoringRoute(<JobRoutes />))
+  if (window.location.pathname === "/imports") return withNavigation(<ImportBook />)
   if (/^\/publications\/[^/]+$/.test(window.location.pathname))
-    return authoringRoute(<PublicationRoutes />)
+    return withNavigation(authoringRoute(<PublicationRoutes />))
   if (/^\/evidence\/[^/]+(?:\/[^/]+)?$/.test(window.location.pathname))
-    return authoringRoute(<EvidenceRoutes />)
+    return withNavigation(authoringRoute(<EvidenceRoutes />))
   if (/^\/revisions\/[^/]+$/.test(window.location.pathname))
-    return authoringRoute(<RevisionRoutes />)
-  if (/^\/outlines\/[^/]+$/.test(window.location.pathname)) return authoringRoute(<OutlineRoutes />)
-  if (/^\/briefs\/[^/]+$/.test(window.location.pathname)) return authoringRoute(<BriefRoutes />)
+    return withNavigation(authoringRoute(<RevisionRoutes />))
+  if (/^\/outlines\/[^/]+$/.test(window.location.pathname)) return withNavigation(authoringRoute(<OutlineRoutes />))
+  if (/^\/briefs\/[^/]+$/.test(window.location.pathname)) return withNavigation(authoringRoute(<BriefRoutes />))
   if (
     window.location.pathname === "/interviews" ||
     /^\/interviews\/[^/]+$/.test(window.location.pathname)
   )
-    return authoringRoute(<InterviewRoutes />)
+    return withNavigation(authoringRoute(<InterviewRoutes />))
   if (/^\/sources\/[^/]+\/setup(?:\/[^/]+)?$/.test(window.location.pathname))
-    return authoringRoute(<SetupRoutes />)
+    return withNavigation(authoringRoute(<SetupRoutes />))
   if (
     window.location.pathname === "/sources" ||
     /^\/sources\/[^/]+$/.test(window.location.pathname)
   )
-    return authoringRoute(<SourceRoutes />)
+    return withNavigation(authoringRoute(<SourceRoutes />))
   return (
     <div className="studio-shell min-h-dvh">
       <a className="skip-link" href="#studio">
@@ -92,6 +154,7 @@ export function App(): ReactElement {
         </form>
       </header>
 
+      <WorkspaceNavigation />
       <main id="studio">
         <section className="hero" aria-labelledby="studio-title">
           <div className="hero-copy">
