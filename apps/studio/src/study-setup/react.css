@@ -19,6 +19,37 @@
 .source-app .setup select {
   width: 100%;
 }
+.source-app .setup-provider-paper {
+  min-width: 0;
+  padding: var(--space-4);
+  background: var(--color-paper-raised);
+  border: 1px solid var(--color-line);
+}
+.source-app .setup-connection-slip {
+  min-width: 0;
+  margin-block-start: var(--space-6);
+  padding: var(--space-4);
+  background: repeating-linear-gradient(
+    to bottom,
+    var(--color-paper-raised) 0,
+    var(--color-paper-raised) 31px,
+    var(--color-line) 32px
+  );
+  border: 1px solid var(--color-line);
+}
+.source-app .setup-connection-slip h2,
+.source-app .setup-connection-slip h3 {
+  margin-block-start: 0;
+}
+.source-app .setup-connection-stamp {
+  display: inline-block;
+  margin-block-start: 0;
+  padding: var(--space-2) var(--space-3);
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  border: 2px solid var(--color-green);
+}
 .source-app .setup fieldset {
   min-width: 0;
   margin-block: var(--space-6);
