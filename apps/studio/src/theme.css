@@ -8,6 +8,14 @@
   --color-focus: #8a3d27;
   --color-muted: #63716a;
   --color-line: #d7dbd1;
+  --lib-night: #0d1c18;
+  --lib-wall: #254a40;
+  --lib-floor-a: #e8dcc4;
+  --lib-floor-b: #dfd0b0;
+  --lib-oak: #b08358;
+  --lib-oak-dark: #7d5a39;
+  --lib-brass: #c9a45c;
+  --shrine-plum: #b8456a;
   --font-display-en: Georgia, "Times New Roman", serif;
   --font-display-ja: "Hiragino Mincho ProN", "Yu Mincho", YuMincho, serif;
   --font-body:

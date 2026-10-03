@@ -158,3 +158,34 @@ footer {
     transition-duration: 0s;
   }
 }
+.library-hall svg {
+  filter: drop-shadow(0 12px 12px color-mix(in srgb, var(--lib-night) 20%, transparent));
+}
+.library-hall .hall-wall {
+  fill: var(--lib-wall);
+}
+.library-hall .hall-floor {
+  fill: var(--lib-floor-a);
+}
+.library-hall .hall-timber {
+  fill: var(--lib-oak-dark);
+}
+.library-hall .hall-shelf,
+.library-hall .hall-table {
+  fill: var(--lib-oak);
+}
+.library-hall .hall-book {
+  fill: var(--color-paper);
+  stroke: var(--lib-brass);
+  stroke-width: 3;
+}
+.library-hall .hall-window {
+  fill: var(--color-green-soft);
+  stroke: var(--lib-brass);
+  stroke-width: 6;
+}
+.library-hall .hall-paper {
+  fill: var(--color-paper-raised);
+  stroke: var(--color-line);
+  stroke-width: 2;
+}

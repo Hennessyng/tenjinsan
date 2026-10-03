@@ -82,8 +82,8 @@ const loginStyles = `
 
 const ownerStyles = `
   ${sharedStyles}
-  body { min-height: 100dvh; display: grid; place-items: center; padding: 1.5rem; color: var(--ink); background: var(--paper); }
-  main { width: min(100%, 46rem); border: 1px solid var(--line); border-top: 4px solid var(--green); background: var(--paper-raised); padding: 2rem; }
+  body { min-height: 100dvh; display: grid; place-items: center; padding: 1.5rem; color: var(--ink); background: radial-gradient(ellipse at 35% 40%, var(--wall), var(--night) 75%); }
+  main { width: min(100%, 46rem); border: 8px solid var(--wood); border-top: 4px solid var(--gold); background: var(--paper-raised); padding: 2rem; }
   h1 { margin: 0 0 1rem; font: 400 clamp(3rem, 8vw, 6.5rem)/.98 var(--font-display); letter-spacing: -.045em; }
   p { line-height: 1.65; }
   form { margin-top: 1.5rem; }
@@ -163,6 +163,7 @@ export function ownerPage(): string {
   </head>
   <body>
     <main data-authenticated="true">
+      <p>TENJINSAN <span lang="ja">私の図書室</span></p>
       <h1>Reading Studio</h1>
       <p>Your private owner session is active.</p>
       <p><a href="/sources">Read your sources</a></p>

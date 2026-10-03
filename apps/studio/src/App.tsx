@@ -99,10 +99,32 @@ function WorkspaceNavigation(): ReactElement {
 
 function withNavigation(page: ReactElement): ReactElement {
   return (
-    <>
+    <div className="library-workspace library-route">
+      <a
+        className="skip-link"
+        href={window.location.pathname === "/imports" ? "#studio" : "#reading"}
+      >
+        Skip to the studio <span lang="ja">読書スタジオへ</span>
+      </a>
+      <header className="library-lockup">
+        <a className="brand" href="/">
+          <svg aria-hidden="true" className="library-crest" viewBox="-50 -50 100 100">
+            {[0, 72, 144, 216, 288].map((angle) => (
+              <circle key={angle} cx="0" cy="-26" r="17" transform={`rotate(${angle})`} />
+            ))}
+            <circle cx="0" cy="0" r="4" />
+          </svg>
+          <span>
+            TENJINSAN<small lang="ja">問いからひらく読書</small>
+          </span>
+        </a>
+        <span>
+          Personal library <span lang="ja">私の図書室</span>
+        </span>
+      </header>
       <WorkspaceNavigation />
-      {page}
-    </>
+      {window.location.pathname === "/imports" ? <main id="studio">{page}</main> : page}
+    </div>
   )
 }
 
@@ -115,8 +137,10 @@ export function App(): ReactElement {
     return withNavigation(authoringRoute(<EvidenceRoutes />))
   if (/^\/revisions\/[^/]+$/.test(window.location.pathname))
     return withNavigation(authoringRoute(<RevisionRoutes />))
-  if (/^\/outlines\/[^/]+$/.test(window.location.pathname)) return withNavigation(authoringRoute(<OutlineRoutes />))
-  if (/^\/briefs\/[^/]+$/.test(window.location.pathname)) return withNavigation(authoringRoute(<BriefRoutes />))
+  if (/^\/outlines\/[^/]+$/.test(window.location.pathname))
+    return withNavigation(authoringRoute(<OutlineRoutes />))
+  if (/^\/briefs\/[^/]+$/.test(window.location.pathname))
+    return withNavigation(authoringRoute(<BriefRoutes />))
   if (
     window.location.pathname === "/interviews" ||
     /^\/interviews\/[^/]+$/.test(window.location.pathname)
@@ -130,18 +154,20 @@ export function App(): ReactElement {
   )
     return withNavigation(authoringRoute(<SourceRoutes />))
   return (
-    <div className="studio-shell min-h-dvh">
+    <div className="studio-shell library-workspace min-h-dvh">
       <a className="skip-link" href="#studio">
         Skip to the studio <span lang="ja">読書スタジオへ</span>
       </a>
       <header className="site-header">
         <a className="brand" href="#studio" aria-label="Reading studio home / 読書スタジオ ホーム">
-          <svg className="brand-mark" viewBox="0 0 48 32" aria-hidden="true">
-            <circle cx="18" cy="16" r="12" />
-            <circle cx="30" cy="16" r="12" />
+          <svg className="library-crest" viewBox="-50 -50 100 100" aria-hidden="true">
+            {[0, 72, 144, 216, 288].map((angle) => (
+              <circle key={angle} cx="0" cy="-26" r="17" transform={`rotate(${angle})`} />
+            ))}
+            <circle cx="0" cy="0" r="4" />
           </svg>
           <span>
-            READING STUDIO
+            TENJINSAN / READING STUDIO
             <small lang="ja">問いからひらく読書</small>
           </span>
         </a>
@@ -187,26 +213,41 @@ export function App(): ReactElement {
             </a>
           </div>
 
-          <figure className="conversation-mark">
+          <figure className="conversation-mark library-hall">
             <svg
               viewBox="0 0 560 480"
               role="img"
               aria-labelledby="conversation-title conversation-description"
             >
-              <title id="conversation-title">Two reading perspectives meeting</title>
+              <title id="conversation-title">A quiet personal library</title>
               <desc id="conversation-description">
-                Green and coral forms meet around a shared question. ふたつの視点が問いを囲む図。
+                Timber bookshelves and a reading table in a green-walled room. 静かな図書室。
               </desc>
-              <circle className="orbit orbit-outer" cx="280" cy="240" r="188" />
-              <circle className="orbit orbit-inner" cx="280" cy="240" r="132" />
-              <path className="path path-green" d="M128 250 C170 94 378 82 431 232" />
-              <path className="path path-coral" d="M432 259 C378 407 176 405 126 274" />
-              <circle className="person person-green" cx="150" cy="258" r="72" />
-              <circle className="person person-coral" cx="410" cy="258" r="72" />
-              <circle className="question" cx="280" cy="240" r="49" />
-              <text x="280" y="255" textAnchor="middle">
-                ?
-              </text>
+              <path className="hall-wall" d="M30 40h500v270H30z" />
+              <path className="hall-floor" d="M30 310h500l30 140H0z" />
+              <path className="hall-timber" d="M50 60h220v250H50z" />
+              {[100, 170, 240].map((height) => (
+                <g key={height}>
+                  <path className="hall-shelf" d={`M60 ${height}h200v10H60z`} />
+                  {[70, 110, 150, 190, 230].map((position) => (
+                    <rect
+                      key={position}
+                      className="hall-book"
+                      x={position}
+                      y={height - 48}
+                      width="26"
+                      height="48"
+                      rx="2"
+                    />
+                  ))}
+                </g>
+              ))}
+              <path className="hall-window" d="M340 90q60-65 120 0v150H340z" />
+              <path
+                className="hall-table"
+                d="M170 300h250l30 60H140zM170 360h16v60h-16zM404 360h16v60h-16z"
+              />
+              <path className="hall-paper" d="m240 310 45 10 45-10 15 30-60 10-60-10z" />
             </svg>
             <figcaption>
               One question, two inner worlds.

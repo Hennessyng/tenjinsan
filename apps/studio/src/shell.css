@@ -90,7 +90,9 @@ nav[aria-label="Workspace rooms"] a {
   padding: var(--space-2) var(--space-3);
   color: var(--color-green);
   text-underline-offset: var(--space-1);
-  transition: color 120ms ease-out, background-color 120ms ease-out;
+  transition:
+    color 120ms ease-out,
+    background-color 120ms ease-out;
 }
 
 nav[aria-label="Workspace rooms"] a:hover {
@@ -265,5 +267,77 @@ h1 em {
   .text-link,
   footer {
     flex-wrap: wrap;
+  }
+}
+
+.library-workspace {
+  width: min(75rem, 100%);
+  min-height: 100dvh;
+  margin-inline: auto;
+  padding: var(--space-4);
+  background: repeating-linear-gradient(
+    90deg,
+    var(--lib-floor-a) 0 3rem,
+    var(--lib-floor-b) 3rem 6rem
+  );
+  border-inline: var(--space-2) solid var(--lib-oak-dark);
+}
+.library-lockup,
+.library-workspace > .site-header {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-4);
+  padding: var(--space-6);
+  color: var(--color-paper-raised);
+  background: var(--lib-wall);
+  border-block-end: var(--space-1) solid var(--lib-brass);
+}
+.library-workspace .brand small,
+.library-workspace .privacy-note,
+.library-workspace .privacy-note small {
+  color: var(--color-paper);
+}
+.library-crest {
+  width: 3rem;
+  height: 3rem;
+  color: var(--lib-brass);
+  fill: none;
+  stroke: currentColor;
+  stroke-width: 3;
+}
+.library-workspace > .workspace-rooms {
+  padding: var(--space-3) var(--space-4);
+  color: var(--color-paper-raised);
+  background: var(--lib-wall);
+}
+.library-workspace > .workspace-rooms a {
+  color: var(--color-paper-raised);
+}
+.library-workspace > .workspace-rooms a:hover,
+.library-workspace > .workspace-rooms a[aria-current="page"] {
+  color: var(--color-ink);
+}
+.library-workspace > main,
+.library-workspace > .source-app {
+  background: var(--color-paper);
+  padding: var(--space-6);
+}
+.library-workspace > footer {
+  padding: var(--space-4);
+  background: var(--color-paper-raised);
+}
+@media (max-width: 24rem) {
+  .library-workspace {
+    padding: var(--space-2);
+  }
+  .library-workspace > main,
+  .library-workspace > .source-app {
+    padding: var(--space-4);
+  }
+  .library-lockup,
+  .library-workspace > .site-header {
+    padding: var(--space-4);
   }
 }
