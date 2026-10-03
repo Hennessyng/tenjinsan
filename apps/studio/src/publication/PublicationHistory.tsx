@@ -93,7 +93,7 @@ export function PublicationHistory({
           </section>
         ))
       ) : (
-        <p>No approved files yet / 承認済みファイルはまだありません</p>
+        <p className="workspace-empty">No approved files yet / 承認済みファイルはまだありません</p>
       )}
     </>
   )

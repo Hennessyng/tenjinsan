@@ -316,6 +316,14 @@ h1 em {
   line-height: 1.8;
   overflow-wrap: anywhere;
 }
+.library-workspace .workspace-empty {
+  padding: var(--space-4);
+  color: var(--color-ink);
+  background: var(--color-paper-raised);
+  background-image: repeating-linear-gradient(transparent 0 calc(1.8em - 1px), var(--color-line) calc(1.8em - 1px) 1.8em);
+  line-height: 1.8;
+  overflow-wrap: anywhere;
+}
 .library-workspace > .workspace-rooms {
   padding: var(--space-3) var(--space-4);
   color: var(--color-paper-raised);

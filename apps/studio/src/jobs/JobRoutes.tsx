@@ -112,7 +112,7 @@ export function JobRoutes(): ReactElement {
           </p>
         )}
         {jobs?.length === 0 && (
-          <p role="status">
+          <p className="workspace-empty" role="status">
             No jobs on a current approved setup. Begin from your sources. /{" "}
             <span lang="ja">現在の承認済み設定には作業がありません。資料から始めてください。</span>{" "}
             <a href="/sources">Your sources / 資料一覧</a>

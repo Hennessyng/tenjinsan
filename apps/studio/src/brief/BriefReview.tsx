@@ -32,7 +32,7 @@ export function BriefReview({
             ))}
           </ol>
         ) : (
-          <p>None / なし</p>
+          <p className="workspace-empty">None / なし</p>
         )}
       </article>
       <h2>Original vs refined / 元の問いと別案の比較</h2>
@@ -41,8 +41,8 @@ export function BriefReview({
         <dd lang="en">{content.originalQuestion.en}</dd>
         <dd lang="ja">{content.originalQuestion.ja}</dd>
         <dt>Refined alternative / 別案</dt>
-        <dd lang="en">{content.refinedQuestion?.en ?? "No alternative supplied"}</dd>
-        <dd lang="ja">{content.refinedQuestion?.ja ?? "別案なし"}</dd>
+        <dd className={content.refinedQuestion ? undefined : "workspace-empty"} lang="en">{content.refinedQuestion?.en ?? "No alternative supplied"}</dd>
+        <dd className={content.refinedQuestion ? undefined : "workspace-empty"} lang="ja">{content.refinedQuestion?.ja ?? "別案なし"}</dd>
       </dl>
       <p>
         English:{" "}
@@ -85,7 +85,7 @@ export function BriefReview({
             : "Allow spoilers / ネタバレを許可"}
         </dd>
         <dt>Topic exclusions / 除外する話題</dt>
-        <dd>{content.exclusions.join("\n") || "None / なし"}</dd>
+        <dd className={content.exclusions.length ? undefined : "workspace-empty"}>{content.exclusions.join("\n") || "None / なし"}</dd>
       </dl>
       <div className="setup-actions">
         {view.status !== "approved" && view.status !== "outdated" && view.status !== "revise" && (

@@ -67,7 +67,7 @@ export function InterviewRoutes(): ReactElement {
         <section className="setup">
           <h1>Reading interviews / 読書の質問</h1>
           {page.definitions.length === 0 ? (
-            <p>No question bank is ready yet. / 質問はまだ準備されていません。</p>
+            <p className="workspace-empty">No question bank is ready yet. / 質問はまだ準備されていません。</p>
           ) : (
             <ul>
               {page.definitions.map((definition) => (

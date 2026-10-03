@@ -84,7 +84,7 @@ export function OutlineRoutes(): ReactElement {
           </p>
         )}
         {!brief && (
-          <p>
+          <p className="workspace-empty">
             Approve the current reading brief before generating an outline. /{" "}
             <span lang="ja">先に読書方針を承認してください。</span>
           </p>

@@ -45,7 +45,7 @@ export function InterviewReview({
                 key={item.question.id}
               >
                 <h2>{item.question.prompt[language]}</h2>
-                <p className="response">{saved ? answerText(saved, language) : copy.empty}</p>
+              <p className={saved ? "response" : "response workspace-empty"}>{saved ? answerText(saved, language) : copy.empty}</p>
                 <a href={link(item.question.id)}>
                   {copy.edit}: {item.question.prompt[language]}
                 </a>

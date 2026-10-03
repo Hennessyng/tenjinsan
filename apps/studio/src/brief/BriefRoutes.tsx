@@ -144,7 +144,7 @@ export function BriefRoutes(): ReactElement {
               ))}
             </ul>
           ) : (
-            <p>None / なし</p>
+                <p className="workspace-empty">None / なし</p>
           )}
           <p>
             Source scope comes from study setup. Changing it requires reviewing a new brief. /

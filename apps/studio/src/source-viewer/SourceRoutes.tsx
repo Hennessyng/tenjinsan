@@ -100,7 +100,7 @@ function SourceLibrary(): ReactElement {
         </section>
       )}
       {documents.length === 0 ? (
-        <p>No normalized sources available.</p>
+        <p className="workspace-empty">No normalized sources available.</p>
       ) : (
         <ul>
           {documents.map(({ edition, normalization }) => (
@@ -213,7 +213,7 @@ function SourceReader({ revision }: { readonly revision: string }): ReactElement
               </p>
             ))
           ) : (
-            <p>
+            <p className="workspace-empty">
               This resource was excluded:{" "}
               {resource?.status === "excluded" ? resource.reason : "unavailable"}. No source text is
               available.

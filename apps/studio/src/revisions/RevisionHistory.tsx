@@ -33,7 +33,7 @@ export function RevisionHistory({
           </section>
         ))
       ) : (
-        <p>
+        <p className="workspace-empty">
           No previous setup versions / <span lang="ja">以前の設定はありません</span>
         </p>
       )}
