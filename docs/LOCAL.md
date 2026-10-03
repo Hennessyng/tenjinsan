@@ -14,8 +14,9 @@ bun run owner
 bun run start:local
 ```
 
-In the TTY, choose `p` to provision, then enter your own email, name and a
-12-to-128-character password twice. This command rejects pipes and arguments.
+In the TTY, choose `p` to provision, then enter your own email, name and any
+non-empty password twice. The limit is 128 characters. This command rejects
+pipes and arguments.
 Only one owner can be provisioned. If the password is lost, stop the running
 processes and run `bun run owner` again, choosing `r` for reset. It invalidates
 old sessions. Preserve the same `AUTH_SECRET` across restarts.

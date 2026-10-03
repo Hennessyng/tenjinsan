@@ -26,8 +26,8 @@ local: Vite on loopback       hosted: Caddy HTTPS -> internal API
 Both modes start with exactly one owner, provisioned from a real interactive terminal.
 There is no public signup. Before first use, protect the local `.env` or hosted
 `deploy/.env` and provide a random `AUTH_SECRET` of at least 32 characters. Never
-pass a password, passphrase, or API key as a command argument. The owner password
-must be 12 to 128 characters.
+pass a password, passphrase, or API key as a command argument. Any non-empty
+owner password is accepted, up to 128 characters.
 
 ## Local quick start
 
