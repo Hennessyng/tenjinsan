@@ -9,3 +9,89 @@
   border-left: var(--space-1) solid var(--color-focus);
   padding: var(--space-4);
 }
+
+.source-app .publication-note {
+  display: grid;
+  gap: var(--space-2);
+  margin-block: var(--space-6);
+  padding: var(--space-4);
+  border-inline-start: var(--space-1) solid var(--color-green);
+  background: var(--color-green-soft);
+}
+
+.source-app .publication-edition {
+  min-width: 0;
+  padding: var(--space-6);
+  border: 1px solid var(--color-line);
+  border-top: var(--space-1) solid var(--color-coral);
+  background: var(--color-paper-raised);
+}
+
+.source-app .publication-edition > h3:first-child {
+  margin-block-start: 0;
+}
+
+.source-app .publication-volumes {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: var(--space-4);
+  margin-block: var(--space-6);
+  padding: 0;
+  list-style: none;
+}
+
+.source-app .publication-volume {
+  display: grid;
+  align-content: start;
+  gap: var(--space-3);
+  min-width: 0;
+  padding: var(--space-4);
+  border: 1px solid var(--color-line);
+  border-top: var(--space-1) solid var(--color-green);
+  background: var(--color-paper);
+}
+
+.source-app .publication-volume[data-format="pdf"] {
+  border-top-color: var(--color-coral);
+}
+
+.source-app .publication-output-state,
+.source-app .publication-format-note {
+  display: block;
+}
+
+.source-app .publication-output-state {
+  color: var(--color-muted);
+  font-size: 0.875rem;
+  font-weight: 700;
+}
+
+.source-app .publication-format-note {
+  min-height: 3.6em;
+}
+
+.source-app .publication-download {
+  justify-self: start;
+  padding: var(--space-2) var(--space-3);
+  border: 1px solid var(--color-green);
+  background: var(--color-paper-raised);
+  font-weight: 700;
+}
+
+.source-app .publication-download:hover {
+  background: var(--color-green-soft);
+}
+
+@media (max-width: 42rem) {
+  .source-app .publication-edition {
+    padding-inline: var(--space-4);
+  }
+
+  .source-app .publication-volumes {
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  .source-app .publication-format-note {
+    min-height: 0;
+  }
+}

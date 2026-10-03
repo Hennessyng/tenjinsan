@@ -97,7 +97,7 @@ export function PublicationRoutes(): ReactElement {
   return (
     <SourceFrame>
       <section className="setup evidence publication-review">
-        <p className="eyebrow">REVIEW / RELEASE</p>
+        <p className="eyebrow">DISPLAY CASE / APPROVE AND DOWNLOAD</p>
         <h1>
           Publication / <span lang="ja">公開用ファイル</span>
         </h1>
