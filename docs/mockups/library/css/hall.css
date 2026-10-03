@@ -1,0 +1,504 @@
+.library {
+  position: fixed;
+  inset: 0;
+  background: var(--lib-night);
+  overflow: hidden;
+}
+
+.stage {
+  position: absolute;
+  inset: 0;
+  overflow: hidden;
+  background: #16312a;
+}
+
+.camera {
+  position: absolute;
+  inset: 0;
+  transform-origin: 0 0;
+}
+
+.stage3d {
+  position: absolute;
+  inset: 0;
+  perspective: 2600px;
+  perspective-origin: 50% 50%;
+}
+
+.world {
+  position: absolute;
+  left: 50%;
+  top: 50%;
+  width: 800px;
+  height: 800px;
+  margin: -400px 0 0 -400px;
+  transform-style: preserve-3d;
+  transform: rotateX(var(--rx)) rotateZ(var(--rz));
+}
+
+/* ---------- floor ---------- */
+.floor {
+  position: absolute;
+  inset: 0;
+  transform-style: preserve-3d;
+  background:
+    repeating-linear-gradient(90deg, rgba(90, 60, 30, 0.14) 0 1.5px, transparent 1.5px 50px),
+    repeating-linear-gradient(0deg, rgba(90, 60, 30, 0.07) 0 1px, transparent 1px 200px),
+    repeating-linear-gradient(90deg, var(--lib-floor-a) 0 50px, var(--lib-floor-b) 50px 100px);
+}
+
+.slab-s,
+.slab-e {
+  position: absolute;
+  display: block;
+}
+
+.slab-s {
+  left: 0;
+  top: 100%;
+  width: 100%;
+  height: 26px;
+  transform-origin: 0 0;
+  transform: rotateX(-90deg);
+  background: var(--lib-oak-dark);
+}
+
+.slab-e {
+  left: 100%;
+  top: 0;
+  width: 26px;
+  height: 100%;
+  transform-origin: 0 0;
+  transform: rotateY(90deg);
+  background: #5d4228;
+}
+
+.flat {
+  position: absolute;
+  transform: translateZ(1px);
+  pointer-events: none;
+}
+
+.shadow {
+  background: rgba(10, 20, 15, 0.3);
+  filter: blur(7px);
+  border-radius: 6px;
+}
+
+.glow {
+  border-radius: 50%;
+  background: radial-gradient(circle, rgba(255, 217, 138, 0.6), transparent 68%);
+}
+
+.runner {
+  position: absolute;
+  inset: 0;
+  width: 800px;
+  height: 800px;
+  transform: translateZ(1.5px);
+  pointer-events: none;
+}
+
+.runner path {
+  fill: none;
+  stroke: var(--color-coral);
+  stroke-width: 12;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+  stroke-dasharray: 2 22;
+  opacity: 0.85;
+}
+
+.doormat {
+  left: 640px;
+  top: 640px;
+  width: 150px;
+  height: 150px;
+  background: var(--color-green);
+  border: 6px solid var(--color-green-soft);
+  opacity: 0.9;
+}
+
+/* ---------- generic box (cuboid) ---------- */
+.box {
+  position: absolute;
+  left: calc(var(--x, 0) * 1px);
+  top: calc(var(--y, 0) * 1px);
+  width: calc(var(--w) * 1px);
+  height: calc(var(--d) * 1px);
+  transform-style: preserve-3d;
+  transform: translateZ(calc(var(--z, 0) * 1px)) rotateZ(var(--rot, 0deg))
+    rotateX(var(--tilt, 0deg));
+}
+
+.box > .f {
+  position: absolute;
+  display: block;
+  margin: 0;
+  overflow: hidden;
+}
+
+.f.top {
+  inset: 0;
+  transform: translateZ(calc(var(--h) * 1px));
+  background: var(--c);
+}
+
+.f.south,
+.f.north {
+  left: 0;
+  width: 100%;
+  height: calc(var(--h) * 1px);
+  transform-origin: 0 0;
+  transform: rotateX(90deg);
+}
+
+.f.south {
+  top: 100%;
+  background: color-mix(in srgb, var(--c) 84%, #000);
+}
+
+.f.north {
+  top: 0;
+  background: color-mix(in srgb, var(--c) 78%, #000);
+}
+
+.f.east,
+.f.west {
+  top: 0;
+  width: calc(var(--h) * 1px);
+  height: 100%;
+  transform-origin: 0 0;
+  transform: rotateY(-90deg);
+}
+
+.f.east {
+  left: 100%;
+  background: color-mix(in srgb, var(--c) 68%, #000);
+}
+
+.f.west {
+  left: 0;
+  background: color-mix(in srgb, var(--c) 74%, #000);
+}
+
+.box.glass > .f {
+  background: var(--lib-glass);
+  border: 1px solid rgba(255, 255, 255, 0.55);
+}
+
+/* face content wrappers: keep text/books upright on rotated faces */
+.fc-east {
+  position: absolute;
+  left: 0;
+  top: 0;
+  width: calc(var(--d) * 1px);
+  height: calc(var(--h) * 1px);
+  transform-origin: 0 0;
+  transform: translateX(calc(var(--h) * 1px)) rotate(90deg);
+}
+
+.fc-south {
+  position: absolute;
+  inset: 0;
+  transform: rotate(180deg);
+}
+
+/* ---------- shelves + spines ---------- */
+.shelves {
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+  width: 100%;
+  height: 100%;
+  padding: 10px 12px 0;
+  background: #12261f;
+}
+
+.shelf {
+  display: flex;
+  align-items: flex-end;
+  overflow: hidden;
+  border-bottom: 7px solid var(--lib-oak-dark);
+}
+
+.spine {
+  flex: none;
+  width: calc(var(--sw) * 1px);
+  height: calc(var(--sh) * 1px);
+  background: var(--sc);
+  border-radius: 1px 1px 0 0;
+  box-shadow:
+    inset 2px 0 0 rgba(255, 255, 255, 0.16),
+    inset -2px 0 0 rgba(0, 0, 0, 0.22);
+}
+
+.spine::before {
+  content: "";
+  display: block;
+  height: 3px;
+  margin-top: 12%;
+  background: rgba(255, 255, 255, 0.35);
+}
+
+.wall-r {
+  position: relative;
+  width: 100%;
+  height: 100%;
+  background: var(--lib-wall);
+}
+
+.wall-r .wain {
+  position: absolute;
+  inset: auto 0 0;
+  height: 64px;
+  background: var(--lib-oak-dark);
+  border-top: 6px solid var(--lib-oak);
+}
+
+.wall-r .arch {
+  position: absolute;
+  top: 56px;
+  width: 92px;
+  height: 160px;
+  border: 6px solid #d9ceb4;
+  border-radius: 46px 46px 0 0;
+  background: linear-gradient(#fff3d1, #f1c27c);
+  box-shadow: 0 0 40px 8px rgba(255, 217, 138, 0.3);
+}
+
+.wall-r .ledge {
+  position: absolute;
+  inset: 0 0 auto;
+  height: 14px;
+  background: #2f5a4d;
+}
+
+.ema {
+  position: absolute;
+  top: 100px;
+  width: 44px;
+  height: 52px;
+  pointer-events: none;
+}
+
+.ema svg,
+.hall-ox svg {
+  display: block;
+  width: 100%;
+  height: 100%;
+}
+
+.hall-ox {
+  position: absolute;
+  left: 540px;
+  top: 678px;
+  width: 88px;
+  height: 66px;
+  transform-origin: center bottom;
+  transform: translateZ(28px) rotateX(-90deg);
+  pointer-events: none;
+}
+
+.ladder {
+  position: absolute;
+  top: 18px;
+  width: 44px;
+  height: 250px;
+  border-inline: 5px solid var(--lib-oak);
+  background: repeating-linear-gradient(0deg, var(--lib-oak) 0 5px, transparent 5px 26px);
+}
+
+.drawers {
+  display: grid;
+  grid-template-columns: repeat(8, 1fr);
+  grid-template-rows: repeat(3, 1fr);
+  gap: 3px;
+  width: 100%;
+  height: 100%;
+  padding: 4px;
+}
+
+.drawers i {
+  display: block;
+  border: 1px solid rgba(0, 0, 0, 0.35);
+  background: color-mix(in srgb, var(--lib-oak-dark) 88%, #fff);
+  position: relative;
+}
+
+.drawers i::after {
+  content: "";
+  position: absolute;
+  left: 30%;
+  right: 30%;
+  top: 38%;
+  height: 4px;
+  background: var(--lib-brass);
+}
+
+.page {
+  background: var(--color-paper-raised);
+  border: 1px solid rgba(0, 0, 0, 0.25);
+}
+
+/* ---------- stations ---------- */
+.station {
+  position: absolute;
+  left: calc(var(--x) * 1px);
+  top: calc(var(--y) * 1px);
+  width: calc(var(--w) * 1px);
+  height: calc(var(--d) * 1px);
+  transform-style: preserve-3d;
+  cursor: pointer;
+}
+
+.parts {
+  position: absolute;
+  inset: 0;
+  transform-style: preserve-3d;
+  transition: transform 220ms ease;
+}
+
+.station:hover .parts,
+.station.is-hot .parts {
+  transform: translateZ(8px);
+}
+
+.ring {
+  position: absolute;
+  inset: -14px;
+  border: 3px solid var(--color-coral);
+  border-radius: 4px;
+  opacity: 0;
+  transform: translateZ(2px);
+  transition: opacity 150ms;
+  pointer-events: none;
+}
+
+.station:hover .ring,
+.station.is-hot .ring,
+.station:focus-within .ring {
+  opacity: 1;
+}
+
+.station[data-state="now"] .ring {
+  opacity: 0.9;
+  border-style: dashed;
+}
+
+/* billboard pin: always faces the screen whatever the camera angle */
+.pin {
+  position: absolute;
+  left: calc(var(--w) / 2 * 1px);
+  top: calc(var(--d) / 2 * 1px);
+  display: flex;
+  gap: 8px;
+  align-items: center;
+  padding: 5px 12px 5px 5px;
+  border: 1px solid var(--color-ink);
+  border-radius: 999px;
+  color: var(--color-ink);
+  background: var(--color-paper-raised);
+  font: inherit;
+  text-align: left;
+  white-space: nowrap;
+  cursor: pointer;
+  transform-origin: 50% 100%;
+  transform: translateZ(calc(var(--ph) * 1px)) rotateZ(calc(var(--rz) * -1))
+    rotateX(calc(var(--rx) * -1)) translate(-50%, -100%);
+}
+
+.pin::after {
+  content: "";
+  position: absolute;
+  left: 50%;
+  top: 100%;
+  width: 1px;
+  height: 10px;
+  background: var(--color-ink);
+}
+
+.pin:hover {
+  background: var(--color-green-soft);
+}
+
+.pin-n {
+  display: grid;
+  flex: none;
+  place-items: center;
+  width: 26px;
+  height: 26px;
+  border-radius: 50%;
+  color: var(--color-paper-raised);
+  background: var(--color-green);
+  font-size: 12px;
+  font-weight: 700;
+}
+
+.pin-t {
+  display: block;
+  line-height: 1.2;
+}
+
+.pin-t b {
+  display: block;
+  font-size: 12px;
+}
+
+.pin-t small {
+  display: block;
+  color: var(--color-muted);
+  font-size: 10px;
+}
+
+.pin-t em {
+  display: block;
+  margin-top: 1px;
+  font-size: 9.5px;
+  font-style: normal;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+
+.pin[data-state="now"] {
+  border-color: var(--color-focus);
+  border-width: 2px;
+}
+
+.pin[data-state="now"] .pin-n {
+  background: var(--color-coral);
+  color: var(--color-ink);
+}
+
+.pin[data-state="now"] em {
+  color: var(--color-focus);
+}
+
+.pin[data-state="done"] em {
+  color: var(--color-green);
+}
+
+.pin[data-state="next"] em {
+  color: var(--color-muted);
+}
+
+/* pins would balloon with the camera zoom, so the desk view hides them */
+.pin {
+  transition: opacity 250ms ease;
+}
+
+[data-mode="desk"] .pin {
+  opacity: 0;
+  pointer-events: none;
+}
+
+@media (max-width: 700px) {
+  .pin-t {
+    display: none;
+  }
+
+  .pin {
+    padding: 4px;
+  }
+}
