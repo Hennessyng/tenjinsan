@@ -26,14 +26,22 @@ describe("GET /health", () => {
   })
 })
 
-describe("minimal login surface", () => {
-  it("offers login without exposing a sign-up control", async () => {
+describe("owner login surface", () => {
+  it("presents the real login as a bilingual members' entrance without public signup", async () => {
     const response = await app.request("/login")
     const html = await response.text()
 
     expect(response.status).toBe(200)
     expect(response.headers.get("content-type")).toContain("text/html")
+    expect(html).toContain('id="gate"')
+    expect(html).toContain('id="login"')
+    expect(html).toContain("Members' entrance")
+    expect(html).toContain("入館口")
+    expect(html).toContain('Email <small lang="ja">メール</small>')
+    expect(html).toContain('Password <small lang="ja">パスワード</small>')
+    expect(html).toContain("There is no public sign-up.")
     expect(html).toContain('action="/login"')
+    expect(html).toContain('name="email"')
     expect(html).toContain('name="password"')
     expect(html).not.toContain("sign-up/email")
   })
