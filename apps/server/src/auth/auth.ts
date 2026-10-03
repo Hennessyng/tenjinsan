@@ -19,7 +19,7 @@ function createStudioAuth(storage: AuthStorage, config: StudioAuthConfig, disabl
     emailAndPassword: {
       enabled: true,
       disableSignUp,
-      minPasswordLength: 12,
+      minPasswordLength: 1,
       maxPasswordLength: 128,
     },
     logger: { disabled: true },

@@ -25,6 +25,14 @@ class OwnerPasswordMismatchError extends Error {
   }
 }
 
+class OwnerPasswordRejectedError extends Error {
+  override readonly name = "OwnerPasswordRejectedError"
+
+  constructor() {
+    super("Enter a password of 1 to 128 characters")
+  }
+}
+
 export function assertInteractiveInvocation(
   argv: readonly string[],
   inputIsTTY: boolean,
@@ -81,10 +89,14 @@ async function readPassword(label: string): Promise<string> {
 }
 
 async function readConfirmedPassword(): Promise<string> {
+  stdout.write("Any non-empty password is accepted, up to 128 characters.\n")
   const password = await readPassword("Password: ")
   const confirmation = await readPassword("Confirm password: ")
   if (password !== confirmation) {
     throw new OwnerPasswordMismatchError()
+  }
+  if (password.length < 1 || password.length > 128) {
+    throw new OwnerPasswordRejectedError()
   }
   return password
 }
@@ -132,6 +144,7 @@ export async function executeOwnerCli(): Promise<void> {
     if (
       error instanceof OwnerCliUsageError ||
       error instanceof OwnerPasswordMismatchError ||
+      error instanceof OwnerPasswordRejectedError ||
       error instanceof OwnerAlreadyExistsError ||
       error instanceof OwnerNotProvisionedError ||
       error instanceof ServerConfigError

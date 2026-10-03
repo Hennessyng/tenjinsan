@@ -5,10 +5,10 @@ import type { StudioAuth } from "./auth.ts"
 const ownerInputSchema = z.object({
   email: z.email(),
   name: z.string().trim().min(1).max(100),
-  password: z.string().min(12).max(128),
+  password: z.string().min(1).max(128),
 })
 
-const passwordSchema = z.string().min(12).max(128)
+const passwordSchema = z.string().min(1).max(128)
 
 export class OwnerAlreadyExistsError extends Error {
   override readonly name = "OwnerAlreadyExistsError"
