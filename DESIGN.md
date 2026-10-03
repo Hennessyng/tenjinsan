@@ -133,6 +133,13 @@ Spacing follows a 4px base: `--space-1` 4px, `--space-2` 8px, `--space-3` 12px, 
 
 ## 6. Motion & Interaction
 
+### Summary downloads (TEN-9)
+
+- Map the existing publication controls to the mockup's Display case: a green-soft last-stop note, raised-paper version cases, and distinct HTML/PDF volumes. Reuse the workspace paper, green, coral, ink, line, body type, spacing, links and focus treatment; add no tokens or motion.
+- Only released outputs receive native download links. Queued, running and failed outputs remain explicit text states; failure must never look complete. Current and stale historical versions remain visibly distinct, and successful historical downloads remain available.
+- Keep the existing artifact endpoints, formats, generation controls, approvals and offline behavior unchanged. Do not rewrite, replace, delete or restyle generated HTML/PDF, and do not add reader controls.
+- At narrow widths, volumes stack in source order without horizontal overflow. Bilingual labels, native links and buttons, keyboard focus, and document scrolling remain intact.
+
 ### Publication approval and versioned files (Task28)
 
 - Reuse the source-reader shell, React controls with native semantics, paired text, details, metadata and wrapping action rows. No new visual tokens or motion.
