@@ -60,18 +60,22 @@ export function SetupChoices({
         <a href={`/sources/${normalization.id}`}>Back to source preview</a>
       </p>
       <form onSubmit={submit}>
-        <label htmlFor="provider">Provider and model</label>
-        <select
-          id="provider"
-          value={selection}
-          onChange={(event) => setSelection(event.target.value)}
-        >
-          {choices.map((choice, index) => (
-            <option key={`${choice.provider}/${choice.model}`} value={index}>
-              {choice.label}
-            </option>
-          ))}
-        </select>
+        <section className="setup-provider-paper" aria-labelledby="provider-label">
+          <label id="provider-label" htmlFor="provider">
+            Provider and model
+          </label>
+          <select
+            id="provider"
+            value={selection}
+            onChange={(event) => setSelection(event.target.value)}
+          >
+            {choices.map((choice, index) => (
+              <option key={`${choice.provider}/${choice.model}`} value={index}>
+                {choice.label}
+              </option>
+            ))}
+          </select>
+        </section>
         <fieldset>
           <legend>Source scope</legend>
           <label>
@@ -122,41 +126,53 @@ export function SetupChoices({
           )}
         </fieldset>
         <p>
-          OpenRouter and Anthropic use server-owned API keys. Codex uses official subscription
-          sign-in. Studio caps: 64 calls, 32,000 request bytes, 6,000 output tokens. Codex output is
-          checked after receipt.
+          Studio caps: 64 calls, 32,000 request bytes, 6,000 output tokens. Codex output is checked
+          after receipt.
         </p>
         <button type="submit" disabled={busy || !choices[Number(selection)]}>
           Review transmission
         </button>
       </form>
-      <h2>Codex connection</h2>
-      <p role="status">
-        {choices.some((choice) => choice.provider === "codex") ? "Connected" : "Unavailable"}
-      </p>
-      {connectionError && <p role="alert">Official Codex route unavailable. No study was sent.</p>}
-      {authUrl && (
+      <section className="setup-connection-slip" aria-labelledby="connection-heading">
+        <h2 id="connection-heading">Connection methods</h2>
         <p>
-          <a href={authUrl} target="_blank" rel="noreferrer">
-            Continue official Codex sign-in
-          </a>
+          OpenRouter and Anthropic use server-owned API keys. Codex uses official subscription
+          sign-in.
         </p>
-      )}
-      <div className="setup-actions">
-        <button type="button" disabled={connectionBusy} onClick={() => void connection("connect")}>
-          Connect Codex
-        </button>
-        <button
-          type="button"
-          disabled={connectionBusy}
-          onClick={() => void connection("disconnect")}
-        >
-          Disconnect Codex
-        </button>
-        <button type="button" onClick={() => window.location.reload()}>
-          Refresh connection and models
-        </button>
-      </div>
+        <h3>Codex connection</h3>
+        <p className="setup-connection-stamp" role="status">
+          {choices.some((choice) => choice.provider === "codex") ? "Connected" : "Unavailable"}
+        </p>
+        {connectionError && (
+          <p role="alert">Official Codex route unavailable. No study was sent.</p>
+        )}
+        {authUrl && (
+          <p>
+            <a href={authUrl} target="_blank" rel="noreferrer">
+              Continue official Codex sign-in
+            </a>
+          </p>
+        )}
+        <div className="setup-actions">
+          <button
+            type="button"
+            disabled={connectionBusy}
+            onClick={() => void connection("connect")}
+          >
+            Connect Codex
+          </button>
+          <button
+            type="button"
+            disabled={connectionBusy}
+            onClick={() => void connection("disconnect")}
+          >
+            Disconnect Codex
+          </button>
+          <button type="button" onClick={() => window.location.reload()}>
+            Refresh connection and models
+          </button>
+        </div>
+      </section>
     </section>
   )
 }
