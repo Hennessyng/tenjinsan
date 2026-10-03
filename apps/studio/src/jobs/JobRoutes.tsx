@@ -107,7 +107,7 @@ export function JobRoutes(): ReactElement {
           Refresh status / <span lang="ja">状態を更新</span>
         </button>
         {jobs === null && !error && (
-          <p role="status">
+          <p className="workspace-loading" role="status">
             Loading jobs / <span lang="ja">作業を読み込み中</span>
           </p>
         )}

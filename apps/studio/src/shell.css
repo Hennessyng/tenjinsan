@@ -307,6 +307,15 @@ h1 em {
   stroke: currentColor;
   stroke-width: 3;
 }
+.library-workspace .workspace-loading {
+  padding: var(--space-4) var(--space-6);
+  color: var(--color-ink);
+  background: var(--color-paper-raised);
+  border: 1px dashed var(--color-muted);
+  box-shadow: 0 var(--space-1) var(--space-2) color-mix(in srgb, var(--lib-night) 12%, transparent);
+  line-height: 1.8;
+  overflow-wrap: anywhere;
+}
 .library-workspace > .workspace-rooms {
   padding: var(--space-3) var(--space-4);
   color: var(--color-paper-raised);

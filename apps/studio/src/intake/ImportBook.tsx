@@ -74,7 +74,7 @@ export function ImportBook(): ReactElement {
                 required
                 onChange={(event) => setFile(event.currentTarget.files?.item(0) ?? null)}
               />
-              <button type="submit" disabled={busy || !file}>
+              <button className={busy ? "workspace-loading" : undefined} type="submit" disabled={busy || !file}>
                 {busy ? "Importing…" : "Import EPUB"}
               </button>
             </form>

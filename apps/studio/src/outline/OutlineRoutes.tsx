@@ -53,7 +53,7 @@ export function OutlineRoutes(): ReactElement {
   if (!state)
     return (
       <SourceFrame>
-        {error ? <p role="alert">Study not found</p> : <p role="status">Loading outline</p>}
+        {error ? <p role="alert">Study not found</p> : <p className="workspace-loading" role="status">Loading outline</p>}
       </SourceFrame>
     )
   const { view, brief, fixture, providerReady } = state

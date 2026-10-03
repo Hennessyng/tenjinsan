@@ -73,7 +73,7 @@ export function RevisionRoutes(): ReactElement {
             <a href="/interviews">Return to interviews / 質問に戻る</a>
           </section>
         ) : (
-          <p role="status">Loading revisions</p>
+        <p className="workspace-loading" role="status">Loading revisions</p>
         )}
       </SourceFrame>
     )

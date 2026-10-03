@@ -81,7 +81,7 @@ export function EvidenceRoutes(): ReactElement {
             This lesson is outdated or unavailable. Review the current approved outline and lesson.
           </p>
         ) : (
-          <p role="status">Loading evidence review</p>
+        <p className="workspace-loading" role="status">Loading evidence review</p>
         )}
       </SourceFrame>
     )

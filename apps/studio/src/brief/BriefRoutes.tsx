@@ -66,7 +66,7 @@ export function BriefRoutes(): ReactElement {
             <a href="/interviews">Return to interviews</a>
           </section>
         ) : (
-          <p role="status">Loading brief</p>
+          <p className="workspace-loading" role="status">Loading brief</p>
         )}
       </SourceFrame>
     )

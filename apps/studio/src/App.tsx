@@ -41,7 +41,7 @@ const SetupRoutes = lazy(() =>
 )
 
 function authoringRoute(page: ReactElement): ReactElement {
-  return <Suspense fallback={<p role="status">Loading studio</p>}>{page}</Suspense>
+  return <Suspense fallback={<p className="workspace-loading" role="status">Loading studio</p>}>{page}</Suspense>
 }
 
 const rooms = [

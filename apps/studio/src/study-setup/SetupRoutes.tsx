@@ -86,7 +86,7 @@ export function SetupRoutes(): ReactElement {
             {message}
           </p>
         )}
-        {page.kind === "loading" && <p role="status">Loading study setup</p>}
+        {page.kind === "loading" && <p className="workspace-loading" role="status">Loading study setup</p>}
         {page.kind === "error" && (
           <section className="setup">
             <h1>Setup unavailable</h1>

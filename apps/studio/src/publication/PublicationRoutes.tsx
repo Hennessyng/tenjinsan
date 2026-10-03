@@ -76,7 +76,7 @@ export function PublicationRoutes(): ReactElement {
         {error ? (
           <p role="alert">Publication unavailable</p>
         ) : (
-          <p role="status">Loading publication</p>
+        <p className="workspace-loading" role="status">Loading publication</p>
         )}
       </SourceFrame>
     )

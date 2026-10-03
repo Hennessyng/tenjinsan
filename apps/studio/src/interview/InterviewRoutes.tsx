@@ -48,7 +48,7 @@ export function InterviewRoutes(): ReactElement {
   if (page.kind === "loading")
     return (
       <SourceFrame language={language}>
-        <p role="status">Loading interview</p>
+        <p className="workspace-loading" role="status">Loading interview</p>
       </SourceFrame>
     )
   if (page.kind === "error")
