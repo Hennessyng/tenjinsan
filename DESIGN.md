@@ -168,6 +168,7 @@ Spacing follows a 4px base: `--space-1` 4px, `--space-2` 8px, `--space-3` 12px, 
 
 ### Study setup
 
+- Lending-desk provider presentation: the existing native combined selector sits in a named raised-paper region. Existing server-key and Codex connection methods sit on a ruled slip, while the backend-derived Codex text is presented as a bordered text stamp. Labels, choices, controls, states and submission behavior remain unchanged; both papers wrap within the reading measure without motion.
 - Reuse the source-reader paper, ink, typography, focus and spacing tokens in the React setup route; one reading-width column, no animation.
 - Native labelled select, radio fieldset and chapter checkboxes lead to a separate transmission review. Controls use body text, 16px padding and a line-color border; actions wrap at narrow widths.
 - Review lists selected and excluded resources, exact provider/model, book-text category, API credential availability and fixed call/source/output limits. Send, Revise and Cancel are separate native buttons; approval and cancellation have distinct headings.
