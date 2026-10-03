@@ -18,6 +18,7 @@ export function SetupChoices({
   const { normalization, choices } = value
   const main = normalization.resources.filter((resource) => resource.role === "main-chapter")
   const complete = main.length > 0 && main.every((resource) => resource.status === "included")
+  const codexAvailable = choices.some((choice) => choice.provider === "codex")
   const [selection, setSelection] = useState("0")
   const [authUrl, setAuthUrl] = useState<string | null>(null)
   const [connectionBusy, setConnectionBusy] = useState(false)
@@ -134,44 +135,70 @@ export function SetupChoices({
         </button>
       </form>
       <section className="setup-connection-slip" aria-labelledby="connection-heading">
+        <p className="eyebrow">LENDING DESK / PROVIDER ACCESS</p>
         <h2 id="connection-heading">Connection methods</h2>
-        <p>
-          OpenRouter and Anthropic use server-owned API keys. Codex uses official subscription
-          sign-in.
-        </p>
-        <h3>Codex connection</h3>
-        <p className="setup-connection-stamp" role="status">
-          {choices.some((choice) => choice.provider === "codex") ? "Connected" : "Unavailable"}
-        </p>
-        {connectionError && (
-          <p role="alert">Official Codex route unavailable. No study was sent.</p>
-        )}
-        {authUrl && (
+        <section className="setup-key-provider-note" aria-labelledby="key-provider-heading">
+          <h3 id="key-provider-heading">Key-based providers</h3>
           <p>
-            <a href={authUrl} target="_blank" rel="noreferrer">
-              Continue official Codex sign-in
-            </a>
+            OpenRouter and Anthropic use server-owned API keys. Those keys stay separate from the
+            official Codex connection below.
           </p>
-        )}
-        <div className="setup-actions">
-          <button
-            type="button"
-            disabled={connectionBusy}
-            onClick={() => void connection("connect")}
-          >
-            Connect Codex
-          </button>
-          <button
-            type="button"
-            disabled={connectionBusy}
-            onClick={() => void connection("disconnect")}
-          >
-            Disconnect Codex
-          </button>
-          <button type="button" onClick={() => window.location.reload()}>
-            Refresh connection and models
-          </button>
-        </div>
+        </section>
+        <section className="setup-codex-ticket" aria-labelledby="codex-connection-heading">
+          <div className="setup-codex-ticket-heading">
+            <div>
+              <p className="setup-ticket-number">OFFICIAL CONNECTION / CODEX</p>
+              <h3 id="codex-connection-heading">Borrow with your Codex subscription</h3>
+            </div>
+            <p className="setup-connection-stamp" role="status">
+              {codexAvailable ? "Connected" : "Unavailable"}
+            </p>
+          </div>
+          <p>
+            Sign in through the official Codex route for this private reading workspace. Connecting
+            or disconnecting here does not change any provider API key.
+          </p>
+          <dl className="setup-connection-details">
+            <dt>Desk</dt>
+            <dd>Reading Studio lending desk</dd>
+            <dt>Access</dt>
+            <dd>Official Codex subscription sign-in</dd>
+          </dl>
+          <p className="setup-connection-state">
+            {codexAvailable
+              ? "Codex models are available to this workspace."
+              : "No Codex models are available to this workspace. Connect, then refresh after completing sign-in."}
+          </p>
+          {connectionError && (
+            <p role="alert">Official Codex route unavailable. No study was sent.</p>
+          )}
+          {authUrl && (
+            <p>
+              <a href={authUrl} target="_blank" rel="noreferrer">
+                Continue official Codex sign-in
+              </a>
+            </p>
+          )}
+          <div className="setup-actions">
+            <button
+              type="button"
+              disabled={connectionBusy}
+              onClick={() => void connection("connect")}
+            >
+              Connect Codex
+            </button>
+            <button type="button" onClick={() => window.location.reload()}>
+              Refresh connection and models
+            </button>
+            <button
+              type="button"
+              disabled={connectionBusy}
+              onClick={() => void connection("disconnect")}
+            >
+              Disconnect Codex
+            </button>
+          </div>
+        </section>
       </section>
     </section>
   )
