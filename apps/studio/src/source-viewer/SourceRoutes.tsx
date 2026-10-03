@@ -83,17 +83,21 @@ function SourceLibrary(): ReactElement {
         to read.
       </p>
       {pending.length > 0 && (
-        <>
-          <h2>Awaiting normalization</h2>
-          <ul>
+        <section className="intake-status-paper" aria-labelledby="pending-imports-title">
+          <h2 id="pending-imports-title">Awaiting normalization</h2>
+          <ul className="pending-imports">
             {pending.map((receipt) => (
               <li key={receipt.id}>
                 <code>{receipt.id}</code>
-                <p>Queued · {receipt.bytes} bytes · Not yet readable</p>
+                <p>{receipt.bytes} bytes</p>
+                <div className="pending-import-status">
+                  <strong className="intake-stamp">Queued</strong>
+                  <strong className="intake-stamp intake-stamp-waiting">Not yet readable</strong>
+                </div>
               </li>
             ))}
           </ul>
-        </>
+        </section>
       )}
       {documents.length === 0 ? (
         <p>No normalized sources available.</p>
