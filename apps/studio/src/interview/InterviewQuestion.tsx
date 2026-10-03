@@ -49,7 +49,9 @@ export function InterviewQuestion({
   }
   return (
     <>
-      <h2 tabIndex={-1}>{question.prompt[language]}</h2>
+      <h2 id="interview-question" tabIndex={-1}>
+        {question.prompt[language]}
+      </h2>
       {saved && (
         <p className="response">
           {copy.progress}: {answerText(saved, language)}

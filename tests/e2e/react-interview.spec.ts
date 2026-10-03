@@ -37,6 +37,19 @@ test.describe("React interview", () => {
       await page.setViewportSize({ width, height: 900 })
       await page.goto("http://127.0.0.1:4173/interviews/study-fixture")
       await expect(page.getByRole("heading", { name: "Shape your reading" })).toBeVisible()
+      const questionPaper = page.locator(".question-paper")
+      const guidance = page.locator(".question-guidance")
+      await expect(questionPaper).toContainText("Where would you like to begin?")
+      await expect(questionPaper.getByLabel("Ask a more open question")).toBeVisible()
+      await expect(guidance).toContainText("Save your response before navigating")
+      await expect(questionPaper).toHaveCSS("border-top-color", "rgb(39, 99, 79)")
+      const paperBox = await questionPaper.boundingBox()
+      const guidanceBox = await guidance.boundingBox()
+      expect(paperBox).not.toBeNull()
+      expect(guidanceBox).not.toBeNull()
+      if (paperBox === null || guidanceBox === null) throw new TypeError("Question desk is missing")
+      if (width > 768) expect(guidanceBox.x).toBeGreaterThan(paperBox.x + paperBox.width)
+      else expect(guidanceBox.y).toBeGreaterThan(paperBox.y + paperBox.height)
       // When: a single choice is saved, then a multi-choice is replaced by custom text.
       await page.getByLabel("Ask a more open question").check()
       await saveAndNavigate(page, "Save choices")
@@ -68,10 +81,21 @@ test.describe("React interview", () => {
       )
       await page.getByRole("link", { name: "戻る", exact: true }).click()
       await expect(page.getByLabel("より開かれた問いを立てる")).toBeChecked()
+      await page.getByRole("link", { name: "保存した回答を確認", exact: true }).click()
+      const savedCard = page.locator(".answer-index-card").filter({ hasText: "Listen first." })
+      await expect(savedCard).toContainText("Listen first.")
+      await expect(savedCard).toContainText("相手の話を聞く。")
+      await expect(savedCard).toHaveCSS("border-top-color", "rgb(216, 136, 105)")
+      const edit = savedCard.getByRole("link", { name: /^編集:/ })
+      await expect(edit).toHaveAttribute("href", /step=context/)
       await page.screenshot({
         path: testInfo.outputPath(`react-interview-${width}.png`),
         fullPage: true,
       })
+      await edit.click()
+      await expect(page.getByLabel("自分の言葉で回答")).toHaveValue(
+        "Listen first.\n相手の話を聞く。",
+      )
       expect(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth)).toBe(
         true,
       )
