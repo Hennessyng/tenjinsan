@@ -81,10 +81,21 @@ test.describe("React interview", () => {
       )
       await page.getByRole("link", { name: "戻る", exact: true }).click()
       await expect(page.getByLabel("より開かれた問いを立てる")).toBeChecked()
+      await page.getByRole("link", { name: "保存した回答を確認", exact: true }).click()
+      const savedCard = page.locator(".answer-index-card").filter({ hasText: "Listen first." })
+      await expect(savedCard).toContainText("Listen first.")
+      await expect(savedCard).toContainText("相手の話を聞く。")
+      await expect(savedCard).toHaveCSS("border-top-color", "rgb(216, 136, 105)")
+      const edit = savedCard.getByRole("link", { name: /^編集:/ })
+      await expect(edit).toHaveAttribute("href", /step=context/)
       await page.screenshot({
         path: testInfo.outputPath(`react-interview-${width}.png`),
         fullPage: true,
       })
+      await edit.click()
+      await expect(page.getByLabel("自分の言葉で回答")).toHaveValue(
+        "Listen first.\n相手の話を聞く。",
+      )
       expect(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth)).toBe(
         true,
       )

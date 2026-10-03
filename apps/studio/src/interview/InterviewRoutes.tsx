@@ -4,12 +4,12 @@ import { useEffect, useState } from "react"
 import type { z } from "zod"
 import { SourceRequestError, sourceCommand, sourceRequest } from "../source-viewer/client.ts"
 import { SourceFrame } from "../source-viewer/SourceRoutes.tsx"
-import { answerText } from "./answer-text.ts"
 import type { Interview } from "./client.ts"
 import { InterviewList, InterviewState, SavedAnswer } from "./client.ts"
 import type { InterviewLanguage } from "./copy.ts"
 import { interviewCopy } from "./copy.ts"
 import { InterviewQuestion } from "./InterviewQuestion.tsx"
+import { InterviewReview } from "./InterviewReview.tsx"
 
 type Page =
   | { readonly kind: "loading" }
@@ -174,34 +174,15 @@ export function InterviewRoutes(): ReactElement {
           </p>
         )}
         {review ? (
-          <>
-            <h2>{copy.review}</h2>
-            {requiredPending ? (
-              <p role="status">{copy.pending}</p>
-            ) : savedCount === sequence.length ? (
-              <p>{copy.complete}</p>
-            ) : null}
-            <ol>
-              {definition.steps
-                .filter(
-                  (item) =>
-                    sequence.includes(item) ||
-                    answers.some((saved) => saved.question.id === item.question.id),
-                )
-                .map((item) => {
-                  const saved = answers.find((answer) => answer.question.id === item.question.id)
-                  return (
-                    <li key={item.question.id}>
-                      <h2>{item.question.prompt[language]}</h2>
-                      <p className="response">{saved ? answerText(saved, language) : copy.empty}</p>
-                      <a href={link(item.question.id)}>
-                        {copy.edit}: {item.question.prompt[language]}
-                      </a>
-                    </li>
-                  )
-                })}
-            </ol>
-          </>
+          <InterviewReview
+            steps={definition.steps}
+            sequence={sequence}
+            answers={answers}
+            language={language}
+            requiredPending={requiredPending}
+            savedCount={savedCount}
+            link={link}
+          />
         ) : (
           <>
             <div className="question-desk">
