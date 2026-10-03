@@ -67,7 +67,7 @@ function RoomLink({
   href: string
 }): ReactElement {
   return (
-    <a href={href} aria-current={roomCurrent(href)}>
+    <a href={`${href}${window.location.search}`} aria-current={roomCurrent(href)}>
       {name} / <span lang="ja">{japanese}</span>
     </a>
   )

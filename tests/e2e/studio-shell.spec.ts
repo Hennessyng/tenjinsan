@@ -23,3 +23,29 @@ test("focus treatment and narrow reflow remain accessible", async ({ page }) => 
     true,
   )
 })
+
+test("room navigation preserves query context through browser history and repeated use", async ({
+  page,
+}) => {
+  const context = "?chapter=2&lang=ja"
+  await page.goto(`/${context}`)
+
+  const importRoom = () =>
+    page
+      .getByRole("navigation", { name: "Workspace rooms" })
+      .getByRole("link", { name: /Import a book/ })
+      .first()
+
+  await expect(importRoom()).toHaveAttribute("href", `/imports${context}`)
+  await importRoom().click()
+  await expect(page).toHaveURL(`/imports${context}`)
+
+  await page.reload()
+  await expect(page).toHaveURL(`/imports${context}`)
+  await page.goBack()
+  await expect(page).toHaveURL(`/${context}`)
+
+  await importRoom().click()
+  await importRoom().click()
+  await expect(page).toHaveURL(`/imports${context}`)
+})
