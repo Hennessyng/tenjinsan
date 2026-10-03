@@ -161,6 +161,8 @@ Spacing follows a 4px base: `--space-1` 4px, `--space-2` 8px, `--space-3` 12px, 
 ### Saved interview
 
 - Reuse the source-reader shell and all its tokens. Native radio/checkbox labels form raised-paper choice cards with line borders, green-soft selected fill and deep-coral keyboard focus. No animation or new visual tokens.
+- The current question and its native controls sit on a raised-paper sheet with a green top rule. Existing save-before-navigation guidance sits beside it as a green-soft margin note on wide screens and follows it in reading order on narrow screens. This maps the approved `docs/mockups/library/index.html` reference-desk treatment without importing the mockup's sample content, shrine palette, depth or motion.
+- Saved review entries use raised-paper index cards with a coral top rule. Their actual question, saved answer and Edit link remain selectable text; unanswered review entries retain the question-paper treatment rather than implying that an answer was saved.
 - One question at a time, an explicit selection range, saved-count progress, Back/Next links and grouped native details for browsing beyond the shortlist. A saved-answer review provides Edit links. Optional bank questions never force an exhaustive questionnaire.
 - Choice, custom text and unsure/skip use separate forms: each save replaces the current answer, never combines answer kinds. Required approval decisions have no custom, unsure or skip action; these decisions do not create downstream approvals.
 - EN/JA navigation keeps the same question and saved answer. Save before changing pages; unsaved inputs are not claimed as saved. Errors receive focus, and every save returns an explicit saved status. Question and answer text remain escaped and selectable.
