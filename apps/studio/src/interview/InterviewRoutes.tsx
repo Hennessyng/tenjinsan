@@ -160,11 +160,14 @@ export function InterviewRoutes(): ReactElement {
             日本語
           </a>
         </nav>
-        <label htmlFor="progress">
-          {copy.progress} {savedCount} {copy.of} {sequence.length} {copy.suggested}
-        </label>
-        <progress id="progress" value={savedCount} max={sequence.length} />
-        <p>{copy.hint}</p>
+        {review && (
+          <>
+            <label htmlFor="progress">
+              {copy.progress} {savedCount} {copy.of} {sequence.length} {copy.suggested}
+            </label>
+            <progress id="progress" value={savedCount} max={sequence.length} />
+          </>
+        )}
         {params.get("saved") === "1" && (
           <p role="status" tabIndex={-1}>
             {copy.saved}
@@ -201,15 +204,26 @@ export function InterviewRoutes(): ReactElement {
           </>
         ) : (
           <>
-            <InterviewQuestion
-              key={step.question.id}
-              step={step}
-              saved={current}
-              language={language}
-              submit={save}
-              busy={busy}
-              error={error}
-            />
+            <div className="question-desk">
+              <section className="question-paper" aria-labelledby="interview-question">
+                <label htmlFor="progress">
+                  {copy.progress} {savedCount} {copy.of} {sequence.length} {copy.suggested}
+                </label>
+                <progress id="progress" value={savedCount} max={sequence.length} />
+                <InterviewQuestion
+                  key={step.question.id}
+                  step={step}
+                  saved={current}
+                  language={language}
+                  submit={save}
+                  busy={busy}
+                  error={error}
+                />
+              </section>
+              <aside className="question-guidance" aria-label={copy.hint}>
+                <p>{copy.hint}</p>
+              </aside>
+            </div>
             <nav
               className="setup-actions"
               aria-label={language === "en" ? "Interview steps" : "質問の移動"}
