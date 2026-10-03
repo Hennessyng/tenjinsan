@@ -49,35 +49,61 @@ export function ImportBook(): ReactElement {
   return (
     <section className="source-app import-book" aria-labelledby="import-title">
       <div className="import-content">
-        <p className="eyebrow">PRIVATE LIBRARY / 資料を追加</p>
-        <h2 id="import-title">Import a book</h2>
-        <p>
-          Choose an EPUB from your device. It stays in your private library; importing does not
-          authorize provider transmission.
-        </p>
-        <form
-          onSubmit={(event) => {
-            void upload(event)
-          }}
-        >
-          <label htmlFor="epub-file">Choose EPUB</label>
-          <input
-            id="epub-file"
-            type="file"
-            accept=".epub,application/epub+zip"
-            required
-            onChange={(event) => setFile(event.currentTarget.files?.item(0) ?? null)}
-          />
-          <button type="submit" disabled={busy || !file}>
-            {busy ? "Importing…" : "Import EPUB"}
-          </button>
-        </form>
-        {error && <p role="alert">{error}</p>}
+        <header className="intake-heading">
+          <p className="eyebrow">ACCESSION DESK / 受入カウンター</p>
+          <h2 id="import-title">Import a book</h2>
+          <p>Place an EPUB in the intake tray to add it to your private library.</p>
+        </header>
+        <div className="intake-layout">
+          <div className="intake-paper">
+            <h3>
+              Intake tray <span lang="ja">受入トレイ</span>
+            </h3>
+            <p>The book stays here while the library checks and prepares it.</p>
+            <form
+              className="intake-tray"
+              onSubmit={(event) => {
+                void upload(event)
+              }}
+            >
+              <label htmlFor="epub-file">Choose EPUB</label>
+              <input
+                id="epub-file"
+                type="file"
+                accept=".epub,application/epub+zip"
+                required
+                onChange={(event) => setFile(event.currentTarget.files?.item(0) ?? null)}
+              />
+              <button type="submit" disabled={busy || !file}>
+                {busy ? "Importing…" : "Import EPUB"}
+              </button>
+            </form>
+          </div>
+          <aside className="intake-note" aria-label="Private import note">
+            <h3>Private import</h3>
+            <p>
+              The EPUB stays in your private library. Importing does not authorize provider
+              transmission.
+            </p>
+          </aside>
+        </div>
+        {error && (
+          <div className="intake-outcome intake-outcome-refused" role="alert">
+            <strong className="intake-stamp intake-stamp-refused">Refused</strong>
+            <p>{error}</p>
+          </div>
+        )}
         {receipt && (
-          <p role="status">
-            Import accepted: {receipt.id} · {receipt.bytes} bytes.{" "}
-            <a href="/sources">View your sources</a>
-          </p>
+          <div className="intake-outcome intake-outcome-accepted" role="status">
+            <strong className="intake-stamp">Queued</strong>
+            <div>
+              <h3>{error ? "Earlier acceptance" : "Import accepted"}</h3>
+              <p>
+                {receipt.id} · {receipt.bytes} bytes · Not yet readable
+              </p>
+              <a href="/sources">View your sources</a>
+            </div>
+          </div>
         )}
         <p>
           <a href="/sources">Your sources / 資料一覧</a>

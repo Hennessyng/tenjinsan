@@ -52,6 +52,13 @@ Spacing follows a 4px base: `--space-1` 4px, `--space-2` 8px, `--space-3` 12px, 
 
 ## 5. Components
 
+### Accession intake (TEN-6)
+
+- The existing native EPUB chooser and submit action sit inside a raised-paper accession sheet and dashed intake tray. A private-import margin note sits beside the sheet when wide and follows it below at narrow widths; document scroll remains the only scroll owner.
+- Actual upload outcomes use text-bearing stamps. Accepted receipts say Queued, retain the real receipt ID and byte count, and explicitly say Not yet readable. A later refusal is the current alert while any retained receipt is labelled Earlier acceptance.
+- Only committed pending receipts receive the intake-status paper on the source list. Queued and Not yet readable remain separate visible stamps; normalized source and reader presentation is unchanged.
+- Reuse paper, raised paper, ink, green, green-soft, line, muted, focus, display/body type and 4px spacing tokens. Native chooser semantics, upload rules, refusal copy, keyboard focus and provider-transmission boundaries remain unchanged.
+
 ### Static print composition (Task26)
 
 - A separate, script-free document is composed from an authoritative approved publication revision, never a browser snapshot. Reuse paired text, teaching-state lists, diagram geometry, source notes and existing reader tokens. Maximum width is `--reading-width`; bilingual paragraphs stack for predictable paper reading order.
