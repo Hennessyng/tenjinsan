@@ -1,5 +1,5 @@
 import { execFileSync } from "node:child_process"
-import { chromium, expect as visible, type Locator, type Page } from "@playwright/test"
+import { chromium, type Locator, type Page, expect as visible } from "@playwright/test"
 import { beforeAll, it } from "vitest"
 import { sourceViewerFixture } from "../../apps/server/src/testing/source-viewer-fixture.ts"
 

@@ -1,5 +1,5 @@
 import { execFileSync } from "node:child_process"
-import { chromium, expect as visible, type Locator, type Page } from "@playwright/test"
+import { chromium, type Locator, type Page, expect as visible } from "@playwright/test"
 import { it } from "vitest"
 import { sourceViewerFixture } from "../../apps/server/src/testing/source-viewer-fixture.ts"
 
@@ -31,7 +31,13 @@ it("TEN-13 AC1 operates native workspace entrypoints by keyboard", async () => {
     await page.keyboard.press("Tab")
     await visible(page.locator("main :focus")).toHaveCount(1)
     await page.keyboard.press("Shift+Tab")
-    await tabTo(page, page.getByRole("navigation").getByRole("link", { name: /Your sources/ }).first())
+    await tabTo(
+      page,
+      page
+        .getByRole("navigation")
+        .getByRole("link", { name: /Your sources/ })
+        .first(),
+    )
     await page.keyboard.press("Enter")
     await page.waitForURL(`${fixture.origin}/sources`)
     await visible(page.getByRole("heading", { name: "Your sources" })).toBeVisible()
