@@ -8,7 +8,8 @@ it("TEN-12 AC3 presents real absence without hiding existing sources", async () 
   execFileSync("bun", ["run", "--cwd", "apps/studio", "build"], { stdio: "pipe" })
   const fixture = await sourceViewerFixture({ studioAssets: true })
   const browser = await chromium.launch()
-  const directory = ".sisyphus/runs/ten-12-apply-the-identity-across-the-workspace/evidence/empty-chromium"
+  const directory =
+    ".sisyphus/runs/ten-12-apply-the-identity-across-the-workspace/evidence/empty-chromium"
   await mkdir(directory, { recursive: true })
   const rows: { path: string; width: number; paper: string; bounded: boolean }[] = []
   try {
@@ -29,14 +30,35 @@ it("TEN-12 AC3 presents real absence without hiding existing sources", async () 
         await page.goto(`${fixture.origin}${path}`)
         const empty = page.getByText(text ?? "", { exact: false }).first()
         await visible(empty).toBeVisible()
-        rows.push({ path: path ?? "", width, paper: await empty.evaluate((node) => getComputedStyle(node).backgroundColor), bounded: await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth) })
+        rows.push({
+          path: path ?? "",
+          width,
+          paper: await empty.evaluate((node) => getComputedStyle(node).backgroundColor),
+          bounded: await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth),
+        })
         await page.screenshot({ path: `${directory}/${width}-${rows.length}.png`, fullPage: true })
-        await page.getByRole("navigation", { name: "Workspace rooms" }).getByRole("link", { name: /Your sources/ }).first().click()
-        await visible(page.getByRole("link", { name: "The art of paying attention" }).first()).toBeVisible()
+        await page
+          .getByRole("navigation", { name: "Workspace rooms" })
+          .getByRole("link", { name: /Your sources/ })
+          .first()
+          .click()
+        await visible(
+          page.getByRole("link", { name: "The art of paying attention" }).first(),
+        ).toBeVisible()
         await visible(page.getByText("import-pending", { exact: false })).toBeVisible()
       }
     }
-    await writeFile(`${directory}/receipt.json`, JSON.stringify({ rows, inapplicable: ["/login, / and owner fallback: static", "missing resources: errors, not empty"], waiver: "Safari waived by user; Chromium only." }))
+    await writeFile(
+      `${directory}/receipt.json`,
+      JSON.stringify({
+        rows,
+        inapplicable: [
+          "/login, / and owner fallback: static",
+          "missing resources: errors, not empty",
+        ],
+        waiver: "Safari waived by user; Chromium only.",
+      }),
+    )
     expect(rows.filter((row) => row.paper !== "rgb(255, 253, 248)" || !row.bounded)).toEqual([])
   } finally {
     await browser.close()
