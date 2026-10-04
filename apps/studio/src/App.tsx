@@ -133,7 +133,13 @@ function withNavigation(page: ReactElement): ReactElement {
         </span>
       </header>
       <WorkspaceNavigation />
-      {window.location.pathname === "/imports" ? <main id="studio">{page}</main> : page}
+      {window.location.pathname === "/imports" ? (
+        <main id="studio" tabIndex={-1}>
+          {page}
+        </main>
+      ) : (
+        page
+      )}
     </div>
   )
 }
@@ -191,7 +197,7 @@ export function App(): ReactElement {
       </header>
 
       <WorkspaceNavigation />
-      <main id="studio">
+      <main id="studio" tabIndex={-1}>
         <section className="hero" aria-labelledby="studio-title">
           <div className="hero-copy">
             <p className="eyebrow">

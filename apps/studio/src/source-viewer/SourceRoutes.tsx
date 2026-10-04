@@ -47,7 +47,9 @@ export function SourceFrame({
         </a>
         <a href="#reading">{language === "en" ? "Skip to reading" : "本文へ移動"}</a>
       </header>
-      <main id="reading">{children}</main>
+      <main id="reading" tabIndex={-1}>
+        {children}
+      </main>
       <footer>
         {language === "en"
           ? "Private source reader · Text only · No external resources"
