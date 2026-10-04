@@ -61,7 +61,7 @@ export function SetupChoices({
         <a href={`/sources/${normalization.id}`}>Back to source preview</a>
       </p>
       <form onSubmit={submit}>
-        <section className="setup-provider-paper" aria-labelledby="provider-label">
+        <div className="setup-provider-paper">
           <label id="provider-label" htmlFor="provider">
             Provider and model
           </label>
@@ -76,7 +76,7 @@ export function SetupChoices({
               </option>
             ))}
           </select>
-        </section>
+        </div>
         <fieldset>
           <legend>Source scope</legend>
           <label>

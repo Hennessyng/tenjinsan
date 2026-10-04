@@ -272,6 +272,7 @@ h1 em {
 
 .library-workspace {
   width: min(75rem, 100%);
+  overflow-wrap: anywhere;
   min-height: 100dvh;
   margin-inline: auto;
   padding: var(--space-4);
@@ -281,6 +282,14 @@ h1 em {
     var(--lib-floor-b) 3rem 6rem
   );
   border-inline: var(--space-2) solid var(--lib-oak-dark);
+}
+.library-workspace .hero,
+.library-workspace .baseline {
+  min-width: 0;
+}
+.library-workspace .hero > *,
+.library-workspace .baseline > * {
+  min-width: 0;
 }
 .library-lockup,
 .library-workspace > .site-header {
