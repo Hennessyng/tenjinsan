@@ -2,6 +2,7 @@ import type { ReactElement } from "react"
 import { lazy, Suspense, useState } from "react"
 import { ImportBook } from "./intake/ImportBook.tsx"
 import { EntryTransition } from "./library/EntryTransition.tsx"
+import { LibraryShell } from "./library/LibraryShell.tsx"
 
 const BriefRoutes = lazy(() =>
   import("./brief/BriefRoutes.tsx").then(({ BriefRoutes }) => ({ default: BriefRoutes })),
@@ -344,7 +345,7 @@ function WorkspaceApp(): ReactElement {
 export function App(): ReactElement {
   return (
     <EntryTransition>
-      <WorkspaceApp />
+      <LibraryShell>{() => <WorkspaceApp key={window.location.href} />}</LibraryShell>
     </EntryTransition>
   )
 }

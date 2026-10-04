@@ -40,7 +40,7 @@ export function EntryTransition({ children }: { readonly children: ReactNode }):
       arrived.current = true
       return
     }
-    if (arrived.current) workspace.current?.querySelector<HTMLAnchorElement>("nav a")?.focus()
+    if (arrived.current) workspace.current?.querySelector<HTMLElement>("nav a, nav button")?.focus()
   }, [phase])
   return (
     <>

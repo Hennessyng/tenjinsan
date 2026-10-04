@@ -1,0 +1,380 @@
+@scope (.library) {
+  :scope {
+    font-family: var(--font-body);
+    color: var(--color-ink);
+    line-height: 1.65;
+  }
+  :scope * {
+    box-sizing: border-box;
+  }
+  :is(button, input, select, summary, a):focus-visible {
+    outline: 3px solid var(--color-focus);
+    outline-offset: 3px;
+  }
+  button,
+  input,
+  select {
+    font: inherit;
+  }
+  a {
+    color: inherit;
+  }
+  [lang="ja"] {
+    line-height: 1.85;
+    letter-spacing: 0.035em;
+    overflow-wrap: anywhere;
+    word-break: normal;
+  }
+  h1,
+  h2,
+  h3 {
+    margin-block-start: 0;
+    font-family: var(--font-display-en);
+    font-weight: 400;
+  }
+  p {
+    margin-block-start: 0;
+  }
+  .btn {
+    display: inline-flex;
+    flex-wrap: wrap;
+    gap: var(--space-2);
+    align-items: baseline;
+    justify-content: center;
+    padding: var(--space-3) var(--space-4);
+    border: 1px solid var(--color-ink);
+    border-radius: 2px;
+    color: var(--color-ink);
+    background: transparent;
+    font: inherit;
+    font-size: 0.875rem;
+    font-weight: 600;
+    line-height: 1.3;
+    cursor: pointer;
+  }
+  .btn [lang="ja"] {
+    font-size: 0.75rem;
+    font-weight: 500;
+  }
+  .btn:hover {
+    background: var(--color-green-soft);
+  }
+  .btn-primary {
+    color: var(--color-paper-raised);
+    background: var(--color-green);
+    border-color: var(--color-green);
+  }
+  .btn-primary:hover {
+    color: var(--color-paper-raised);
+    background: var(--color-ink);
+    border-color: var(--color-ink);
+  }
+  .hud-top {
+    position: absolute;
+    inset: 0 0 auto;
+    z-index: 30;
+    display: flex;
+    gap: var(--space-6);
+    align-items: center;
+    min-height: 56px;
+    padding-inline: var(--space-4);
+    color: var(--color-paper);
+    background: rgba(13, 28, 24, 0.9);
+    border-bottom: 3px solid var(--lib-brass);
+  }
+  .brand {
+    display: flex;
+    gap: var(--space-3);
+    align-items: center;
+    font-size: 0.75rem;
+    font-weight: 700;
+    letter-spacing: 0.14em;
+    line-height: 1.25;
+    text-decoration: none;
+  }
+  .brand small {
+    display: block;
+    color: #b5c4b8;
+    font-size: 0.625rem;
+    font-weight: 500;
+    letter-spacing: 0.08em;
+  }
+  .brand-mark {
+    width: 2rem;
+    height: 2rem;
+    color: var(--shrine-gold);
+    fill: none;
+    stroke: currentColor;
+    stroke-width: 4;
+  }
+  .where {
+    flex: 1;
+    margin: 0;
+    color: #d8e2d6;
+    font-size: 0.8125rem;
+  }
+  .where [lang="ja"] {
+    margin-inline-start: var(--space-2);
+    font-size: 0.75rem;
+  }
+  .hud-actions {
+    display: flex;
+    gap: var(--space-2);
+  }
+  .hud-top .btn {
+    padding: var(--space-2) var(--space-3);
+    color: var(--color-paper);
+    font-size: 0.75rem;
+  }
+  .hud-top .btn:hover {
+    color: var(--color-ink);
+  }
+  .route {
+    position: absolute;
+    inset: 68px auto 12px 12px;
+    z-index: 20;
+    width: 264px;
+    padding: var(--space-3);
+    overflow: auto;
+    color: var(--color-ink);
+    background: var(--color-paper-raised);
+    border: 1px solid var(--color-line);
+    border-top: 5px solid var(--color-green);
+  }
+  .route-title {
+    margin: 0 0 var(--space-3);
+    color: var(--color-muted);
+    font-size: 0.6875rem;
+    font-weight: 700;
+    letter-spacing: 0.14em;
+    text-transform: uppercase;
+  }
+  .route-title [lang="ja"] {
+    margin-inline-start: var(--space-1);
+    text-transform: none;
+  }
+  .route ol {
+    display: grid;
+    gap: 2px;
+    margin: 0;
+    padding: 0;
+    list-style: none;
+  }
+  .route li button {
+    display: grid;
+    grid-template-columns: 26px 1fr;
+    gap: var(--space-3);
+    align-items: center;
+    width: 100%;
+    padding: 4px 8px 4px 4px;
+    border: 0;
+    color: inherit;
+    background: transparent;
+    font: inherit;
+    text-align: left;
+    cursor: pointer;
+  }
+  .route li button:hover {
+    background: var(--color-green-soft);
+  }
+  .route li button[aria-current="step"] {
+    background: #f3e3d9;
+  }
+  .route .rn {
+    display: grid;
+    place-items: center;
+    width: 26px;
+    height: 26px;
+    border: 1px solid var(--color-green);
+    border-radius: 50%;
+    font-size: 0.75rem;
+    font-weight: 700;
+  }
+  .route .rt {
+    display: block;
+    line-height: 1.25;
+  }
+  .route .rt b {
+    display: inline;
+    font-size: 0.8125rem;
+    font-weight: 600;
+  }
+  .route .rt small {
+    display: inline;
+    margin-inline-start: var(--space-2);
+    color: var(--color-muted);
+    font-size: 0.6875rem;
+    white-space: nowrap;
+  }
+  .route .rt em {
+    display: block;
+    color: var(--color-muted);
+    font-size: 0.625rem;
+    font-style: normal;
+    font-weight: 700;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+  }
+  [data-mode="desk"] .route {
+    width: 60px;
+    padding-inline: var(--space-2);
+  }
+  [data-mode="desk"] .route-title,
+  [data-mode="desk"] .route .rt {
+    display: none;
+  }
+  [data-mode="desk"] .route li button {
+    grid-template-columns: 1fr;
+    justify-items: center;
+    padding-inline: 2px;
+  }
+  .hud-bottom {
+    position: absolute;
+    inset: auto 12px 12px 288px;
+    z-index: 20;
+    display: flex;
+    gap: var(--space-4);
+    align-items: center;
+    justify-content: space-between;
+    pointer-events: none;
+  }
+  .hint {
+    max-width: 34rem;
+    margin: 0;
+    padding: var(--space-2) var(--space-3);
+    color: var(--color-paper);
+    background: rgba(13, 28, 24, 0.82);
+    font-size: 0.75rem;
+  }
+  .hint [lang="ja"] {
+    display: block;
+    color: #b5c4b8;
+    font-size: 0.6875rem;
+  }
+  .hud-bottom .btn {
+    pointer-events: auto;
+    color: var(--color-paper);
+    background: rgba(13, 28, 24, 0.82);
+  }
+  .hud-bottom .btn:hover {
+    color: var(--color-ink);
+    background: var(--color-green-soft);
+  }
+  [data-mode="desk"] .hud-bottom {
+    left: 84px;
+  }
+  [data-mode="desk"] .hint {
+    display: none;
+  }
+  .study-selection {
+    position: absolute;
+    z-index: 21;
+    top: 76px;
+    left: 300px;
+    max-width: calc(100% - 320px);
+    padding: var(--space-2) var(--space-3);
+    color: var(--color-paper);
+    background: rgba(13, 28, 24, 0.9);
+  }
+  .study-selection form {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: var(--space-2);
+  }
+  .study-selection label {
+    font-size: 0.75rem;
+  }
+  .study-selection select {
+    min-width: 0;
+    max-width: 20rem;
+    background: var(--color-paper-raised);
+    color: var(--color-ink);
+  }
+  .study-selection .btn {
+    color: var(--color-paper);
+    padding: var(--space-2);
+    font-size: 0.75rem;
+  }
+  .study-selection .identity {
+    margin: var(--space-1) 0 0;
+    font-size: 0.75rem;
+    overflow-wrap: anywhere;
+  }
+  [data-mode="desk"] .study-selection {
+    position: relative;
+    top: 0;
+    left: 0;
+    max-width: none;
+    background: transparent;
+    color: var(--color-ink);
+  }
+  [data-mode="desk"] .study-selection .btn {
+    color: var(--color-ink);
+  }
+  @media (max-width: 959px) {
+    .route {
+      inset: auto 0 0;
+      width: auto;
+      padding: var(--space-2) var(--space-3);
+      border-top-width: 3px;
+      border-inline: 0;
+      border-bottom: 0;
+      overflow-x: auto;
+    }
+    [data-mode="desk"] .route {
+      width: auto;
+    }
+    .route-title {
+      display: none;
+    }
+    .route ol {
+      grid-auto-flow: column;
+      grid-auto-columns: max-content;
+      gap: var(--space-2);
+    }
+    .route li button,
+    [data-mode="desk"] .route li button {
+      grid-template-columns: 26px;
+      padding: 6px;
+    }
+    .route .rt,
+    [data-mode="desk"] .route .rt {
+      display: none;
+    }
+    .hud-bottom,
+    [data-mode="desk"] .hud-bottom {
+      inset: auto 8px 72px 8px;
+    }
+    .hud-top .where {
+      display: none;
+    }
+    .hud-top {
+      gap: var(--space-3);
+    }
+    .hud-top .brand {
+      flex: 1;
+    }
+    .hud-top .brand small {
+      display: none;
+    }
+    .hud-top .btn {
+      padding: 6px 8px;
+      font-size: 0.6875rem;
+      white-space: nowrap;
+    }
+    .hud-actions {
+      gap: 0;
+    }
+    .study-selection {
+      top: 64px;
+      left: 8px;
+      right: 8px;
+      max-width: none;
+    }
+    .study-selection select {
+      max-width: 100%;
+      flex: 1;
+    }
+  }
+}

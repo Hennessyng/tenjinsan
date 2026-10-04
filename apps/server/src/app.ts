@@ -10,12 +10,14 @@ import type {
 } from "@reading-studio/storage"
 import { decorateGate } from "@reading-studio/studio/gate-artwork"
 import { Hono } from "hono"
+import { deleteCookie } from "hono/cookie"
 import { z } from "zod"
 import { loginPage, ownerPage } from "./auth/login-page.ts"
 import { configureBrief } from "./brief.ts"
 import { configureEvidence } from "./evidence.ts"
 import { configureInterview } from "./interview.ts"
 import { configureJobs } from "./jobs.ts"
+import { configureLibraryContext } from "./library-context.ts"
 import {
   type AppEnvironment,
   createAccessMiddleware,
@@ -207,8 +209,19 @@ export function createApp({
   })
 
   app.use("/api/auth/sign-in/email", access.loginRateLimit, access.loginBodyLimit)
+  app.use("/api/auth/sign-out", async (context, next) => {
+    await next()
+    if (context.res.ok)
+      deleteCookie(context, "tj_study", { path: "/", httpOnly: true, sameSite: "Strict" })
+  })
   app.on(["GET", "POST"], "/api/auth/*", (context) => auth.handler(context.req.raw))
   app.use("/api/*", access.requireOwner(auth.ownerId, upload !== undefined))
+  if (sources)
+    configureLibraryContext(
+      app,
+      sources,
+      security.trustedOrigins.some((origin) => new URL(origin).protocol === "https:"),
+    )
   app.use("/sources/*", access.requireOwner(auth.ownerId))
   app.use("/interviews/*", access.requireOwner(auth.ownerId))
   app.use("/briefs/*", access.requireOwner(auth.ownerId))
