@@ -10,6 +10,17 @@ export function JobRoutes(): ReactElement {
   const [error, setError] = useState("")
   const [busy, setBusy] = useState(false)
   const alert = useRef<HTMLParagraphElement>(null)
+  const initiatingControl = useRef<HTMLElement>(null)
+  const refreshControl = useRef<HTMLButtonElement>(null)
+  useEffect(() => {
+    if (busy) return
+    const control = initiatingControl.current
+    initiatingControl.current = null
+    if (control && document.activeElement === document.body) {
+      if (control.isConnected) control.focus()
+      else refreshControl.current?.focus()
+    }
+  }, [busy])
   useEffect(() => {
     const controller = new AbortController()
     sourceRequest("/api/study-jobs", JobList, controller.signal).then(
@@ -29,6 +40,8 @@ export function JobRoutes(): ReactElement {
     if (error) alert.current?.focus()
   }, [error])
   async function refresh(): Promise<void> {
+    initiatingControl.current =
+      document.activeElement instanceof HTMLElement ? document.activeElement : null
     setBusy(true)
     setError("")
     try {
@@ -49,6 +62,8 @@ export function JobRoutes(): ReactElement {
     choice?: "stop-approved" | "retry-approved",
     reason?: string,
   ): Promise<void> {
+    initiatingControl.current =
+      document.activeElement instanceof HTMLElement ? document.activeElement : null
     setBusy(true)
     setError("")
     try {
@@ -99,6 +114,7 @@ export function JobRoutes(): ReactElement {
         <button
           type="button"
           className="job-refresh"
+          ref={refreshControl}
           disabled={busy}
           onClick={() => {
             void refresh()
