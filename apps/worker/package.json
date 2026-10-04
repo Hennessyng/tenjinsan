@@ -1,0 +1,22 @@
+{
+  "name": "@reading-studio/worker",
+  "version": "0.0.0",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "dev": "node --watch src/index.ts",
+    "start": "node --experimental-transform-types src/index.ts",
+    "build": "tsc --noEmit -p tsconfig.json",
+    "typecheck": "tsc --noEmit -p tsconfig.json",
+    "test:integration": "vitest run tests",
+    "manual:qa": "node --disable-warning=ExperimentalWarning --experimental-transform-types scripts/manual-qa.ts"
+  },
+  "dependencies": {
+    "@reading-studio/contracts": "workspace:*",
+    "@reading-studio/generation": "workspace:*",
+    "@reading-studio/providers": "workspace:*",
+    "@reading-studio/server": "workspace:*",
+    "@reading-studio/storage": "workspace:*",
+    "zod": "4.6.5"
+  }
+}

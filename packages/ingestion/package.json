@@ -1,0 +1,21 @@
+{
+  "name": "@reading-studio/ingestion",
+  "version": "0.0.0",
+  "private": true,
+  "type": "module",
+  "exports": {
+    "./source-document": "./src/source-document.ts",
+    "./normalize": "./src/normalize.ts",
+    "./archive": "./src/archive.ts",
+    "./test-support": "./tests/fixtures.ts"
+  },
+  "scripts": {
+    "build": "tsc --noEmit -p tsconfig.json"
+  },
+  "dependencies": {
+    "@reading-studio/contracts": "workspace:*",
+    "@zip.js/zip.js": "2.8.26",
+    "saxes": "6.0.0",
+    "zod": "4.6.5"
+  }
+}

@@ -1,0 +1,188 @@
+.import-book {
+  min-height: auto;
+  padding-block: var(--space-12);
+  border-block: 1px solid var(--color-line);
+}
+.import-content {
+  max-width: 64rem;
+  margin-inline: auto;
+}
+.intake-heading {
+  max-width: 46rem;
+  margin-bottom: var(--space-8);
+}
+.import-book h2 {
+  font:
+    400 clamp(2rem, 5vw, 3rem) / 1.2 Georgia,
+    serif;
+}
+.intake-layout {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) 15rem;
+  gap: var(--space-6);
+  align-items: start;
+}
+.intake-paper,
+.intake-status-paper {
+  padding: var(--space-6);
+  background: var(--color-paper-raised);
+  border: 1px solid var(--color-line);
+  border-top: var(--space-1) solid var(--color-green);
+}
+.intake-paper h3,
+.intake-note h3,
+.intake-outcome h3 {
+  margin-block: 0 var(--space-2);
+  font-family: var(--font-display-en);
+}
+.intake-paper h3 [lang="ja"] {
+  margin-inline-start: var(--space-2);
+  font-family: var(--font-display-ja);
+  font-size: 0.8em;
+}
+.intake-note {
+  padding: var(--space-4);
+  background: var(--color-green-soft);
+  border-left: var(--space-1) solid var(--color-green);
+  font-size: 0.875rem;
+}
+.intake-note h3 {
+  font-family: var(--font-body);
+  font-size: 0.75rem;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+}
+.import-book form {
+  display: grid;
+  gap: var(--space-4);
+  margin-top: var(--space-6);
+}
+.import-book .intake-tray {
+  padding: var(--space-6);
+  background: var(--color-paper);
+  border: 2px dashed var(--color-green);
+}
+.import-book input[type="file"] {
+  display: block;
+  width: 100%;
+  padding: var(--space-4);
+  border: 1px solid var(--color-line);
+  background: var(--color-paper-raised);
+}
+.import-book button {
+  width: fit-content;
+  padding: var(--space-3) var(--space-4);
+  border: 1px solid var(--color-green);
+  background: var(--color-paper-raised);
+  color: var(--color-ink);
+  cursor: pointer;
+}
+.import-book button:disabled {
+  border-color: var(--color-line);
+  color: var(--color-muted);
+  cursor: not-allowed;
+}
+.intake-outcome {
+  display: flex;
+  gap: var(--space-4);
+  align-items: flex-start;
+  margin-top: var(--space-6);
+  padding: var(--space-4) var(--space-6);
+  background: var(--color-paper-raised);
+  border: 1px solid var(--color-line);
+}
+.intake-outcome p {
+  margin-block: 0 var(--space-2);
+}
+.intake-outcome-refused {
+  border-left: var(--space-1) solid var(--color-focus);
+}
+.intake-stamp {
+  display: inline-flex;
+  flex: none;
+  align-items: center;
+  min-height: 1.75rem;
+  padding: 2px var(--space-3);
+  color: var(--color-green);
+  border: 2px solid currentcolor;
+  border-radius: 3px;
+  font-size: 0.6875rem;
+  letter-spacing: 0.1em;
+  line-height: 1.2;
+  text-transform: uppercase;
+  transform: rotate(-1.5deg);
+}
+.intake-stamp-refused {
+  color: var(--color-focus);
+  border-style: dashed;
+}
+.intake-stamp-waiting {
+  color: var(--color-ink);
+  border-style: dotted;
+}
+.intake-status-paper {
+  max-width: 46rem;
+  margin-block: var(--space-8);
+}
+.intake-status-paper h2 {
+  margin-top: 0;
+}
+.pending-imports {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+.pending-imports li {
+  padding: var(--space-4);
+  background: var(--color-paper);
+  border: 1px dashed var(--color-green);
+}
+.pending-imports li + li {
+  margin-top: var(--space-3);
+}
+.pending-imports p {
+  margin-block: var(--space-1) var(--space-3);
+  color: var(--color-muted);
+}
+.pending-import-status {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-3);
+}
+@media (max-width: 48rem) {
+  .intake-layout {
+    grid-template-columns: minmax(0, 1fr);
+  }
+  .intake-note {
+    order: 2;
+  }
+  .intake-paper,
+  .intake-status-paper,
+  .import-book .intake-tray {
+    padding: var(--space-4);
+  }
+  .intake-outcome {
+    flex-direction: column;
+  }
+}
+.owner-logout button {
+  padding: var(--space-2);
+  color: var(--color-green);
+  border: 1px solid var(--color-line);
+  background: transparent;
+  cursor: pointer;
+}
+.no-script-fallback {
+  max-width: 46rem;
+  margin-inline: auto;
+  padding: var(--space-8) var(--space-6);
+}
+.no-script-fallback h1 {
+  margin: 0 0 var(--space-6);
+  font-size: clamp(2rem, 7vw, 3rem);
+  letter-spacing: normal;
+  line-height: 1.2;
+}
+.no-script-fallback p {
+  margin-bottom: var(--space-4);
+}

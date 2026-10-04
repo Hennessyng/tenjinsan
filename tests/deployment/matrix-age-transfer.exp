@@ -1,0 +1,103 @@
+#!/usr/bin/expect -f
+set timeout 120
+log_user 0
+set mode [lindex $argv 0]
+set archive [lindex $argv 1]
+set secret [exec /usr/bin/openssl rand -hex 32]
+
+proc run_age {command passphrase success} {
+  spawn -noecho {*}$command
+  set check ""
+  set phase "not started"
+  set failure "none"
+  set prompts 0
+  expect {
+    -re {Enter passphrase[^:]*:} {
+      incr prompts
+      if {$prompts > 3} { exit 125 }
+      send -- "$passphrase\r"
+      exp_continue
+    }
+    -re {Confirm passphrase:} {
+      send -- "$passphrase\r"
+      exp_continue
+    }
+    -re {ARCHIVE_CHECK (\{[^\r\n]+\})} {
+      set check $expect_out(1,string)
+      exp_continue
+    }
+    -re {Maintenance: ([^\r\n]+)} {
+      set phase $expect_out(1,string)
+      exp_continue
+    }
+    -re {Logical backup: ([^\r\n]+)} {
+      set failure $expect_out(1,string)
+      exp_continue
+    }
+    -re {(ZodError|TypeError|Error): ([^\r\n]+)} {
+      set failure "$expect_out(1,string): $expect_out(2,string)"
+      exp_continue
+    }
+    eof {
+      catch wait result
+      set code [lindex $result 3]
+      if {$success && $code != 0} {
+        puts stderr "TTY operation failed during $phase: $failure"
+        exit 126
+      }
+       if {!$success && $code == 0} { exit 127 }
+       if {!$success && ![string match "*age failed; no archive or restore committed*" $failure]} {
+         puts stderr "TTY operation did not fail at decryption during $phase: $failure"
+         exit 127
+       }
+      return $check
+    }
+    timeout { exit 124 }
+  }
+}
+
+set corrupt {const fs=require('node:fs');const bytes=fs.readFileSync(process.argv[1]);bytes[bytes.length-1]^=1;fs.writeFileSync(process.argv[2],bytes,{flag:'wx',mode:0o600})}
+if {$mode eq "local"} {
+  set env(DATABASE_PATH) [lindex $argv 2]
+  set env(PRIVATE_DATA_ROOT) [lindex $argv 3]
+  puts "stage: source-backup"
+  run_age [list node --experimental-transform-types scripts/library.ts backup $archive] $secret 1
+  set destination [lindex $argv 4]
+  set env(DATABASE_PATH) [lindex $argv 5]
+  set env(PRIVATE_DATA_ROOT) [lindex $argv 6]
+  file copy -- $archive $destination
+  exec node -e $corrupt $destination "${destination}.corrupt"
+  set restore [list node --experimental-transform-types scripts/library.ts restore]
+  set inspect [list node --experimental-transform-types tests/deployment/matrix-restore-inspect.ts]
+} elseif {$mode eq "compose"} {
+  set sourceProject [lindex $argv 2]
+  set destinationProject [lindex $argv 3]
+  set source [list docker compose -p $sourceProject -f deploy/compose.yml -f tests/deployment/compose-wire.yml -f tests/deployment/compose-matrix.yml]
+  set target [list docker compose -p $destinationProject -f deploy/compose.yml -f tests/deployment/compose-matrix-destination.yml]
+  puts "stage: source-backup"
+  run_age [concat $source [list exec -it api node --experimental-transform-types scripts/library.ts backup /data/matrix-source.age]] $secret 1
+  exec -ignorestderr {*}$source cp api:/data/matrix-source.age $archive
+  set bridge {const fs=require('node:fs');process.stdin.pipe(fs.createWriteStream('/data/matrix-destination.age',{flags:'wx',mode:0o600}))}
+  exec {*}$target exec -T api node -e $bridge < $archive
+  exec {*}$target exec -T api node -e $corrupt /data/matrix-destination.age /data/matrix-corrupt.age
+  set destination /data/matrix-destination.age
+  set restore [concat $target [list exec -it api node --experimental-transform-types scripts/library.ts restore]]
+  set inspect [concat $target [list exec -T api node --experimental-transform-types tests/deployment/matrix-restore-inspect.ts]]
+} else {
+  exit 128
+}
+
+puts "stage: archive-inspection"
+set inspection [run_age [list node --experimental-transform-types tests/deployment/matrix-archive-inspect.ts $archive] $secret 1]
+if {$inspection eq ""} { exit 129 }
+set before [exec -ignorestderr {*}$inspect]
+puts "stage: wrong-passphrase"
+run_age [concat $restore [list $destination]] "${secret}-wrong" 0
+if {[exec -ignorestderr {*}$inspect] ne $before} { exit 130 }
+puts "stage: corrupt-ciphertext"
+run_age [concat $restore [list "${destination}.corrupt"]] $secret 0
+if {[exec -ignorestderr {*}$inspect] ne $before} { exit 131 }
+puts "stage: destination-restore"
+run_age [concat $restore [list $destination]] $secret 1
+puts "ARCHIVE_CHECK $inspection"
+puts "wrong-passphrase: rejected; corrupt-ciphertext: rejected; destination-auth-and-domain: unchanged; destination-restore: succeeded"

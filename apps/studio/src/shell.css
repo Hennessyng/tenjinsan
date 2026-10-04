@@ -1,0 +1,385 @@
+.studio-shell {
+  width: min(75rem, calc(100% - 2.5rem));
+  margin-inline: auto;
+}
+
+.skip-link {
+  position: fixed;
+  inset-block-start: -6rem;
+  inset-inline-start: var(--space-4);
+  z-index: 10;
+  padding: var(--space-3) var(--space-4);
+  color: var(--color-paper);
+  background: var(--color-ink);
+  text-decoration: none;
+}
+
+.skip-link:focus {
+  inset-block-start: var(--space-4);
+}
+
+.privacy-note small,
+.brand small,
+.conversation-mark figcaption span,
+footer [lang="ja"] {
+  display: block;
+}
+
+.skip-link [lang="ja"] {
+  display: block;
+}
+
+.site-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  min-height: 5.25rem;
+  border-block-end: 1px solid var(--color-line);
+}
+
+.brand {
+  display: flex;
+  gap: var(--space-3);
+  align-items: center;
+  font-size: 0.75rem;
+  font-weight: 700;
+  letter-spacing: 0.14em;
+  line-height: 1.35;
+  text-decoration: none;
+}
+
+.brand small,
+.privacy-note small {
+  margin-block-start: var(--space-1);
+  color: var(--color-muted);
+  font-size: 0.625rem;
+  font-weight: 500;
+  letter-spacing: 0.08em;
+}
+
+.brand-mark {
+  width: 3rem;
+  height: 2rem;
+  fill: none;
+  stroke-width: 1.5;
+}
+
+.brand-mark circle:first-child {
+  stroke: var(--color-green);
+}
+
+.brand-mark circle:last-child {
+  stroke: var(--color-coral);
+}
+
+.privacy-note {
+  color: var(--color-muted);
+  font-size: 0.6875rem;
+  text-align: end;
+}
+
+.workspace-links {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-3);
+  padding-block: var(--space-4);
+}
+
+nav[aria-label="Workspace rooms"] a {
+  display: inline-block;
+  padding: var(--space-2) var(--space-3);
+  color: var(--color-green);
+  text-underline-offset: var(--space-1);
+  transition:
+    color 120ms ease-out,
+    background-color 120ms ease-out;
+}
+
+nav[aria-label="Workspace rooms"] a:hover {
+  color: var(--color-ink);
+  background: var(--color-line);
+}
+
+nav[aria-label="Workspace rooms"] a:focus-visible {
+  outline: 2px solid var(--color-ink);
+  outline-offset: var(--space-1);
+}
+
+nav[aria-label="Workspace rooms"] a:active,
+nav[aria-label="Workspace rooms"] a[aria-current="page"] {
+  color: var(--color-ink);
+  background: var(--color-line);
+}
+
+.workspace-menu {
+  margin-block-end: var(--space-4);
+}
+
+.workspace-menu summary {
+  cursor: pointer;
+  width: fit-content;
+}
+
+.workspace-menu ul {
+  display: grid;
+  gap: var(--space-2);
+  margin: var(--space-2) 0 0;
+  padding: 0;
+  list-style: none;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  nav[aria-label="Workspace rooms"] a {
+    transition: none;
+  }
+}
+
+.hero {
+  display: grid;
+  gap: var(--space-8);
+  min-height: calc(100dvh - 5.25rem);
+  padding-block: var(--space-12) var(--space-16);
+}
+
+.hero-copy {
+  align-self: center;
+}
+
+.eyebrow,
+.section-number {
+  margin: 0 0 var(--space-6);
+  color: var(--color-muted);
+  font-size: 0.6875rem;
+  font-weight: 700;
+  letter-spacing: 0.14em;
+}
+
+h1,
+h2,
+p {
+  margin-block-start: 0;
+}
+
+h1,
+h2 {
+  font-family: var(--font-display-en);
+  font-weight: 400;
+}
+
+h1 {
+  margin-block-end: var(--space-6);
+  font-size: clamp(3rem, 14vw, 6.5rem);
+  letter-spacing: -0.045em;
+  line-height: 0.98;
+}
+
+h1 em {
+  color: var(--color-green);
+  font-weight: 400;
+}
+
+.hero-ja,
+.baseline-ja {
+  margin-block-end: var(--space-8);
+  font-family: var(--font-display-ja);
+  font-size: clamp(1.25rem, 5vw, 2rem);
+}
+
+.no-break {
+  white-space: normal;
+}
+
+.word-unit {
+  white-space: nowrap;
+}
+
+.language-pair {
+  display: grid;
+  gap: var(--space-3);
+  max-width: 38rem;
+}
+
+.language-pair p {
+  margin-block-end: 0;
+}
+
+.language-pair p:first-child {
+  font-family: var(--font-display-en);
+  font-size: 1.125rem;
+}
+
+.language-pair p[lang="ja"] {
+  color: var(--color-muted);
+  font-size: 0.875rem;
+}
+
+.text-link {
+  display: inline-flex;
+  gap: var(--space-3);
+  align-items: center;
+  margin-block-start: var(--space-8);
+  color: var(--color-green);
+  font-size: 0.75rem;
+  font-weight: 700;
+  text-decoration-color: var(--color-coral);
+  text-underline-offset: var(--space-2);
+  transition:
+    color 120ms ease-out,
+    opacity 120ms ease-out;
+}
+
+.text-link:hover {
+  color: var(--color-ink);
+}
+
+.text-link:active {
+  opacity: 0.72;
+}
+
+@media (min-width: 24.375rem) {
+  .no-break {
+    white-space: nowrap;
+  }
+}
+
+@media (max-width: 24rem) {
+  .studio-shell {
+    width: calc(100% - 1rem);
+  }
+
+  .brand-mark,
+  .privacy-note {
+    display: none;
+  }
+
+  .site-header {
+    min-height: 4rem;
+  }
+
+  h1 {
+    font-size: 2.25rem;
+  }
+
+  .eyebrow {
+    overflow-wrap: anywhere;
+  }
+
+  .text-link,
+  footer {
+    flex-wrap: wrap;
+  }
+}
+
+.library-workspace {
+  width: min(75rem, 100%);
+  overflow-wrap: anywhere;
+  min-height: 100dvh;
+  margin-inline: auto;
+  padding: var(--space-4);
+  background: repeating-linear-gradient(
+    90deg,
+    var(--lib-floor-a) 0 3rem,
+    var(--lib-floor-b) 3rem 6rem
+  );
+  border-inline: var(--space-2) solid var(--lib-oak-dark);
+}
+.library-workspace .hero,
+.library-workspace .baseline {
+  min-width: 0;
+}
+.library-workspace .hero > *,
+.library-workspace .baseline > * {
+  min-width: 0;
+}
+.library-lockup,
+.library-workspace > .site-header {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-4);
+  padding: var(--space-6);
+  color: var(--color-paper-raised);
+  background: var(--lib-wall);
+  border-block-end: var(--space-1) solid var(--lib-brass);
+}
+.library-workspace .brand small,
+.library-workspace .privacy-note,
+.library-workspace .privacy-note small {
+  color: var(--color-paper);
+}
+.library-workspace .owner-logout button {
+  color: var(--color-ink);
+  background: var(--color-paper-raised);
+}
+.library-crest {
+  width: 3rem;
+  height: 3rem;
+  color: var(--lib-brass);
+  fill: none;
+  stroke: currentColor;
+  stroke-width: 3;
+}
+.library-workspace .workspace-loading {
+  padding: var(--space-4) var(--space-6);
+  color: var(--color-ink);
+  background: var(--color-paper-raised);
+  border: 1px dashed var(--color-muted);
+  box-shadow: 0 var(--space-1) var(--space-2) color-mix(in srgb, var(--lib-night) 12%, transparent);
+  line-height: 1.8;
+  overflow-wrap: anywhere;
+}
+.library-workspace .workspace-empty {
+  padding: var(--space-4);
+  color: var(--color-ink);
+  background: var(--color-paper-raised);
+  background-image: repeating-linear-gradient(
+    transparent 0 calc(1.8em - 1px),
+    var(--color-line) calc(1.8em - 1px) 1.8em
+  );
+  line-height: 1.8;
+  overflow-wrap: anywhere;
+}
+.library-workspace .workspace-error,
+.library-workspace main [role="alert"] {
+  padding: var(--space-4);
+  color: var(--color-focus);
+  background: var(--color-paper-raised);
+  border: 1px dashed var(--color-focus);
+  line-height: 1.8;
+  overflow-wrap: anywhere;
+}
+.library-workspace > .workspace-rooms {
+  padding: var(--space-3) var(--space-4);
+  color: var(--color-paper-raised);
+  background: var(--lib-wall);
+}
+.library-workspace > .workspace-rooms a {
+  color: var(--color-paper-raised);
+}
+.library-workspace > .workspace-rooms a:hover,
+.library-workspace > .workspace-rooms a[aria-current="page"] {
+  color: var(--color-ink);
+}
+.library-workspace > main,
+.library-workspace > .source-app {
+  background: var(--color-paper);
+  padding: var(--space-6);
+}
+.library-workspace > footer {
+  padding: var(--space-4);
+  background: var(--color-paper-raised);
+}
+@media (max-width: 24rem) {
+  .library-workspace {
+    padding: var(--space-2);
+  }
+  .library-workspace > main,
+  .library-workspace > .source-app {
+    padding: var(--space-4);
+  }
+  .library-lockup,
+  .library-workspace > .site-header {
+    padding: var(--space-4);
+  }
+}

@@ -1,0 +1,32 @@
+#!/usr/bin/expect -f
+set timeout 90
+log_user 0
+set email "owner@example.test"
+set name "Fixture Owner"
+if {[lindex $argv 0] eq "--destination"} {
+  set email "destination-owner@example.test"
+  set name "Destination Owner"
+  set argv [lrange $argv 1 end]
+}
+spawn {*}$argv
+expect {
+  -re {Action \(\[p\]rovision/\[r\]eset\): } {}
+  eof { puts stderr "Owner CLI exited before action prompt"; exit 11 }
+  timeout { puts stderr "Owner CLI action prompt timed out"; exit 124 }
+}
+send "p\r"
+expect "Email: "
+send "$email\r"
+expect "Name: "
+send "$name\r"
+expect "Password: "
+send "correct horse battery staple\r"
+expect "Confirm password: "
+send "correct horse battery staple\r"
+expect "Owner provisioned."
+if {[catch {expect eof} eof_error] && ![string match "*spawn id*not open*" $eof_error]} {
+  puts stderr $eof_error
+  exit 1
+}
+set exit_code [lindex [wait] 3]
+exit $exit_code

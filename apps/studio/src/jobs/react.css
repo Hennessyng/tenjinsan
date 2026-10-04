@@ -1,0 +1,101 @@
+.source-app .job-ledger {
+  max-inline-size: 75rem;
+  margin-inline: auto;
+}
+.source-app .job-ledger > p {
+  max-inline-size: 46rem;
+}
+.source-app .job-ledger h1 [lang="ja"] {
+  display: inline-block;
+  white-space: nowrap;
+}
+.source-app .job-list {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+  max-inline-size: 46rem;
+  gap: var(--space-6);
+  padding: 0;
+  margin-block: var(--space-8);
+  list-style: none;
+}
+.source-app .job-entry {
+  min-inline-size: 0;
+}
+.source-app .job-entry article {
+  max-inline-size: none;
+  border: 1px solid var(--color-line);
+  border-top: var(--space-1) solid var(--color-green);
+}
+.source-app .job-entry h3 {
+  font: 400 1.5rem / 1.4 var(--font-display-en);
+}
+.source-app .job-entry h4 {
+  font: 400 1.125rem / 1.65 var(--font-display-en);
+}
+.source-app .job-entry p {
+  margin-block: var(--space-4);
+  white-space: normal;
+}
+.source-app .job-entry code {
+  font-size: 0.75rem;
+}
+.source-app .job-actions,
+.source-app .job-links {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--space-4);
+  margin-block: var(--space-6);
+}
+.source-app .job-decisions {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(min(14rem, 100%), 1fr));
+  gap: var(--space-4);
+}
+.source-app .job-decision {
+  display: grid;
+  gap: var(--space-3);
+  align-content: start;
+  border: 1px solid var(--color-line);
+  padding: var(--space-4);
+}
+.source-app .job-check {
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr);
+  align-items: start;
+  gap: var(--space-2);
+}
+.source-app .job-check input {
+  margin: 0;
+}
+.source-app .job-decision textarea {
+  min-inline-size: 0;
+  inline-size: 100%;
+  min-block-size: var(--space-24);
+  padding: var(--space-2);
+  font: inherit;
+}
+.source-app .job-ledger button {
+  font: inherit;
+  padding: var(--space-3) var(--space-4);
+  color: var(--color-ink);
+  background: var(--color-paper-raised);
+  border: 1px solid var(--color-line);
+  cursor: pointer;
+}
+.source-app .job-ledger button:hover:not(:disabled) {
+  background: var(--color-green-soft);
+}
+.source-app .job-ledger button:disabled {
+  color: var(--color-muted);
+  cursor: not-allowed;
+}
+.source-app .job-unknown {
+  border-top: 1px solid var(--color-line);
+  padding-block: var(--space-4);
+}
+@media (max-width: 768px) {
+  .source-app .job-entry article {
+    padding: var(--space-4);
+  }
+}

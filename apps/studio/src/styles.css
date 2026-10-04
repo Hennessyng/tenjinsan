@@ -1,0 +1,14 @@
+@import "tailwindcss";
+@import "./theme.css";
+@import "./shell.css";
+@import "./illustration.css";
+@import "./source-viewer/react.css";
+@import "./intake/react.css";
+@import "./study-setup/react.css";
+@import "./interview/react.css";
+@import "./brief/react.css";
+@import "./outline/react.css";
+@import "./revisions/react.css";
+@import "./evidence/react.css";
+@import "./publication/react.css";
+@import "./jobs/react.css";

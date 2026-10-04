@@ -1,0 +1,31 @@
+set timeout 60
+log_user 0
+set executable [lindex $argv 0]
+set operation [lindex $argv 1]
+set archive [lindex $argv 2]
+set incorrect [lindex $argv 3]
+spawn -noecho node --experimental-transform-types $executable $operation $archive
+expect {
+  -re {Enter passphrase[^:]*:} {
+    set backup_plain [glob -nocomplain -directory [file dirname $archive] .age-backup-*/logical.json]
+    set restore_plain [glob -nocomplain -directory $env(PRIVATE_DATA_ROOT) .age-restore-*/logical.json]
+    if {[llength $backup_plain] || [llength $restore_plain]} {
+      exit 86
+    }
+    if {$incorrect eq "wrong"} {
+      send -- "incorrect-integration-passphrase\r"
+    } else {
+      send -- "synthetic-integration-only-age-passphrase\r"
+    }
+    exp_continue
+  }
+  -re {Confirm passphrase:} {
+    send -- "synthetic-integration-only-age-passphrase\r"
+    exp_continue
+  }
+  eof {
+    catch wait result
+    exit [lindex $result 3]
+  }
+  timeout { exit 124 }
+}

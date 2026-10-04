@@ -1,0 +1,128 @@
+.source-app {
+  min-height: 100dvh;
+  padding: var(--space-6);
+  background: var(--color-paper);
+  color: var(--color-ink);
+  font-family: "Avenir Next", Avenir, "Hiragino Kaku Gothic ProN", "Yu Gothic", sans-serif;
+  font-size: 1rem;
+  line-height: 1.8;
+}
+.source-app *,
+.source-app *::before,
+.source-app *::after {
+  box-sizing: border-box;
+}
+.source-app header,
+.source-app main,
+.source-app footer {
+  max-width: 75rem;
+  margin-inline: auto;
+}
+.source-app header {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-6);
+  border-bottom: 1px solid var(--color-line);
+  padding-bottom: var(--space-4);
+}
+.source-app main {
+  padding-block: var(--space-8);
+}
+.source-app h1 {
+  font:
+    400 clamp(2rem, 5vw, 3rem) / 1.2 Georgia,
+    serif;
+  margin-block: var(--space-4);
+}
+.source-app h2 {
+  font:
+    400 1.5rem / 1.4 Georgia,
+    serif;
+  margin-block: 0.83em;
+}
+.source-app p {
+  margin-block: 1em;
+}
+.source-app a {
+  color: var(--color-green);
+  text-underline-offset: var(--space-1);
+}
+.source-app a:hover {
+  color: var(--color-ink);
+}
+.source-app :focus-visible {
+  outline: 3px solid var(--color-focus);
+  outline-offset: var(--space-1);
+}
+.source-app .eyebrow {
+  font-size: 0.75rem;
+  letter-spacing: 0.14em;
+  font-weight: 700;
+  color: var(--color-ink);
+  margin-block: 1em;
+}
+.source-app .metadata {
+  color: var(--color-muted);
+}
+.source-app .reader {
+  display: grid;
+  grid-template-columns: 14rem minmax(0, 1fr);
+  gap: var(--space-12);
+  margin-top: var(--space-8);
+}
+.source-app article {
+  background: var(--color-paper-raised);
+  padding: var(--space-8);
+  max-width: 46rem;
+  border-top: var(--space-1) solid var(--color-green);
+}
+.source-app p,
+.source-app li,
+.source-app code {
+  overflow-wrap: anywhere;
+}
+.source-app article p {
+  white-space: pre-wrap;
+  margin-block: var(--space-6);
+  scroll-margin-block: var(--space-8);
+}
+.source-app nav ol {
+  padding-left: var(--space-6);
+  list-style: decimal;
+}
+.source-app nav li {
+  margin-bottom: var(--space-3);
+}
+.source-app [aria-current="page"] {
+  color: var(--color-ink);
+  font-weight: 700;
+}
+.source-app mark {
+  background: var(--color-green-soft);
+  color: var(--color-ink);
+}
+.source-app small {
+  display: block;
+  font-size: 0.75rem;
+  color: var(--color-muted);
+}
+.source-app details {
+  margin-block: var(--space-4);
+}
+.source-app summary {
+  cursor: pointer;
+}
+.source-app footer {
+  padding-block: var(--space-6);
+  border-top: 1px solid var(--color-line);
+  font-size: 1rem;
+}
+@media (max-width: 768px) {
+  .source-app .reader {
+    grid-template-columns: minmax(0, 1fr);
+    gap: var(--space-6);
+  }
+  .source-app article {
+    padding: var(--space-4);
+  }
+}

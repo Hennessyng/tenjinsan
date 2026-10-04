@@ -1,0 +1,21 @@
+{
+  "name": "@reading-studio/contracts",
+  "version": "0.0.0",
+  "private": true,
+  "type": "module",
+  "sideEffects": false,
+  "exports": {
+    ".": "./src/index.ts",
+    "./source": "./src/source.ts",
+    "./interview": "./src/interview.ts",
+    "./choices": "./src/choices.ts"
+  },
+  "scripts": {
+    "build": "tsc --noEmit -p tsconfig.json",
+    "test": "vitest run",
+    "manual:qa": "bun run scripts/manual-qa.ts"
+  },
+  "dependencies": {
+    "zod": "4.6.5"
+  }
+}

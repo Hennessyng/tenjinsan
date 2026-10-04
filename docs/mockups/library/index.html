@@ -1,0 +1,397 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Tenjinsan Library - UI/UX mockup</title>
+    <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect width='32' height='32' rx='6' fill='%232d5546'/%3E%3Cg fill='%23fbf3ee'%3E%3Ccircle cx='16' cy='8' r='5'/%3E%3Ccircle cx='24' cy='14' r='5'/%3E%3Ccircle cx='21' cy='24' r='5'/%3E%3Ccircle cx='11' cy='24' r='5'/%3E%3Ccircle cx='8' cy='14' r='5'/%3E%3C/g%3E%3Ccircle cx='16' cy='16' r='3' fill='%23d9b45b'/%3E%3C/svg%3E" />
+    <link rel="stylesheet" href="css/tokens.css" />
+    <link rel="stylesheet" href="css/gate.css" />
+    <link rel="stylesheet" href="css/hall.css" />
+    <link rel="stylesheet" href="css/hud.css" />
+    <link rel="stylesheet" href="css/desk.css" />
+  </head>
+  <body data-view="gate" data-mode="hall">
+    <svg width="0" height="0" style="position: absolute" aria-hidden="true" focusable="false">
+      <defs>
+        <symbol id="crest" viewBox="-50 -50 100 100">
+          <circle cx="0" cy="-26" r="17" />
+          <circle cx="0" cy="-26" r="17" transform="rotate(72)" />
+          <circle cx="0" cy="-26" r="17" transform="rotate(144)" />
+          <circle cx="0" cy="-26" r="17" transform="rotate(216)" />
+          <circle cx="0" cy="-26" r="17" transform="rotate(288)" />
+          <circle cx="0" cy="0" r="4" />
+          <path d="M0 -6 V-13 M5.7 -1.9 L12.4 -4 M3.5 4.9 L7.6 10.5 M-3.5 4.9 L-7.6 10.5 M-5.7 -1.9 L-12.4 -4" />
+        </symbol>
+      </defs>
+    </svg>
+    <a class="skip-link" href="#route">Skip to the reading route <span lang="ja">読書ルートへ</span></a>
+
+    <!-- ENTRANCE (replaces /login): approach to a 北野天満宮-style gate, drawn on an 絵馬 plaque -->
+    <section id="gate" class="gate" aria-labelledby="gate-title">
+      <div class="gate-scene" id="gate-scene" aria-hidden="true">
+        <svg class="scene-art" viewBox="0 0 560 680" aria-hidden="true" focusable="false">
+          <defs>
+            <pattern id="sc-lattice" width="8" height="16" patternUnits="userSpaceOnUse">
+              <rect width="8" height="16" fill="var(--shrine-wood-deep)" />
+              <path d="M2 0 V16 M0 14 H8" stroke="var(--lib-oak-dark)" stroke-width="2" />
+            </pattern>
+            <linearGradient id="sc-sky" x1="0" y1="0" x2="0" y2="1">
+              <stop offset="0" style="stop-color: var(--shrine-sky-top)" />
+              <stop offset="1" style="stop-color: var(--shrine-sky-low)" />
+            </linearGradient>
+            <linearGradient id="sc-gravel" x1="0" y1="0" x2="0" y2="1">
+              <stop offset="0" style="stop-color: var(--shrine-gravel)" />
+              <stop offset="1" style="stop-color: #bfae85" />
+            </linearGradient>
+            <linearGradient id="sc-path" x1="0" y1="0" x2="0" y2="1">
+              <stop offset="0" style="stop-color: #efebdf" />
+              <stop offset="1" style="stop-color: #dcd7c6" />
+            </linearGradient>
+            <linearGradient id="sc-frame" x1="0" y1="0" x2="0" y2="1">
+              <stop offset="0" stop-color="#85603c" />
+              <stop offset="1" stop-color="#533820" />
+            </linearGradient>
+            <linearGradient id="sc-haze" x1="0" y1="0" x2="0" y2="1">
+              <stop offset="0" stop-color="#f6efdc" stop-opacity="0" />
+              <stop offset="1" stop-color="#f6efdc" stop-opacity="0.85" />
+            </linearGradient>
+            <radialGradient id="sc-glow">
+              <stop offset="0" stop-color="#ffd98a" stop-opacity="0.75" />
+              <stop offset="1" stop-color="#ffd98a" stop-opacity="0" />
+            </radialGradient>
+            <clipPath id="sc-clip">
+              <path d="M14 75.5 L280 15 L546 75.5 V666 H14 Z" />
+            </clipPath>
+
+            <symbol id="blossom" viewBox="-10 -10 20 20">
+              <g fill="currentColor" stroke="rgba(70, 30, 45, 0.28)" stroke-width="0.6">
+                <circle cx="0" cy="-5.4" r="4.6" />
+                <circle cx="0" cy="-5.4" r="4.6" transform="rotate(72)" />
+                <circle cx="0" cy="-5.4" r="4.6" transform="rotate(144)" />
+                <circle cx="0" cy="-5.4" r="4.6" transform="rotate(216)" />
+                <circle cx="0" cy="-5.4" r="4.6" transform="rotate(288)" />
+              </g>
+              <circle r="1.7" fill="#e6bb55" />
+            </symbol>
+
+            <symbol id="lantern" viewBox="0 0 40 100">
+              <path class="k-stone" d="M20 0 C25 4 24 8 20 9 C16 8 15 4 20 0 Z" />
+              <path class="k-stone" d="M13 10 H27 L39 26 H1 Z" />
+              <path class="k-stone-d" d="M1 26 H39 L37 29 H3 Z" />
+              <rect class="k-stone-d" x="11" y="29" width="18" height="21" />
+              <rect class="k-glow" x="15" y="33" width="10" height="13" />
+              <path class="k-stone" d="M8 50 H32 L34 55 H6 Z" />
+              <rect class="k-stone" x="15" y="55" width="10" height="30" />
+              <rect class="k-stone-d" x="12" y="66" width="16" height="5" rx="2" />
+              <path class="k-stone-d" d="M9 85 H31 L33 92 H7 Z" />
+              <path class="k-stone" d="M4 92 H36 V100 H4 Z" />
+              <path fill="#2a1d12" opacity="0.12" d="M20 10 H27 L39 26 H20 Z M20 55 H25 V85 H20 Z M20 92 H36 V100 H20 Z" />
+            </symbol>
+
+            <symbol id="hang" viewBox="0 0 20 40">
+              <path d="M10 0 V8" stroke="#2a1d12" stroke-width="1" />
+              <path class="k-wood-d" d="M4 8 H16 L14 11 H6 Z" />
+              <path class="k-gold" d="M5 11 H15 L17 20 L15 30 H5 L3 20 Z" />
+              <path fill="none" stroke="#7a5a1c" stroke-width="0.8" d="M10 11 V30 M5 20 H15" />
+              <path class="k-wood-d" d="M6 30 H14 L12 34 H8 Z" />
+            </symbol>
+
+            <symbol id="pine" viewBox="0 0 140 300">
+              <path class="k-bark" d="M62 300 C64 250 58 200 66 160 C70 140 66 120 72 96 L82 100 C78 124 84 144 80 168 C74 206 82 252 80 300 Z" />
+              <path class="k-bark" d="M72 150 C52 138 40 128 22 124 L24 130 C42 136 56 148 74 160 Z" />
+              <path class="k-bark" d="M80 130 C98 120 112 112 128 106 L127 112 C112 120 100 130 82 142 Z" />
+              <g class="k-pine">
+                <ellipse cx="72" cy="74" rx="64" ry="23" />
+                <ellipse cx="34" cy="104" rx="38" ry="15" />
+                <ellipse cx="108" cy="102" rx="36" ry="14" />
+                <ellipse cx="68" cy="132" rx="46" ry="16" />
+                <ellipse cx="22" cy="128" rx="24" ry="10" />
+                <ellipse cx="124" cy="112" rx="18" ry="8" />
+              </g>
+              <g class="k-pine-hi">
+                <ellipse cx="72" cy="68" rx="48" ry="12" />
+                <ellipse cx="34" cy="98" rx="26" ry="7" />
+                <ellipse cx="108" cy="96" rx="24" ry="7" />
+                <ellipse cx="68" cy="126" rx="32" ry="8" />
+              </g>
+            </symbol>
+
+            <symbol id="ox" viewBox="0 0 120 72">
+              <path class="k-ox" d="M10 66 C6 44 24 26 54 26 C80 26 96 34 98 52 L100 66 Z" />
+              <path class="k-ox" d="M88 38 C96 26 112 28 116 40 C119 50 112 58 102 58 L90 56 Z" />
+              <path class="k-ox" d="M98 32 C95 22 102 14 112 16 C107 20 106 26 106 33 Z" />
+              <path class="k-ox" d="M109 32 C114 27 117 19 115 14 C121 19 122 28 116 37 Z" />
+              <path class="k-ox" d="M98 39 C90 29 85 33 86 39 L98 46 Z M15 49 C7 43 3 46 5 57 L8 63 L11 61 L9 53 Z" />
+              <path class="k-ox-hi" d="M18 52 C20 38 34 30 54 30 C72 30 84 34 92 42 C80 36 62 34 46 36 C32 38 24 44 18 52 Z" />
+              <path class="k-ox-d" d="M60 56 H106 V66 H60 Z" />
+              <path class="k-ox-hi" d="M64 61 H91 V65 H64 Z M30 61 H48 V65 H30 Z" />
+              <circle cx="108" cy="42" r="2" fill="#15110b" />
+              <circle cx="116" cy="46" r="1.3" fill="#15110b" />
+            </symbol>
+          </defs>
+
+          <path class="k-frame" d="M0 64 L280 0 L560 64 V680 H0 Z" />
+          <path class="k-frame-line" d="M12 76 L280 14 L548 76 V668 H12 Z" />
+
+          <g clip-path="url(#sc-clip)">
+            <rect width="560" height="680" fill="url(#sc-sky)" />
+            <g class="k-cloud">
+              <ellipse cx="170" cy="62" rx="62" ry="9" />
+              <ellipse cx="206" cy="54" rx="38" ry="8" />
+              <ellipse cx="420" cy="84" rx="54" ry="8" />
+              <ellipse cx="448" cy="76" rx="30" ry="7" />
+            </g>
+
+            <path class="k-hill-far" d="M0 392 Q60 340 130 372 T262 352 T400 366 T560 336 V470 H0 Z" />
+            <path class="k-hill-near" d="M0 428 Q80 392 170 414 T330 402 T470 418 T560 396 V470 H0 Z" />
+            <g class="k-hill-trees">
+              <ellipse cx="44" cy="418" rx="18" ry="11" />
+              <ellipse cx="74" cy="422" rx="14" ry="9" />
+              <ellipse cx="480" cy="412" rx="20" ry="11" />
+              <ellipse cx="516" cy="416" rx="15" ry="9" />
+              <ellipse cx="108" cy="430" rx="12" ry="7" />
+              <ellipse cx="452" cy="428" rx="12" ry="7" />
+            </g>
+            <rect y="418" width="560" height="44" fill="url(#sc-haze)" />
+
+            <rect y="456" width="560" height="224" fill="url(#sc-gravel)" />
+            <g class="k-rake">
+              <path d="M215 460 L40 666 M232 460 L112 666 M246 460 L172 666" />
+              <path d="M345 460 L520 666 M328 460 L448 666 M314 460 L388 666" />
+            </g>
+
+            <use href="#pine" x="-44" y="222" width="140" height="300" />
+            <use href="#pine" x="0" y="0" width="140" height="300" transform="translate(604 222) scale(-1 1)" />
+
+            <path class="k-path" d="M205 456 L355 456 L450 666 L110 666 Z" />
+            <g class="k-paving">
+              <path d="M198.7 470 H361.3 M190.5 488 H369.5 M180.6 510 H379.4 M167.9 538 H392.1 M151.6 574 H408.4 M130.8 620 H429.2" />
+              <path d="M280 458 V666" />
+            </g>
+            <path class="k-path-edge" d="M205 456 L110 666 M355 456 L450 666" />
+
+            <ellipse cx="280" cy="462" rx="180" ry="6" fill="#2a1d12" opacity="0.2" />
+            <g id="mon">
+              <rect class="k-stone-d" x="116" y="458" width="328" height="12" />
+              <rect class="k-stone" x="112" y="466" width="336" height="6" />
+
+              <rect class="k-wood" x="130" y="296" width="300" height="162" />
+              <rect class="k-lattice" x="142" y="312" width="58" height="140" />
+              <rect class="k-lattice" x="360" y="312" width="58" height="140" />
+              <rect class="k-wood-d" x="130" y="296" width="12" height="162" />
+              <rect class="k-wood-d" x="200" y="296" width="12" height="162" />
+              <rect class="k-wood-d" x="348" y="296" width="12" height="162" />
+              <rect class="k-wood-d" x="418" y="296" width="12" height="162" />
+              <rect class="k-wood-d" x="200" y="296" width="160" height="12" />
+
+              <rect class="k-wood" x="170" y="214" width="220" height="56" />
+              <rect class="k-wood-d" x="170" y="214" width="10" height="56" />
+              <rect class="k-wood-d" x="380" y="214" width="10" height="56" />
+              <rect class="k-wood-d" x="262" y="214" width="6" height="56" />
+              <rect class="k-wood-d" x="292" y="214" width="6" height="56" />
+              <rect class="k-plaque" x="240" y="238" width="80" height="28" />
+              <text class="k-plaque-text" x="280" y="258" font-size="17">図書室</text>
+
+              <path class="k-roof" d="M104 226 Q118 220 146 202 Q190 170 232 160 L328 160 Q370 170 414 202 Q442 220 456 226 L452 234 L108 234 Z" />
+              <path class="k-roof-hi" d="M150 204 Q192 174 232 166 L328 166 Q368 174 410 204 Q380 186 328 178 H232 Q180 186 150 204 Z" />
+              <rect class="k-roof-d" x="226" y="152" width="108" height="9" rx="2" />
+              <rect class="k-eave" x="108" y="231" width="344" height="5" />
+              <path class="k-wood-d k-brackets" d="M170 240 H390" />
+
+              <path class="k-roof" d="M96 296 Q108 288 136 276 L424 276 Q452 288 464 296 L460 303 L100 303 Z" />
+              <path class="k-roof-hi" d="M128 282 L432 282 L424 277 H136 Z" />
+              <rect class="k-eave" x="100" y="300" width="360" height="5" />
+              <path class="k-wood-d k-brackets" d="M134 308 H426" />
+
+              <rect class="k-cloth" x="140" y="291" width="280" height="14" />
+              <path class="k-pleats" d="M164 291 V305 M188 291 V305 M212 291 V305 M236 291 V305 M260 291 V305 M284 291 V305 M308 291 V305 M332 291 V305 M356 291 V305 M380 291 V305 M404 291 V305" />
+              <g class="k-cloth-crest">
+                <use href="#crest" x="153" y="293" width="11" height="11" />
+                <use href="#crest" x="201" y="293" width="11" height="11" />
+                <use href="#crest" x="248" y="293" width="11" height="11" />
+                <use href="#crest" x="300" y="293" width="11" height="11" />
+                <use href="#crest" x="348" y="293" width="11" height="11" />
+                <use href="#crest" x="396" y="293" width="11" height="11" />
+              </g>
+
+              <circle cx="168" cy="326" r="22" fill="url(#sc-glow)" />
+              <circle cx="392" cy="326" r="22" fill="url(#sc-glow)" />
+              <use href="#hang" x="158" y="308" width="20" height="40" />
+              <use href="#hang" x="382" y="308" width="20" height="40" />
+            </g>
+
+            <g class="nobori" id="nobori-l">
+              <rect class="k-wood-d" x="88" y="338" width="3" height="140" />
+              <rect class="k-wood-d" x="88" y="338" width="32" height="3" />
+              <rect class="k-verm" x="92" y="341" width="24" height="100" />
+              <path class="k-nobori-edge" d="M93 342 V440 M115 342 V440" />
+              <text class="nob" x="104" y="356">
+                <tspan x="104" dy="0">北</tspan><tspan x="104" dy="19">野</tspan><tspan x="104" dy="19">天</tspan><tspan x="104" dy="19">満</tspan><tspan x="104" dy="19">宮</tspan>
+              </text>
+            </g>
+            <g class="nobori" id="nobori-r">
+              <rect class="k-wood-d" x="469" y="338" width="3" height="140" />
+              <rect class="k-wood-d" x="440" y="338" width="32" height="3" />
+              <rect class="k-verm" x="444" y="341" width="24" height="100" />
+              <path class="k-nobori-edge" d="M445 342 V440 M467 342 V440" />
+              <text class="nob" x="456" y="356">
+                <tspan x="456" dy="0">北</tspan><tspan x="456" dy="19">野</tspan><tspan x="456" dy="19">天</tspan><tspan x="456" dy="19">満</tspan><tspan x="456" dy="19">宮</tspan>
+              </text>
+            </g>
+
+            <ellipse cx="172" cy="489" rx="22" ry="4" fill="#2a1d12" opacity="0.22" />
+            <ellipse cx="388" cy="489" rx="22" ry="4" fill="#2a1d12" opacity="0.22" />
+            <use href="#lantern" x="156" y="434" width="30" height="56" />
+            <use href="#lantern" x="374" y="434" width="30" height="56" />
+            <ellipse cx="136" cy="527" rx="30" ry="5" fill="#2a1d12" opacity="0.25" />
+            <ellipse cx="424" cy="527" rx="30" ry="5" fill="#2a1d12" opacity="0.25" />
+            <use href="#lantern" x="112" y="440" width="48" height="88" />
+            <use href="#lantern" x="400" y="440" width="48" height="88" />
+
+            <g id="petals"></g>
+
+            <g class="k-torii">
+              <rect class="k-stone-d" x="54" y="546" width="40" height="20" />
+              <rect class="k-stone-d" x="466" y="546" width="40" height="20" />
+              <rect class="k-stone" x="62" y="116" width="24" height="432" />
+              <rect class="k-stone" x="474" y="116" width="24" height="432" />
+              <rect class="k-stone-d" x="80" y="116" width="6" height="432" />
+              <rect class="k-stone-d" x="492" y="116" width="6" height="432" />
+              <rect class="k-stone" x="58" y="142" width="444" height="14" />
+              <rect class="k-stone-d" x="58" y="152" width="444" height="4" />
+              <rect class="k-plaque" x="248" y="118" width="64" height="26" />
+              <text class="k-plaque-text" x="280" y="137" font-size="15">天満宮</text>
+              <rect class="k-stone-d" x="38" y="106" width="484" height="11" />
+              <rect class="k-stone" x="28" y="90" width="504" height="18" rx="2" />
+              <rect class="k-stone-d" x="28" y="104" width="504" height="4" />
+            </g>
+
+            <g id="plum-branches" class="k-twig">
+              <path d="M14 340 C46 312 74 292 108 286 S168 288 198 268" />
+              <path d="M108 286 C100 268 108 250 98 232" />
+              <path d="M154 289 C164 270 156 256 168 240" />
+              <path d="M546 272 C516 268 498 246 468 246 S416 252 392 226" />
+              <path d="M468 246 C476 228 470 214 482 198" />
+              <path d="M420 250 C416 234 424 222 416 208" />
+            </g>
+            <g id="plum-blossoms"></g>
+
+            <rect class="k-plinth-top" x="24" y="614" width="118" height="8" />
+            <rect class="k-plinth" x="24" y="622" width="118" height="44" />
+            <rect class="k-plinth-top" x="418" y="614" width="118" height="8" />
+            <rect class="k-plinth" x="418" y="622" width="118" height="44" />
+            <use href="#ox" x="36" y="548" width="96" height="66" />
+            <use href="#ox" x="0" y="0" width="96" height="66" transform="translate(524 548) scale(-1 1)" />
+          </g>
+        </svg>
+
+        <div class="doorway" id="doorway">
+          <div class="interior"></div>
+          <div class="leaf leaf-l">
+            <svg class="leaf-crest" aria-hidden="true"><use href="#crest" /></svg>
+          </div>
+          <div class="leaf leaf-r">
+            <svg class="leaf-crest" aria-hidden="true"><use href="#crest" /></svg>
+          </div>
+        </div>
+      </div>
+
+      <form class="register" id="login" novalidate>
+        <div class="lockup">
+          <svg class="brand-mark" aria-hidden="true"><use href="#crest" /></svg>
+          <div>
+            <p class="lockup-name" id="gate-title">TENJINSAN</p>
+            <p class="lockup-sub">Reading Studio <span lang="ja">問いからひらく読書</span></p>
+          </div>
+        </div>
+        <p class="plate">Members' entrance <span lang="ja">入館口</span></p>
+        <h1>Enter the library <span lang="ja">図書室に入る</span></h1>
+        <p class="register-note" lang="en">
+          A private library for one owner. There is no public sign-up.
+        </p>
+        <p class="register-note" lang="ja">個人専用の図書室です。新規登録はありません。</p>
+        <label>
+          <span>Email <small lang="ja">メール</small></span>
+          <input type="email" name="email" autocomplete="username" value="owner@example.test" />
+        </label>
+        <label>
+          <span>Password <small lang="ja">パスワード</small></span>
+          <input type="password" name="password" autocomplete="current-password" value="mockup-only" />
+        </label>
+        <button class="btn btn-primary" type="submit">
+          Enter <span lang="ja">入館する</span>
+        </button>
+        <p class="register-foot">Mockup: no real sign-in happens here.</p>
+        <p class="shrine-reference">
+          A quiet place for literature and learning, inspired by
+          <a href="https://ja.wikipedia.org/wiki/北野天満宮" lang="ja">北野天満宮</a>.
+          <small lang="ja">学問の神さま、天神さんに着想を得た私の図書室。</small>
+          <small>Independent design study, not affiliated with the shrine.</small>
+        </p>
+      </form>
+    </section>
+
+    <!-- LIBRARY -->
+    <div id="library" class="library" hidden>
+      <header class="hud-top">
+        <a class="brand" href="#hall" id="brand-home" aria-label="Back to the hall / ホールへ戻る">
+          <svg class="brand-mark" aria-hidden="true"><use href="#crest" /></svg>
+          <span>TENJINSAN <small lang="ja">問いからひらく読書</small></span>
+        </a>
+        <p class="where" id="where" aria-live="polite"></p>
+        <div class="hud-actions">
+          <button class="btn btn-quiet" type="button" id="open-notes">
+            Design notes <span lang="ja">設計メモ</span>
+          </button>
+          <button class="btn btn-quiet" type="button" id="leave">
+            Leave <span lang="ja">退館</span>
+          </button>
+        </div>
+      </header>
+
+      <nav id="route" class="route" aria-label="Reading route / 読書ルート">
+        <p class="route-title">Reading route <span lang="ja">読書ルート</span></p>
+        <ol id="route-list"></ol>
+      </nav>
+
+      <div class="stage" id="stage">
+        <div class="camera" id="camera">
+          <div class="stage3d">
+            <div class="world" id="world"></div>
+          </div>
+        </div>
+      </div>
+
+      <div class="hud-bottom" id="hud-bottom">
+        <p class="hint">
+          Move the pointer to look around. Choose a desk to sit down.
+          <span lang="ja">ポインタで見回し、机を選んで席に着きます。</span>
+        </p>
+        <button class="btn btn-quiet" type="button" id="zoom-out" hidden>
+          Back to the hall <span lang="ja">ホールへ戻る</span>
+        </button>
+      </div>
+
+      <section id="desk" class="desk" aria-labelledby="desk-title" hidden tabindex="-1">
+        <div class="desk-edge" aria-hidden="true"></div>
+        <div id="desk-body"></div>
+      </section>
+    </div>
+
+    <dialog id="notes" class="notes" aria-labelledby="notes-title"></dialog>
+
+    <noscript><p class="noscript">This mockup needs JavaScript to build the 3D library.</p></noscript>
+
+    <script src="js/data.js"></script>
+    <script src="js/boxes.js"></script>
+    <script src="js/gate-art.js"></script>
+    <script src="js/furniture-a.js"></script>
+    <script src="js/furniture-b.js"></script>
+    <script src="js/hall.js"></script>
+    <script src="js/rooms-a.js"></script>
+    <script src="js/rooms-b.js"></script>
+    <script src="js/desk.js"></script>
+    <script src="js/main.js"></script>
+  </body>
+</html>

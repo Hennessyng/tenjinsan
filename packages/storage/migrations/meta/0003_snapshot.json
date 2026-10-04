@@ -1,0 +1,2283 @@
+{
+  "version": "6",
+  "dialect": "sqlite",
+  "id": "3639e8ae-22f6-488f-a894-09d6d65b0c5c",
+  "prevId": "e05c7523-c3a9-4d22-87ff-0c3632848a67",
+  "tables": {
+    "auth_accounts": {
+      "name": "auth_accounts",
+      "columns": {
+        "id": {
+          "name": "id",
+          "type": "text",
+          "primaryKey": true,
+          "notNull": true,
+          "autoincrement": false
+        },
+        "account_id": {
+          "name": "account_id",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false
+        },
+        "provider_id": {
+          "name": "provider_id",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false
+        },
+        "user_id": {
+          "name": "user_id",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false
+        },
+        "access_token": {
+          "name": "access_token",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false,
+          "autoincrement": false
+        },
+        "refresh_token": {
+          "name": "refresh_token",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false,
+          "autoincrement": false
+        },
+        "id_token": {
+          "name": "id_token",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false,
+          "autoincrement": false
+        },
+        "access_token_expires_at": {
+          "name": "access_token_expires_at",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": false,
+          "autoincrement": false
+        },
+        "refresh_token_expires_at": {
+          "name": "refresh_token_expires_at",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": false,
+          "autoincrement": false
+        },
+        "scope": {
+          "name": "scope",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false,
+          "autoincrement": false
+        },
+        "password": {
+          "name": "password",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false,
+          "autoincrement": false
+        },
+        "created_at": {
+          "name": "created_at",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false,
+          "default": "(cast(unixepoch('subsecond') * 1000 as integer))"
+        },
+        "updated_at": {
+          "name": "updated_at",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false,
+          "default": "(cast(unixepoch('subsecond') * 1000 as integer))"
+        }
+      },
+      "indexes": {
+        "auth_accounts_user_id_index": {
+          "name": "auth_accounts_user_id_index",
+          "columns": ["user_id"],
+          "isUnique": false
+        }
+      },
+      "foreignKeys": {
+        "auth_accounts_user_id_auth_users_id_fk": {
+          "name": "auth_accounts_user_id_auth_users_id_fk",
+          "tableFrom": "auth_accounts",
+          "tableTo": "auth_users",
+          "columnsFrom": ["user_id"],
+          "columnsTo": ["id"],
+          "onDelete": "cascade",
+          "onUpdate": "no action"
+        }
+      },
+      "compositePrimaryKeys": {},
+      "uniqueConstraints": {},
+      "checkConstraints": {}
+    },
+    "owners": {
+      "name": "owners",
+      "columns": {
+        "id": {
+          "name": "id",
+          "type": "text",
+          "primaryKey": true,
+          "notNull": true,
+          "autoincrement": false
+        },
+        "singleton": {
+          "name": "singleton",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false,
+          "default": 1
+        }
+      },
+      "indexes": {
+        "owners_singleton_unique": {
+          "name": "owners_singleton_unique",
+          "columns": ["singleton"],
+          "isUnique": true
+        }
+      },
+      "foreignKeys": {},
+      "compositePrimaryKeys": {},
+      "uniqueConstraints": {},
+      "checkConstraints": {
+        "owners_singleton_check": {
+          "name": "owners_singleton_check",
+          "value": "\"owners\".\"singleton\" = 1"
+        }
+      }
+    },
+    "auth_sessions": {
+      "name": "auth_sessions",
+      "columns": {
+        "id": {
+          "name": "id",
+          "type": "text",
+          "primaryKey": true,
+          "notNull": true,
+          "autoincrement": false
+        },
+        "expires_at": {
+          "name": "expires_at",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false
+        },
+        "token": {
+          "name": "token",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false
+        },
+        "created_at": {
+          "name": "created_at",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false,
+          "default": "(cast(unixepoch('subsecond') * 1000 as integer))"
+        },
+        "updated_at": {
+          "name": "updated_at",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false,
+          "default": "(cast(unixepoch('subsecond') * 1000 as integer))"
+        },
+        "ip_address": {
+          "name": "ip_address",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false,
+          "autoincrement": false
+        },
+        "user_agent": {
+          "name": "user_agent",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false,
+          "autoincrement": false
+        },
+        "user_id": {
+          "name": "user_id",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false
+        }
+      },
+      "indexes": {
+        "auth_sessions_token_unique": {
+          "name": "auth_sessions_token_unique",
+          "columns": ["token"],
+          "isUnique": true
+        },
+        "auth_sessions_user_id_index": {
+          "name": "auth_sessions_user_id_index",
+          "columns": ["user_id"],
+          "isUnique": false
+        }
+      },
+      "foreignKeys": {
+        "auth_sessions_user_id_auth_users_id_fk": {
+          "name": "auth_sessions_user_id_auth_users_id_fk",
+          "tableFrom": "auth_sessions",
+          "tableTo": "auth_users",
+          "columnsFrom": ["user_id"],
+          "columnsTo": ["id"],
+          "onDelete": "cascade",
+          "onUpdate": "no action"
+        }
+      },
+      "compositePrimaryKeys": {},
+      "uniqueConstraints": {},
+      "checkConstraints": {}
+    },
+    "auth_users": {
+      "name": "auth_users",
+      "columns": {
+        "id": {
+          "name": "id",
+          "type": "text",
+          "primaryKey": true,
+          "notNull": true,
+          "autoincrement": false
+        },
+        "name": {
+          "name": "name",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false
+        },
+        "email": {
+          "name": "email",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false
+        },
+        "email_verified": {
+          "name": "email_verified",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false,
+          "default": false
+        },
+        "image": {
+          "name": "image",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false,
+          "autoincrement": false
+        },
+        "created_at": {
+          "name": "created_at",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false,
+          "default": "(cast(unixepoch('subsecond') * 1000 as integer))"
+        },
+        "updated_at": {
+          "name": "updated_at",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false,
+          "default": "(cast(unixepoch('subsecond') * 1000 as integer))"
+        },
+        "singleton": {
+          "name": "singleton",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false,
+          "default": 1
+        }
+      },
+      "indexes": {
+        "auth_users_email_unique": {
+          "name": "auth_users_email_unique",
+          "columns": ["email"],
+          "isUnique": true
+        },
+        "auth_users_singleton_unique": {
+          "name": "auth_users_singleton_unique",
+          "columns": ["singleton"],
+          "isUnique": true
+        }
+      },
+      "foreignKeys": {},
+      "compositePrimaryKeys": {},
+      "uniqueConstraints": {},
+      "checkConstraints": {
+        "auth_users_singleton_check": {
+          "name": "auth_users_singleton_check",
+          "value": "\"auth_users\".\"singleton\" = 1"
+        }
+      }
+    },
+    "auth_verifications": {
+      "name": "auth_verifications",
+      "columns": {
+        "id": {
+          "name": "id",
+          "type": "text",
+          "primaryKey": true,
+          "notNull": true,
+          "autoincrement": false
+        },
+        "identifier": {
+          "name": "identifier",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false
+        },
+        "value": {
+          "name": "value",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false
+        },
+        "expires_at": {
+          "name": "expires_at",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false
+        },
+        "created_at": {
+          "name": "created_at",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false,
+          "default": "(cast(unixepoch('subsecond') * 1000 as integer))"
+        },
+        "updated_at": {
+          "name": "updated_at",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false,
+          "default": "(cast(unixepoch('subsecond') * 1000 as integer))"
+        }
+      },
+      "indexes": {
+        "auth_verifications_identifier_index": {
+          "name": "auth_verifications_identifier_index",
+          "columns": ["identifier"],
+          "isUnique": false
+        }
+      },
+      "foreignKeys": {},
+      "compositePrimaryKeys": {},
+      "uniqueConstraints": {},
+      "checkConstraints": {}
+    },
+    "artifacts": {
+      "name": "artifacts",
+      "columns": {
+        "id": {
+          "name": "id",
+          "type": "text",
+          "primaryKey": true,
+          "notNull": true,
+          "autoincrement": false
+        },
+        "publication_revision_id": {
+          "name": "publication_revision_id",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false
+        },
+        "job_id": {
+          "name": "job_id",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false
+        },
+        "content_hash": {
+          "name": "content_hash",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false
+        },
+        "record_json": {
+          "name": "record_json",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false
+        }
+      },
+      "indexes": {},
+      "foreignKeys": {
+        "artifacts_publication_revision_id_publication_revisions_id_fk": {
+          "name": "artifacts_publication_revision_id_publication_revisions_id_fk",
+          "tableFrom": "artifacts",
+          "tableTo": "publication_revisions",
+          "columnsFrom": ["publication_revision_id"],
+          "columnsTo": ["id"],
+          "onDelete": "restrict",
+          "onUpdate": "no action"
+        },
+        "artifacts_job_id_jobs_id_fk": {
+          "name": "artifacts_job_id_jobs_id_fk",
+          "tableFrom": "artifacts",
+          "tableTo": "jobs",
+          "columnsFrom": ["job_id"],
+          "columnsTo": ["id"],
+          "onDelete": "restrict",
+          "onUpdate": "no action"
+        }
+      },
+      "compositePrimaryKeys": {},
+      "uniqueConstraints": {},
+      "checkConstraints": {}
+    },
+    "external_attempts": {
+      "name": "external_attempts",
+      "columns": {
+        "id": {
+          "name": "id",
+          "type": "text",
+          "primaryKey": true,
+          "notNull": true,
+          "autoincrement": false
+        },
+        "run_id": {
+          "name": "run_id",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false
+        },
+        "input_revision_id": {
+          "name": "input_revision_id",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false
+        },
+        "state": {
+          "name": "state",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false
+        },
+        "reservation": {
+          "name": "reservation",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false,
+          "default": 0
+        },
+        "response_body": {
+          "name": "response_body",
+          "type": "blob",
+          "primaryKey": false,
+          "notNull": false,
+          "autoincrement": false
+        },
+        "record_json": {
+          "name": "record_json",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false
+        }
+      },
+      "indexes": {
+        "attempt_run_reservation_unique": {
+          "name": "attempt_run_reservation_unique",
+          "columns": ["run_id", "reservation"],
+          "isUnique": true
+        }
+      },
+      "foreignKeys": {
+        "attempt_run_input_fk": {
+          "name": "attempt_run_input_fk",
+          "tableFrom": "external_attempts",
+          "tableTo": "generation_runs",
+          "columnsFrom": ["run_id", "input_revision_id"],
+          "columnsTo": ["id", "input_revision_id"],
+          "onDelete": "restrict",
+          "onUpdate": "no action"
+        }
+      },
+      "compositePrimaryKeys": {},
+      "uniqueConstraints": {},
+      "checkConstraints": {}
+    },
+    "generation_runs": {
+      "name": "generation_runs",
+      "columns": {
+        "id": {
+          "name": "id",
+          "type": "text",
+          "primaryKey": true,
+          "notNull": true,
+          "autoincrement": false
+        },
+        "input_revision_id": {
+          "name": "input_revision_id",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false
+        },
+        "state": {
+          "name": "state",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false
+        },
+        "reserved_calls": {
+          "name": "reserved_calls",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false,
+          "default": 0
+        },
+        "record_json": {
+          "name": "record_json",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false
+        }
+      },
+      "indexes": {
+        "run_id_input_unique": {
+          "name": "run_id_input_unique",
+          "columns": ["id", "input_revision_id"],
+          "isUnique": true
+        }
+      },
+      "foreignKeys": {
+        "generation_runs_input_revision_id_input_revisions_id_fk": {
+          "name": "generation_runs_input_revision_id_input_revisions_id_fk",
+          "tableFrom": "generation_runs",
+          "tableTo": "input_revisions",
+          "columnsFrom": ["input_revision_id"],
+          "columnsTo": ["id"],
+          "onDelete": "restrict",
+          "onUpdate": "no action"
+        }
+      },
+      "compositePrimaryKeys": {},
+      "uniqueConstraints": {},
+      "checkConstraints": {}
+    },
+    "jobs": {
+      "name": "jobs",
+      "columns": {
+        "id": {
+          "name": "id",
+          "type": "text",
+          "primaryKey": true,
+          "notNull": true,
+          "autoincrement": false
+        },
+        "run_id": {
+          "name": "run_id",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false
+        },
+        "input_revision_id": {
+          "name": "input_revision_id",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false
+        },
+        "setup_revision_id": {
+          "name": "setup_revision_id",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false
+        },
+        "grant_id": {
+          "name": "grant_id",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false
+        },
+        "state": {
+          "name": "state",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false
+        },
+        "checkpoint": {
+          "name": "checkpoint",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false,
+          "autoincrement": false
+        },
+        "cancellation_requested": {
+          "name": "cancellation_requested",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false,
+          "default": false
+        },
+        "lease_fence": {
+          "name": "lease_fence",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false,
+          "default": 0
+        },
+        "lease_token": {
+          "name": "lease_token",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false,
+          "autoincrement": false
+        },
+        "lease_expires_at": {
+          "name": "lease_expires_at",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false,
+          "autoincrement": false
+        },
+        "record_json": {
+          "name": "record_json",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false
+        }
+      },
+      "indexes": {},
+      "foreignKeys": {
+        "job_run_input_fk": {
+          "name": "job_run_input_fk",
+          "tableFrom": "jobs",
+          "tableTo": "generation_runs",
+          "columnsFrom": ["run_id", "input_revision_id"],
+          "columnsTo": ["id", "input_revision_id"],
+          "onDelete": "restrict",
+          "onUpdate": "no action"
+        },
+        "job_grant_setup_fk": {
+          "name": "job_grant_setup_fk",
+          "tableFrom": "jobs",
+          "tableTo": "transmission_grants",
+          "columnsFrom": ["grant_id", "setup_revision_id"],
+          "columnsTo": ["id", "setup_revision_id"],
+          "onDelete": "restrict",
+          "onUpdate": "no action"
+        },
+        "job_setup_fk": {
+          "name": "job_setup_fk",
+          "tableFrom": "jobs",
+          "tableTo": "setup_revisions",
+          "columnsFrom": ["setup_revision_id"],
+          "columnsTo": ["id"],
+          "onDelete": "restrict",
+          "onUpdate": "no action"
+        }
+      },
+      "compositePrimaryKeys": {},
+      "uniqueConstraints": {},
+      "checkConstraints": {}
+    },
+    "book_editions": {
+      "name": "book_editions",
+      "columns": {
+        "id": {
+          "name": "id",
+          "type": "text",
+          "primaryKey": true,
+          "notNull": true,
+          "autoincrement": false
+        },
+        "original_hash": {
+          "name": "original_hash",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false
+        },
+        "original_blob_hash": {
+          "name": "original_blob_hash",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false
+        },
+        "title": {
+          "name": "title",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false
+        },
+        "record_json": {
+          "name": "record_json",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false
+        }
+      },
+      "indexes": {},
+      "foreignKeys": {},
+      "compositePrimaryKeys": {},
+      "uniqueConstraints": {},
+      "checkConstraints": {}
+    },
+    "installations": {
+      "name": "installations",
+      "columns": {
+        "id": {
+          "name": "id",
+          "type": "text",
+          "primaryKey": true,
+          "notNull": true,
+          "autoincrement": false
+        },
+        "owner_id": {
+          "name": "owner_id",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false
+        }
+      },
+      "indexes": {
+        "installations_id_owner_unique": {
+          "name": "installations_id_owner_unique",
+          "columns": ["id", "owner_id"],
+          "isUnique": true
+        }
+      },
+      "foreignKeys": {
+        "installations_owner_id_owners_id_fk": {
+          "name": "installations_owner_id_owners_id_fk",
+          "tableFrom": "installations",
+          "tableTo": "owners",
+          "columnsFrom": ["owner_id"],
+          "columnsTo": ["id"],
+          "onDelete": "restrict",
+          "onUpdate": "no action"
+        }
+      },
+      "compositePrimaryKeys": {},
+      "uniqueConstraints": {},
+      "checkConstraints": {}
+    },
+    "normalization_resources": {
+      "name": "normalization_resources",
+      "columns": {
+        "normalization_revision_id": {
+          "name": "normalization_revision_id",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false
+        },
+        "edition_id": {
+          "name": "edition_id",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false
+        },
+        "resource_path": {
+          "name": "resource_path",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false
+        },
+        "position": {
+          "name": "position",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false
+        },
+        "role": {
+          "name": "role",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false
+        },
+        "status": {
+          "name": "status",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false
+        },
+        "reason": {
+          "name": "reason",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false,
+          "autoincrement": false
+        }
+      },
+      "indexes": {
+        "normalization_resource_edition_unique": {
+          "name": "normalization_resource_edition_unique",
+          "columns": ["normalization_revision_id", "edition_id", "resource_path"],
+          "isUnique": true
+        }
+      },
+      "foreignKeys": {
+        "normalization_resource_revision_fk": {
+          "name": "normalization_resource_revision_fk",
+          "tableFrom": "normalization_resources",
+          "tableTo": "normalization_revisions",
+          "columnsFrom": ["normalization_revision_id", "edition_id"],
+          "columnsTo": ["id", "edition_id"],
+          "onDelete": "restrict",
+          "onUpdate": "no action"
+        }
+      },
+      "compositePrimaryKeys": {
+        "normalization_resources_normalization_revision_id_resource_path_pk": {
+          "columns": ["normalization_revision_id", "resource_path"],
+          "name": "normalization_resources_normalization_revision_id_resource_path_pk"
+        }
+      },
+      "uniqueConstraints": {},
+      "checkConstraints": {}
+    },
+    "normalization_revisions": {
+      "name": "normalization_revisions",
+      "columns": {
+        "id": {
+          "name": "id",
+          "type": "text",
+          "primaryKey": true,
+          "notNull": true,
+          "autoincrement": false
+        },
+        "edition_id": {
+          "name": "edition_id",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false
+        },
+        "parent_revision_id": {
+          "name": "parent_revision_id",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false,
+          "autoincrement": false
+        },
+        "edition_hash": {
+          "name": "edition_hash",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false
+        },
+        "parser_version": {
+          "name": "parser_version",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false
+        },
+        "normalizer_version": {
+          "name": "normalizer_version",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false
+        },
+        "coverage": {
+          "name": "coverage",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false
+        },
+        "record_json": {
+          "name": "record_json",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false
+        }
+      },
+      "indexes": {
+        "normalization_id_edition_unique": {
+          "name": "normalization_id_edition_unique",
+          "columns": ["id", "edition_id"],
+          "isUnique": true
+        }
+      },
+      "foreignKeys": {
+        "normalization_revisions_edition_id_book_editions_id_fk": {
+          "name": "normalization_revisions_edition_id_book_editions_id_fk",
+          "tableFrom": "normalization_revisions",
+          "tableTo": "book_editions",
+          "columnsFrom": ["edition_id"],
+          "columnsTo": ["id"],
+          "onDelete": "restrict",
+          "onUpdate": "no action"
+        },
+        "normalization_parent_edition_fk": {
+          "name": "normalization_parent_edition_fk",
+          "tableFrom": "normalization_revisions",
+          "tableTo": "normalization_revisions",
+          "columnsFrom": ["parent_revision_id", "edition_id"],
+          "columnsTo": ["id", "edition_id"],
+          "onDelete": "restrict",
+          "onUpdate": "no action"
+        }
+      },
+      "compositePrimaryKeys": {},
+      "uniqueConstraints": {},
+      "checkConstraints": {}
+    },
+    "setup_revisions": {
+      "name": "setup_revisions",
+      "columns": {
+        "id": {
+          "name": "id",
+          "type": "text",
+          "primaryKey": true,
+          "notNull": true,
+          "autoincrement": false
+        },
+        "study_id": {
+          "name": "study_id",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false
+        },
+        "edition_id": {
+          "name": "edition_id",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false
+        },
+        "normalization_revision_id": {
+          "name": "normalization_revision_id",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false
+        },
+        "parent_revision_id": {
+          "name": "parent_revision_id",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false,
+          "autoincrement": false
+        },
+        "record_json": {
+          "name": "record_json",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false
+        }
+      },
+      "indexes": {
+        "setup_id_study_unique": {
+          "name": "setup_id_study_unique",
+          "columns": ["id", "study_id"],
+          "isUnique": true
+        }
+      },
+      "foreignKeys": {
+        "setup_study_edition_fk": {
+          "name": "setup_study_edition_fk",
+          "tableFrom": "setup_revisions",
+          "tableTo": "studies",
+          "columnsFrom": ["study_id", "edition_id"],
+          "columnsTo": ["id", "edition_id"],
+          "onDelete": "restrict",
+          "onUpdate": "no action"
+        },
+        "setup_normalization_edition_fk": {
+          "name": "setup_normalization_edition_fk",
+          "tableFrom": "setup_revisions",
+          "tableTo": "normalization_revisions",
+          "columnsFrom": ["normalization_revision_id", "edition_id"],
+          "columnsTo": ["id", "edition_id"],
+          "onDelete": "restrict",
+          "onUpdate": "no action"
+        },
+        "setup_parent_study_fk": {
+          "name": "setup_parent_study_fk",
+          "tableFrom": "setup_revisions",
+          "tableTo": "setup_revisions",
+          "columnsFrom": ["parent_revision_id", "study_id"],
+          "columnsTo": ["id", "study_id"],
+          "onDelete": "restrict",
+          "onUpdate": "no action"
+        }
+      },
+      "compositePrimaryKeys": {},
+      "uniqueConstraints": {},
+      "checkConstraints": {}
+    },
+    "source_blocks": {
+      "name": "source_blocks",
+      "columns": {
+        "normalization_revision_id": {
+          "name": "normalization_revision_id",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false
+        },
+        "edition_id": {
+          "name": "edition_id",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false
+        },
+        "resource_path": {
+          "name": "resource_path",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false
+        },
+        "block_id": {
+          "name": "block_id",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false
+        },
+        "position": {
+          "name": "position",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false
+        },
+        "text": {
+          "name": "text",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false
+        },
+        "original_fragment": {
+          "name": "original_fragment",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false,
+          "autoincrement": false
+        },
+        "page_label": {
+          "name": "page_label",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false,
+          "autoincrement": false
+        }
+      },
+      "indexes": {},
+      "foreignKeys": {
+        "source_block_resource_fk": {
+          "name": "source_block_resource_fk",
+          "tableFrom": "source_blocks",
+          "tableTo": "normalization_resources",
+          "columnsFrom": ["normalization_revision_id", "edition_id", "resource_path"],
+          "columnsTo": ["normalization_revision_id", "edition_id", "resource_path"],
+          "onDelete": "restrict",
+          "onUpdate": "no action"
+        }
+      },
+      "compositePrimaryKeys": {
+        "source_blocks_normalization_revision_id_block_id_pk": {
+          "columns": ["normalization_revision_id", "block_id"],
+          "name": "source_blocks_normalization_revision_id_block_id_pk"
+        }
+      },
+      "uniqueConstraints": {},
+      "checkConstraints": {}
+    },
+    "studies": {
+      "name": "studies",
+      "columns": {
+        "id": {
+          "name": "id",
+          "type": "text",
+          "primaryKey": true,
+          "notNull": true,
+          "autoincrement": false
+        },
+        "owner_id": {
+          "name": "owner_id",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false
+        },
+        "edition_id": {
+          "name": "edition_id",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false
+        }
+      },
+      "indexes": {
+        "studies_id_edition_unique": {
+          "name": "studies_id_edition_unique",
+          "columns": ["id", "edition_id"],
+          "isUnique": true
+        }
+      },
+      "foreignKeys": {
+        "studies_owner_id_owners_id_fk": {
+          "name": "studies_owner_id_owners_id_fk",
+          "tableFrom": "studies",
+          "tableTo": "owners",
+          "columnsFrom": ["owner_id"],
+          "columnsTo": ["id"],
+          "onDelete": "restrict",
+          "onUpdate": "no action"
+        },
+        "studies_edition_id_book_editions_id_fk": {
+          "name": "studies_edition_id_book_editions_id_fk",
+          "tableFrom": "studies",
+          "tableTo": "book_editions",
+          "columnsFrom": ["edition_id"],
+          "columnsTo": ["id"],
+          "onDelete": "restrict",
+          "onUpdate": "no action"
+        }
+      },
+      "compositePrimaryKeys": {},
+      "uniqueConstraints": {},
+      "checkConstraints": {}
+    },
+    "transmission_grants": {
+      "name": "transmission_grants",
+      "columns": {
+        "id": {
+          "name": "id",
+          "type": "text",
+          "primaryKey": true,
+          "notNull": true,
+          "autoincrement": false
+        },
+        "setup_revision_id": {
+          "name": "setup_revision_id",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false
+        },
+        "installation_id": {
+          "name": "installation_id",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false
+        },
+        "owner_id": {
+          "name": "owner_id",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false
+        },
+        "kind": {
+          "name": "kind",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false
+        },
+        "record_json": {
+          "name": "record_json",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false
+        }
+      },
+      "indexes": {
+        "grant_id_setup_unique": {
+          "name": "grant_id_setup_unique",
+          "columns": ["id", "setup_revision_id"],
+          "isUnique": true
+        }
+      },
+      "foreignKeys": {
+        "transmission_grants_setup_revision_id_setup_revisions_id_fk": {
+          "name": "transmission_grants_setup_revision_id_setup_revisions_id_fk",
+          "tableFrom": "transmission_grants",
+          "tableTo": "setup_revisions",
+          "columnsFrom": ["setup_revision_id"],
+          "columnsTo": ["id"],
+          "onDelete": "restrict",
+          "onUpdate": "no action"
+        },
+        "grant_installation_owner_fk": {
+          "name": "grant_installation_owner_fk",
+          "tableFrom": "transmission_grants",
+          "tableTo": "installations",
+          "columnsFrom": ["installation_id", "owner_id"],
+          "columnsTo": ["id", "owner_id"],
+          "onDelete": "restrict",
+          "onUpdate": "no action"
+        }
+      },
+      "compositePrimaryKeys": {},
+      "uniqueConstraints": {},
+      "checkConstraints": {}
+    },
+    "source_spans": {
+      "name": "source_spans",
+      "columns": {
+        "id": {
+          "name": "id",
+          "type": "text",
+          "primaryKey": true,
+          "notNull": true,
+          "autoincrement": false
+        },
+        "normalization_revision_id": {
+          "name": "normalization_revision_id",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false
+        },
+        "block_id": {
+          "name": "block_id",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false
+        },
+        "record_json": {
+          "name": "record_json",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false
+        }
+      },
+      "indexes": {},
+      "foreignKeys": {
+        "source_spans_normalization_revision_id_block_id_source_blocks_normalization_revision_id_block_id_fk": {
+          "name": "source_spans_normalization_revision_id_block_id_source_blocks_normalization_revision_id_block_id_fk",
+          "tableFrom": "source_spans",
+          "tableTo": "source_blocks",
+          "columnsFrom": ["normalization_revision_id", "block_id"],
+          "columnsTo": ["normalization_revision_id", "block_id"],
+          "onDelete": "restrict",
+          "onUpdate": "no action"
+        }
+      },
+      "compositePrimaryKeys": {},
+      "uniqueConstraints": {},
+      "checkConstraints": {}
+    },
+    "analysis_revisions": {
+      "name": "analysis_revisions",
+      "columns": {
+        "id": {
+          "name": "id",
+          "type": "text",
+          "primaryKey": true,
+          "notNull": true,
+          "autoincrement": false
+        },
+        "edition_id": {
+          "name": "edition_id",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false
+        },
+        "normalization_revision_id": {
+          "name": "normalization_revision_id",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false
+        },
+        "parent_revision_id": {
+          "name": "parent_revision_id",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false,
+          "autoincrement": false
+        },
+        "cache_key": {
+          "name": "cache_key",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false
+        },
+        "status": {
+          "name": "status",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false
+        },
+        "record_json": {
+          "name": "record_json",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false
+        }
+      },
+      "indexes": {
+        "analysis_id_edition_unique": {
+          "name": "analysis_id_edition_unique",
+          "columns": ["id", "edition_id"],
+          "isUnique": true
+        }
+      },
+      "foreignKeys": {
+        "analysis_normalization_edition_fk": {
+          "name": "analysis_normalization_edition_fk",
+          "tableFrom": "analysis_revisions",
+          "tableTo": "normalization_revisions",
+          "columnsFrom": ["normalization_revision_id", "edition_id"],
+          "columnsTo": ["id", "edition_id"],
+          "onDelete": "restrict",
+          "onUpdate": "no action"
+        },
+        "analysis_parent_edition_fk": {
+          "name": "analysis_parent_edition_fk",
+          "tableFrom": "analysis_revisions",
+          "tableTo": "analysis_revisions",
+          "columnsFrom": ["parent_revision_id", "edition_id"],
+          "columnsTo": ["id", "edition_id"],
+          "onDelete": "restrict",
+          "onUpdate": "no action"
+        }
+      },
+      "compositePrimaryKeys": {},
+      "uniqueConstraints": {},
+      "checkConstraints": {}
+    },
+    "answer_revisions": {
+      "name": "answer_revisions",
+      "columns": {
+        "id": {
+          "name": "id",
+          "type": "text",
+          "primaryKey": true,
+          "notNull": true,
+          "autoincrement": false
+        },
+        "question_revision_id": {
+          "name": "question_revision_id",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false
+        },
+        "question_id": {
+          "name": "question_id",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false
+        },
+        "record_json": {
+          "name": "record_json",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false
+        }
+      },
+      "indexes": {},
+      "foreignKeys": {
+        "answer_revisions_id_input_revisions_id_fk": {
+          "name": "answer_revisions_id_input_revisions_id_fk",
+          "tableFrom": "answer_revisions",
+          "tableTo": "input_revisions",
+          "columnsFrom": ["id"],
+          "columnsTo": ["id"],
+          "onDelete": "restrict",
+          "onUpdate": "no action"
+        },
+        "answer_question_revision_fk": {
+          "name": "answer_question_revision_fk",
+          "tableFrom": "answer_revisions",
+          "tableTo": "question_revisions",
+          "columnsFrom": ["question_revision_id", "question_id"],
+          "columnsTo": ["revision_id", "question_id"],
+          "onDelete": "restrict",
+          "onUpdate": "no action"
+        }
+      },
+      "compositePrimaryKeys": {},
+      "uniqueConstraints": {},
+      "checkConstraints": {}
+    },
+    "brief_approvals": {
+      "name": "brief_approvals",
+      "columns": {
+        "brief_revision_id": {
+          "name": "brief_revision_id",
+          "type": "text",
+          "primaryKey": true,
+          "notNull": true,
+          "autoincrement": false
+        },
+        "approved_at": {
+          "name": "approved_at",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false
+        },
+        "record_json": {
+          "name": "record_json",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false
+        }
+      },
+      "indexes": {},
+      "foreignKeys": {
+        "brief_approvals_brief_revision_id_brief_revisions_id_fk": {
+          "name": "brief_approvals_brief_revision_id_brief_revisions_id_fk",
+          "tableFrom": "brief_approvals",
+          "tableTo": "brief_revisions",
+          "columnsFrom": ["brief_revision_id"],
+          "columnsTo": ["id"],
+          "onDelete": "restrict",
+          "onUpdate": "no action"
+        }
+      },
+      "compositePrimaryKeys": {},
+      "uniqueConstraints": {},
+      "checkConstraints": {}
+    },
+    "brief_revisions": {
+      "name": "brief_revisions",
+      "columns": {
+        "id": {
+          "name": "id",
+          "type": "text",
+          "primaryKey": true,
+          "notNull": true,
+          "autoincrement": false
+        },
+        "study_id": {
+          "name": "study_id",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false
+        },
+        "setup_revision_id": {
+          "name": "setup_revision_id",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false
+        },
+        "analysis_revision_id": {
+          "name": "analysis_revision_id",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false
+        },
+        "parent_revision_id": {
+          "name": "parent_revision_id",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false,
+          "autoincrement": false
+        },
+        "record_json": {
+          "name": "record_json",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false
+        }
+      },
+      "indexes": {
+        "brief_id_study_unique": {
+          "name": "brief_id_study_unique",
+          "columns": ["id", "study_id"],
+          "isUnique": true
+        }
+      },
+      "foreignKeys": {
+        "brief_revisions_study_id_studies_id_fk": {
+          "name": "brief_revisions_study_id_studies_id_fk",
+          "tableFrom": "brief_revisions",
+          "tableTo": "studies",
+          "columnsFrom": ["study_id"],
+          "columnsTo": ["id"],
+          "onDelete": "restrict",
+          "onUpdate": "no action"
+        },
+        "brief_revisions_setup_revision_id_setup_revisions_id_fk": {
+          "name": "brief_revisions_setup_revision_id_setup_revisions_id_fk",
+          "tableFrom": "brief_revisions",
+          "tableTo": "setup_revisions",
+          "columnsFrom": ["setup_revision_id"],
+          "columnsTo": ["id"],
+          "onDelete": "restrict",
+          "onUpdate": "no action"
+        },
+        "brief_revisions_analysis_revision_id_analysis_revisions_id_fk": {
+          "name": "brief_revisions_analysis_revision_id_analysis_revisions_id_fk",
+          "tableFrom": "brief_revisions",
+          "tableTo": "analysis_revisions",
+          "columnsFrom": ["analysis_revision_id"],
+          "columnsTo": ["id"],
+          "onDelete": "restrict",
+          "onUpdate": "no action"
+        },
+        "brief_parent_study_fk": {
+          "name": "brief_parent_study_fk",
+          "tableFrom": "brief_revisions",
+          "tableTo": "brief_revisions",
+          "columnsFrom": ["parent_revision_id", "study_id"],
+          "columnsTo": ["id", "study_id"],
+          "onDelete": "restrict",
+          "onUpdate": "no action"
+        }
+      },
+      "compositePrimaryKeys": {},
+      "uniqueConstraints": {},
+      "checkConstraints": {}
+    },
+    "evidence_reports": {
+      "name": "evidence_reports",
+      "columns": {
+        "hash": {
+          "name": "hash",
+          "type": "text",
+          "primaryKey": true,
+          "notNull": true,
+          "autoincrement": false
+        },
+        "lesson_revision_id": {
+          "name": "lesson_revision_id",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false
+        },
+        "record_json": {
+          "name": "record_json",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false
+        }
+      },
+      "indexes": {},
+      "foreignKeys": {
+        "evidence_reports_lesson_revision_id_lesson_revisions_id_fk": {
+          "name": "evidence_reports_lesson_revision_id_lesson_revisions_id_fk",
+          "tableFrom": "evidence_reports",
+          "tableTo": "lesson_revisions",
+          "columnsFrom": ["lesson_revision_id"],
+          "columnsTo": ["id"],
+          "onDelete": "restrict",
+          "onUpdate": "no action"
+        }
+      },
+      "compositePrimaryKeys": {},
+      "uniqueConstraints": {},
+      "checkConstraints": {}
+    },
+    "input_revisions": {
+      "name": "input_revisions",
+      "columns": {
+        "id": {
+          "name": "id",
+          "type": "text",
+          "primaryKey": true,
+          "notNull": true,
+          "autoincrement": false
+        },
+        "study_id": {
+          "name": "study_id",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false
+        },
+        "parent_revision_id": {
+          "name": "parent_revision_id",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false,
+          "autoincrement": false
+        },
+        "kind": {
+          "name": "kind",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false
+        }
+      },
+      "indexes": {
+        "input_id_study_unique": {
+          "name": "input_id_study_unique",
+          "columns": ["id", "study_id"],
+          "isUnique": true
+        }
+      },
+      "foreignKeys": {
+        "input_revisions_study_id_studies_id_fk": {
+          "name": "input_revisions_study_id_studies_id_fk",
+          "tableFrom": "input_revisions",
+          "tableTo": "studies",
+          "columnsFrom": ["study_id"],
+          "columnsTo": ["id"],
+          "onDelete": "restrict",
+          "onUpdate": "no action"
+        },
+        "input_parent_study_fk": {
+          "name": "input_parent_study_fk",
+          "tableFrom": "input_revisions",
+          "tableTo": "input_revisions",
+          "columnsFrom": ["parent_revision_id", "study_id"],
+          "columnsTo": ["id", "study_id"],
+          "onDelete": "restrict",
+          "onUpdate": "no action"
+        }
+      },
+      "compositePrimaryKeys": {},
+      "uniqueConstraints": {},
+      "checkConstraints": {}
+    },
+    "lesson_revisions": {
+      "name": "lesson_revisions",
+      "columns": {
+        "id": {
+          "name": "id",
+          "type": "text",
+          "primaryKey": true,
+          "notNull": true,
+          "autoincrement": false
+        },
+        "study_id": {
+          "name": "study_id",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false
+        },
+        "setup_revision_id": {
+          "name": "setup_revision_id",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false
+        },
+        "analysis_revision_id": {
+          "name": "analysis_revision_id",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false
+        },
+        "brief_revision_id": {
+          "name": "brief_revision_id",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false
+        },
+        "outline_revision_id": {
+          "name": "outline_revision_id",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false
+        },
+        "parent_revision_id": {
+          "name": "parent_revision_id",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false,
+          "autoincrement": false
+        },
+        "record_json": {
+          "name": "record_json",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false
+        }
+      },
+      "indexes": {
+        "lesson_id_study_unique": {
+          "name": "lesson_id_study_unique",
+          "columns": ["id", "study_id"],
+          "isUnique": true
+        }
+      },
+      "foreignKeys": {
+        "lesson_revisions_study_id_studies_id_fk": {
+          "name": "lesson_revisions_study_id_studies_id_fk",
+          "tableFrom": "lesson_revisions",
+          "tableTo": "studies",
+          "columnsFrom": ["study_id"],
+          "columnsTo": ["id"],
+          "onDelete": "restrict",
+          "onUpdate": "no action"
+        },
+        "lesson_revisions_setup_revision_id_setup_revisions_id_fk": {
+          "name": "lesson_revisions_setup_revision_id_setup_revisions_id_fk",
+          "tableFrom": "lesson_revisions",
+          "tableTo": "setup_revisions",
+          "columnsFrom": ["setup_revision_id"],
+          "columnsTo": ["id"],
+          "onDelete": "restrict",
+          "onUpdate": "no action"
+        },
+        "lesson_revisions_analysis_revision_id_analysis_revisions_id_fk": {
+          "name": "lesson_revisions_analysis_revision_id_analysis_revisions_id_fk",
+          "tableFrom": "lesson_revisions",
+          "tableTo": "analysis_revisions",
+          "columnsFrom": ["analysis_revision_id"],
+          "columnsTo": ["id"],
+          "onDelete": "restrict",
+          "onUpdate": "no action"
+        },
+        "lesson_revisions_brief_revision_id_brief_revisions_id_fk": {
+          "name": "lesson_revisions_brief_revision_id_brief_revisions_id_fk",
+          "tableFrom": "lesson_revisions",
+          "tableTo": "brief_revisions",
+          "columnsFrom": ["brief_revision_id"],
+          "columnsTo": ["id"],
+          "onDelete": "restrict",
+          "onUpdate": "no action"
+        },
+        "lesson_revisions_outline_revision_id_outline_revisions_id_fk": {
+          "name": "lesson_revisions_outline_revision_id_outline_revisions_id_fk",
+          "tableFrom": "lesson_revisions",
+          "tableTo": "outline_revisions",
+          "columnsFrom": ["outline_revision_id"],
+          "columnsTo": ["id"],
+          "onDelete": "restrict",
+          "onUpdate": "no action"
+        },
+        "lesson_parent_study_fk": {
+          "name": "lesson_parent_study_fk",
+          "tableFrom": "lesson_revisions",
+          "tableTo": "lesson_revisions",
+          "columnsFrom": ["parent_revision_id", "study_id"],
+          "columnsTo": ["id", "study_id"],
+          "onDelete": "restrict",
+          "onUpdate": "no action"
+        }
+      },
+      "compositePrimaryKeys": {},
+      "uniqueConstraints": {},
+      "checkConstraints": {}
+    },
+    "outline_approvals": {
+      "name": "outline_approvals",
+      "columns": {
+        "outline_revision_id": {
+          "name": "outline_revision_id",
+          "type": "text",
+          "primaryKey": true,
+          "notNull": true,
+          "autoincrement": false
+        },
+        "approved_at": {
+          "name": "approved_at",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false
+        },
+        "record_json": {
+          "name": "record_json",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false
+        }
+      },
+      "indexes": {},
+      "foreignKeys": {
+        "outline_approvals_outline_revision_id_outline_revisions_id_fk": {
+          "name": "outline_approvals_outline_revision_id_outline_revisions_id_fk",
+          "tableFrom": "outline_approvals",
+          "tableTo": "outline_revisions",
+          "columnsFrom": ["outline_revision_id"],
+          "columnsTo": ["id"],
+          "onDelete": "restrict",
+          "onUpdate": "no action"
+        }
+      },
+      "compositePrimaryKeys": {},
+      "uniqueConstraints": {},
+      "checkConstraints": {}
+    },
+    "outline_revisions": {
+      "name": "outline_revisions",
+      "columns": {
+        "id": {
+          "name": "id",
+          "type": "text",
+          "primaryKey": true,
+          "notNull": true,
+          "autoincrement": false
+        },
+        "study_id": {
+          "name": "study_id",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false
+        },
+        "setup_revision_id": {
+          "name": "setup_revision_id",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false
+        },
+        "analysis_revision_id": {
+          "name": "analysis_revision_id",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false
+        },
+        "brief_revision_id": {
+          "name": "brief_revision_id",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false
+        },
+        "parent_revision_id": {
+          "name": "parent_revision_id",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false,
+          "autoincrement": false
+        },
+        "record_json": {
+          "name": "record_json",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false
+        }
+      },
+      "indexes": {
+        "outline_id_study_unique": {
+          "name": "outline_id_study_unique",
+          "columns": ["id", "study_id"],
+          "isUnique": true
+        }
+      },
+      "foreignKeys": {
+        "outline_revisions_study_id_studies_id_fk": {
+          "name": "outline_revisions_study_id_studies_id_fk",
+          "tableFrom": "outline_revisions",
+          "tableTo": "studies",
+          "columnsFrom": ["study_id"],
+          "columnsTo": ["id"],
+          "onDelete": "restrict",
+          "onUpdate": "no action"
+        },
+        "outline_revisions_setup_revision_id_setup_revisions_id_fk": {
+          "name": "outline_revisions_setup_revision_id_setup_revisions_id_fk",
+          "tableFrom": "outline_revisions",
+          "tableTo": "setup_revisions",
+          "columnsFrom": ["setup_revision_id"],
+          "columnsTo": ["id"],
+          "onDelete": "restrict",
+          "onUpdate": "no action"
+        },
+        "outline_revisions_analysis_revision_id_analysis_revisions_id_fk": {
+          "name": "outline_revisions_analysis_revision_id_analysis_revisions_id_fk",
+          "tableFrom": "outline_revisions",
+          "tableTo": "analysis_revisions",
+          "columnsFrom": ["analysis_revision_id"],
+          "columnsTo": ["id"],
+          "onDelete": "restrict",
+          "onUpdate": "no action"
+        },
+        "outline_revisions_brief_revision_id_brief_revisions_id_fk": {
+          "name": "outline_revisions_brief_revision_id_brief_revisions_id_fk",
+          "tableFrom": "outline_revisions",
+          "tableTo": "brief_revisions",
+          "columnsFrom": ["brief_revision_id"],
+          "columnsTo": ["id"],
+          "onDelete": "restrict",
+          "onUpdate": "no action"
+        },
+        "outline_parent_study_fk": {
+          "name": "outline_parent_study_fk",
+          "tableFrom": "outline_revisions",
+          "tableTo": "outline_revisions",
+          "columnsFrom": ["parent_revision_id", "study_id"],
+          "columnsTo": ["id", "study_id"],
+          "onDelete": "restrict",
+          "onUpdate": "no action"
+        }
+      },
+      "compositePrimaryKeys": {},
+      "uniqueConstraints": {},
+      "checkConstraints": {}
+    },
+    "privacy_reviews": {
+      "name": "privacy_reviews",
+      "columns": {
+        "id": {
+          "name": "id",
+          "type": "text",
+          "primaryKey": true,
+          "notNull": true,
+          "autoincrement": false
+        },
+        "projection_hash": {
+          "name": "projection_hash",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false
+        },
+        "parent_revision_id": {
+          "name": "parent_revision_id",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false,
+          "autoincrement": false
+        },
+        "status": {
+          "name": "status",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false
+        },
+        "record_json": {
+          "name": "record_json",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false
+        }
+      },
+      "indexes": {},
+      "foreignKeys": {
+        "privacy_reviews_parent_revision_id_privacy_reviews_id_fk": {
+          "name": "privacy_reviews_parent_revision_id_privacy_reviews_id_fk",
+          "tableFrom": "privacy_reviews",
+          "tableTo": "privacy_reviews",
+          "columnsFrom": ["parent_revision_id"],
+          "columnsTo": ["id"],
+          "onDelete": "restrict",
+          "onUpdate": "no action"
+        }
+      },
+      "compositePrimaryKeys": {},
+      "uniqueConstraints": {},
+      "checkConstraints": {}
+    },
+    "publication_approvals": {
+      "name": "publication_approvals",
+      "columns": {
+        "publication_revision_id": {
+          "name": "publication_revision_id",
+          "type": "text",
+          "primaryKey": true,
+          "notNull": true,
+          "autoincrement": false
+        },
+        "privacy_review_id": {
+          "name": "privacy_review_id",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false
+        },
+        "projection_hash": {
+          "name": "projection_hash",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false
+        },
+        "approved_at": {
+          "name": "approved_at",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false
+        },
+        "record_json": {
+          "name": "record_json",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false
+        }
+      },
+      "indexes": {},
+      "foreignKeys": {
+        "publication_approvals_publication_revision_id_publication_revisions_id_fk": {
+          "name": "publication_approvals_publication_revision_id_publication_revisions_id_fk",
+          "tableFrom": "publication_approvals",
+          "tableTo": "publication_revisions",
+          "columnsFrom": ["publication_revision_id"],
+          "columnsTo": ["id"],
+          "onDelete": "restrict",
+          "onUpdate": "no action"
+        },
+        "publication_approvals_privacy_review_id_privacy_reviews_id_fk": {
+          "name": "publication_approvals_privacy_review_id_privacy_reviews_id_fk",
+          "tableFrom": "publication_approvals",
+          "tableTo": "privacy_reviews",
+          "columnsFrom": ["privacy_review_id"],
+          "columnsTo": ["id"],
+          "onDelete": "restrict",
+          "onUpdate": "no action"
+        }
+      },
+      "compositePrimaryKeys": {},
+      "uniqueConstraints": {},
+      "checkConstraints": {}
+    },
+    "publication_revisions": {
+      "name": "publication_revisions",
+      "columns": {
+        "id": {
+          "name": "id",
+          "type": "text",
+          "primaryKey": true,
+          "notNull": true,
+          "autoincrement": false
+        },
+        "lesson_revision_id": {
+          "name": "lesson_revision_id",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false
+        },
+        "analysis_revision_id": {
+          "name": "analysis_revision_id",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false
+        },
+        "privacy_review_id": {
+          "name": "privacy_review_id",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false
+        },
+        "parent_revision_id": {
+          "name": "parent_revision_id",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false,
+          "autoincrement": false
+        },
+        "projection_hash": {
+          "name": "projection_hash",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false
+        },
+        "record_json": {
+          "name": "record_json",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false
+        }
+      },
+      "indexes": {},
+      "foreignKeys": {
+        "publication_revisions_lesson_revision_id_lesson_revisions_id_fk": {
+          "name": "publication_revisions_lesson_revision_id_lesson_revisions_id_fk",
+          "tableFrom": "publication_revisions",
+          "tableTo": "lesson_revisions",
+          "columnsFrom": ["lesson_revision_id"],
+          "columnsTo": ["id"],
+          "onDelete": "restrict",
+          "onUpdate": "no action"
+        },
+        "publication_revisions_analysis_revision_id_analysis_revisions_id_fk": {
+          "name": "publication_revisions_analysis_revision_id_analysis_revisions_id_fk",
+          "tableFrom": "publication_revisions",
+          "tableTo": "analysis_revisions",
+          "columnsFrom": ["analysis_revision_id"],
+          "columnsTo": ["id"],
+          "onDelete": "restrict",
+          "onUpdate": "no action"
+        },
+        "publication_revisions_privacy_review_id_privacy_reviews_id_fk": {
+          "name": "publication_revisions_privacy_review_id_privacy_reviews_id_fk",
+          "tableFrom": "publication_revisions",
+          "tableTo": "privacy_reviews",
+          "columnsFrom": ["privacy_review_id"],
+          "columnsTo": ["id"],
+          "onDelete": "restrict",
+          "onUpdate": "no action"
+        },
+        "publication_revisions_parent_revision_id_publication_revisions_id_fk": {
+          "name": "publication_revisions_parent_revision_id_publication_revisions_id_fk",
+          "tableFrom": "publication_revisions",
+          "tableTo": "publication_revisions",
+          "columnsFrom": ["parent_revision_id"],
+          "columnsTo": ["id"],
+          "onDelete": "restrict",
+          "onUpdate": "no action"
+        }
+      },
+      "compositePrimaryKeys": {},
+      "uniqueConstraints": {},
+      "checkConstraints": {}
+    },
+    "question_revisions": {
+      "name": "question_revisions",
+      "columns": {
+        "revision_id": {
+          "name": "revision_id",
+          "type": "text",
+          "primaryKey": true,
+          "notNull": true,
+          "autoincrement": false
+        },
+        "question_id": {
+          "name": "question_id",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false
+        },
+        "analysis_revision_id": {
+          "name": "analysis_revision_id",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false
+        },
+        "parent_revision_id": {
+          "name": "parent_revision_id",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false,
+          "autoincrement": false
+        },
+        "record_json": {
+          "name": "record_json",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false
+        }
+      },
+      "indexes": {
+        "question_revision_question_unique": {
+          "name": "question_revision_question_unique",
+          "columns": ["revision_id", "question_id"],
+          "isUnique": true
+        }
+      },
+      "foreignKeys": {
+        "question_revisions_analysis_revision_id_analysis_revisions_id_fk": {
+          "name": "question_revisions_analysis_revision_id_analysis_revisions_id_fk",
+          "tableFrom": "question_revisions",
+          "tableTo": "analysis_revisions",
+          "columnsFrom": ["analysis_revision_id"],
+          "columnsTo": ["id"],
+          "onDelete": "restrict",
+          "onUpdate": "no action"
+        },
+        "question_parent_question_fk": {
+          "name": "question_parent_question_fk",
+          "tableFrom": "question_revisions",
+          "tableTo": "question_revisions",
+          "columnsFrom": ["parent_revision_id", "question_id"],
+          "columnsTo": ["revision_id", "question_id"],
+          "onDelete": "restrict",
+          "onUpdate": "no action"
+        }
+      },
+      "compositePrimaryKeys": {},
+      "uniqueConstraints": {},
+      "checkConstraints": {}
+    }
+  },
+  "views": {},
+  "enums": {},
+  "_meta": {
+    "schemas": {},
+    "tables": {},
+    "columns": {}
+  },
+  "internal": {
+    "indexes": {}
+  }
+}

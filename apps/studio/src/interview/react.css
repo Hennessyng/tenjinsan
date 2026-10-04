@@ -1,0 +1,116 @@
+.source-app .interview form {
+  margin-block: var(--space-6);
+}
+.source-app .interview .question-desk {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) 14rem;
+  gap: var(--space-6);
+  align-items: start;
+  margin-block: var(--space-8);
+}
+.source-app .interview .question-paper {
+  min-width: 0;
+  padding: var(--space-6);
+  border: 1px solid var(--color-line);
+  border-top: var(--space-1) solid var(--color-green);
+  background: var(--color-paper-raised);
+}
+.source-app .interview .question-guidance {
+  padding: var(--space-4);
+  background: var(--color-green-soft);
+  color: var(--color-ink);
+}
+.source-app .interview .question-guidance p {
+  margin: 0;
+}
+.source-app .interview .review-cards {
+  display: grid;
+  gap: var(--space-4);
+  margin-block: var(--space-6);
+  padding: 0;
+  list-style: none;
+}
+.source-app .interview .answer-index-card,
+.source-app .interview .review-question-paper {
+  min-width: 0;
+  padding: var(--space-4) var(--space-6);
+  border: 1px solid var(--color-line);
+  background: var(--color-paper-raised);
+}
+.source-app .interview .answer-index-card {
+  border-top: var(--space-1) solid var(--color-coral);
+}
+.source-app .interview .review-question-paper {
+  border-top: var(--space-1) solid var(--color-green);
+}
+.source-app .interview .answer-card {
+  display: flex;
+  align-items: baseline;
+  gap: var(--space-3);
+  padding: var(--space-4);
+  margin-block: var(--space-2);
+  border: 1px solid var(--color-line);
+  background: var(--color-paper-raised);
+  cursor: pointer;
+}
+.source-app .interview .answer-card:has(:checked) {
+  background: var(--color-green-soft);
+  border-color: var(--color-green);
+}
+.source-app .interview .answer-card:focus-within {
+  outline: 3px solid var(--color-focus);
+  outline-offset: var(--space-1);
+}
+.source-app .interview textarea {
+  display: block;
+  width: 100%;
+  margin-bottom: var(--space-4);
+  padding: var(--space-4);
+  font: inherit;
+  color: var(--color-ink);
+  background: var(--color-paper-raised);
+  border: 1px solid var(--color-green);
+}
+.source-app .interview progress {
+  width: 100%;
+  accent-color: var(--color-green);
+}
+.source-app .interview nav {
+  margin-block: var(--space-6);
+}
+.source-app .interview [role="alert"] {
+  border-left: var(--space-1) solid var(--color-focus);
+  padding: var(--space-4);
+}
+.source-app .interview .response {
+  white-space: pre-wrap;
+}
+.source-app .interview h2,
+.source-app .interview legend {
+  text-wrap: balance;
+  word-break: normal;
+  overflow-wrap: break-word;
+}
+.source-app .interview .review-cards h2 {
+  margin-block-start: 0;
+}
+.source-app .interview ol {
+  padding-left: var(--space-6);
+  list-style: decimal;
+}
+.source-app .interview ul {
+  padding-left: var(--space-6);
+  list-style: disc;
+}
+@media (max-width: 768px) {
+  .source-app .interview .question-desk {
+    grid-template-columns: minmax(0, 1fr);
+  }
+  .source-app .interview .question-paper {
+    padding: var(--space-4);
+  }
+  .source-app .interview .answer-index-card,
+  .source-app .interview .review-question-paper {
+    padding-inline: var(--space-4);
+  }
+}

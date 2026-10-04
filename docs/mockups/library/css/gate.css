@@ -1,0 +1,376 @@
+.gate {
+  position: fixed;
+  inset: 0;
+  z-index: 50;
+  display: flex;
+  align-items: safe center;
+  justify-content: center;
+  gap: clamp(1.5rem, 5vw, 4rem);
+  padding: var(--space-6);
+  overflow: auto;
+  color: var(--color-paper);
+  background: radial-gradient(ellipse at 35% 40%, var(--lib-wall), var(--lib-night) 75%);
+  transition: opacity 500ms ease 700ms;
+}
+
+.gate.is-leaving {
+  opacity: 0;
+  pointer-events: none;
+  overflow: hidden;
+}
+.gate-scene {
+  position: relative;
+  flex: none;
+  width: min(480px, 44vw);
+  aspect-ratio: 560 / 680;
+  transform-origin: var(--ox, 50%) var(--oy, 56%);
+  transition: transform 1100ms cubic-bezier(0.62, 0, 0.2, 1) 350ms;
+}
+.is-entering .gate-scene {
+  transform: scale(9);
+}
+.scene-art {
+  display: block;
+  width: 100%;
+  height: 100%;
+  filter: drop-shadow(0 16px 24px #0005);
+}
+.k-frame {
+  fill: url(#sc-frame);
+}
+.k-frame-line {
+  fill: none;
+  stroke: var(--lib-brass);
+  stroke-width: 2;
+}
+.k-cloud {
+  fill: var(--shrine-plum-white);
+  opacity: 0.45;
+}
+.k-hill-far {
+  fill: color-mix(in srgb, var(--shrine-verdigris) 55%, var(--shrine-sky-low));
+}
+.k-hill-near {
+  fill: var(--shrine-verdigris);
+}
+.k-hill-trees,
+.k-pine {
+  fill: var(--shrine-pine);
+}
+.k-pine-hi {
+  fill: color-mix(in srgb, var(--shrine-pine) 70%, var(--shrine-verdigris));
+}
+.k-rake {
+  fill: none;
+  stroke: var(--shrine-stone-deep);
+  stroke-width: 1;
+  opacity: 0.45;
+}
+.k-path {
+  fill: url(#sc-path);
+}
+.k-paving {
+  fill: none;
+  stroke: var(--shrine-stone-deep);
+  stroke-width: 1;
+}
+.k-path-edge {
+  fill: none;
+  stroke: var(--shrine-stone);
+  stroke-width: 5;
+}
+.k-stone,
+.k-plinth-top {
+  fill: var(--shrine-stone);
+}
+.k-stone-d,
+.k-plinth {
+  fill: var(--shrine-stone-deep);
+}
+.k-wood,
+.k-bark {
+  fill: var(--shrine-wood);
+}
+.k-wood-d {
+  fill: var(--shrine-wood-deep);
+}
+.k-lattice {
+  fill: url(#sc-lattice);
+}
+.k-gold {
+  fill: var(--shrine-gold);
+}
+.k-glow {
+  fill: var(--lib-lamp);
+}
+.k-plaque {
+  fill: var(--shrine-wood-deep);
+  stroke: var(--shrine-gold);
+  stroke-width: 1;
+}
+.k-plaque-text {
+  fill: var(--shrine-gold);
+  font-family: var(--font-display-ja);
+  text-anchor: middle;
+}
+.k-roof {
+  fill: var(--shrine-verdigris-deep);
+}
+.k-roof-hi {
+  fill: var(--shrine-verdigris);
+}
+.k-roof-d {
+  fill: var(--shrine-wood-deep);
+}
+.k-eave {
+  fill: var(--lib-oak-dark);
+}
+.k-brackets {
+  fill: none;
+  stroke: var(--shrine-wood-deep);
+  stroke-width: 8;
+  stroke-dasharray: 7 9;
+}
+.k-cloth {
+  fill: var(--shrine-plum-white);
+}
+.k-pleats {
+  fill: none;
+  stroke: var(--shrine-stone-deep);
+  stroke-width: 0.7;
+}
+.k-cloth-crest {
+  fill: var(--shrine-wood);
+  stroke: none;
+}
+.k-verm {
+  fill: var(--shrine-vermilion);
+}
+.k-nobori-edge {
+  fill: none;
+  stroke: var(--shrine-plum-white);
+  stroke-width: 0.5;
+  opacity: 0.6;
+}
+.nob {
+  fill: var(--shrine-plum-white);
+  font: 15px var(--font-display-ja);
+  text-anchor: middle;
+}
+.k-twig {
+  fill: none;
+  stroke: var(--shrine-wood);
+  stroke-width: 3;
+  stroke-linecap: round;
+}
+.k-ox {
+  fill: var(--shrine-verdigris-deep);
+}
+.k-ox-hi {
+  fill: var(--shrine-verdigris);
+}
+.k-ox-d {
+  fill: var(--shrine-wood-deep);
+}
+
+.doorway {
+  position: absolute;
+  left: 37.8571%;
+  top: 45.2941%;
+  width: 24.2857%;
+  height: 22.0588%;
+  background: var(--shrine-wood-deep);
+  perspective: 500px;
+}
+.interior {
+  position: absolute;
+  inset: 0;
+  background:
+    repeating-linear-gradient(0deg, transparent 0 20px, #43301f66 20px 23px),
+    repeating-linear-gradient(90deg, transparent 0 8px, #43301f44 8px 10px),
+    radial-gradient(ellipse at 50% 60%, var(--color-paper), var(--lib-lamp) 45%, var(--shrine-wood));
+  opacity: 0.55;
+  transition: opacity 900ms ease 250ms;
+}
+.is-entering .interior {
+  opacity: 1;
+}
+.leaf {
+  position: absolute;
+  inset-block: 0;
+  width: 50%;
+  background: repeating-linear-gradient(
+    90deg,
+    var(--shrine-wood) 0 12px,
+    var(--shrine-wood-deep) 12px 14px
+  );
+  box-shadow:
+    inset 0 0 0 4px var(--shrine-wood-deep),
+    inset 0 0 0 5px var(--lib-oak-dark);
+  transition: transform 1000ms cubic-bezier(0.5, 0, 0.2, 1) 150ms;
+}
+.leaf-l {
+  left: 0;
+  transform-origin: left center;
+}
+.leaf-r {
+  right: 0;
+  transform-origin: right center;
+}
+.leaf-crest {
+  position: absolute;
+  width: 50%;
+  aspect-ratio: 1;
+  height: auto;
+  left: 25%;
+  top: 36%;
+  fill: none;
+  stroke: var(--shrine-gold);
+  stroke-width: 4;
+}
+.is-entering .leaf-l {
+  transform: rotateY(104deg);
+}
+.is-entering .leaf-r {
+  transform: rotateY(-104deg);
+}
+
+.register {
+  position: relative;
+  z-index: 2;
+  flex: none;
+  width: min(25rem, 100%);
+  padding: var(--space-8);
+  color: var(--color-ink);
+  background: var(--color-paper-raised);
+  border: 1px solid var(--color-line);
+  box-shadow: 0 12px 40px #0003;
+  transition: opacity 400ms;
+}
+.is-entering .register {
+  opacity: 0;
+  pointer-events: none;
+}
+.lockup {
+  display: flex;
+  gap: var(--space-3);
+  align-items: center;
+  margin-bottom: var(--space-6);
+}
+.lockup .brand-mark {
+  flex: none;
+  width: 2.75rem;
+  height: 2.75rem;
+  color: var(--shrine-plum);
+}
+.lockup-name {
+  margin: 0;
+  font: 1.5rem var(--font-display-en);
+  letter-spacing: 0.15em;
+}
+.lockup-sub {
+  margin: var(--space-1) 0 0;
+  color: var(--color-muted);
+  font-size: 0.6875rem;
+}
+.lockup-sub [lang="ja"] {
+  display: block;
+}
+.plate {
+  margin-bottom: var(--space-3);
+  color: var(--color-muted);
+  font-size: 0.6875rem;
+  font-weight: 700;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+}
+.plate [lang="ja"] {
+  margin-inline-start: var(--space-2);
+}
+.shrine-reference [lang="ja"] {
+  font-family: var(--font-display-ja);
+}
+.shrine-heading [lang="ja"] {
+  display: block;
+}
+.shrine-reference small {
+  display: block;
+  margin-top: var(--space-1);
+}
+.register h1 {
+  margin-bottom: var(--space-3);
+  font-size: 1.9rem;
+  line-height: 1.15;
+  letter-spacing: -0.02em;
+}
+.register h1 [lang="ja"] {
+  display: block;
+  margin-top: var(--space-1);
+  font-family: var(--font-display-ja);
+  font-size: 1.05rem;
+}
+.register-note {
+  margin-bottom: var(--space-1);
+  color: var(--color-muted);
+  font-size: 0.8125rem;
+  line-height: 1.55;
+}
+.register label {
+  display: block;
+  margin-top: var(--space-4);
+  font-size: 0.8125rem;
+  font-weight: 600;
+}
+.register label small {
+  margin-inline-start: var(--space-1);
+  color: var(--color-muted);
+  font-weight: 500;
+}
+.register input {
+  display: block;
+  width: 100%;
+  margin-top: var(--space-1);
+  padding: var(--space-3);
+  border: 1px solid var(--color-line);
+  border-radius: 2px;
+  color: inherit;
+  background: var(--color-paper);
+  font: inherit;
+}
+.register .btn {
+  width: 100%;
+  margin-top: var(--space-6);
+}
+.register-foot {
+  margin: var(--space-3) 0 0;
+  color: var(--color-muted);
+  font-size: 0.6875rem;
+  text-align: center;
+}
+.shrine-reference {
+  margin: var(--space-6) 0 0;
+  padding-top: var(--space-4);
+  border-top: 1px solid var(--color-line);
+  color: var(--color-muted);
+  font-size: 0.75rem;
+}
+.shrine-reference a {
+  white-space: nowrap;
+}
+.shrine-link {
+  white-space: nowrap;
+}
+@media (max-width: 960px) {
+  .gate {
+    flex-direction: column;
+    justify-content: flex-start;
+    gap: var(--space-6);
+    padding: var(--space-4);
+  }
+  .gate-scene {
+    width: min(320px, 100%);
+  }
+  .register {
+    padding: var(--space-6);
+  }
+}

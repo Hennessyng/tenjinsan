@@ -1,0 +1,36 @@
+.source-app .outline h1 [lang="ja"] {
+  display: inline-block;
+}
+.source-app .outline ol {
+  padding-left: var(--space-6);
+  list-style: decimal;
+}
+.source-app .outline ul {
+  padding-left: var(--space-6);
+  list-style: disc;
+}
+.source-app .outline form {
+  margin-block: var(--space-6);
+}
+.source-app .outline h3 {
+  font:
+    400 1.25rem / 1.4 Georgia,
+    serif;
+}
+.source-app .outline h4 {
+  font-weight: 700;
+}
+.source-app .outline [role="alert"] {
+  border-left: var(--space-1) solid var(--color-focus);
+  padding: var(--space-4);
+}
+.source-app .outline .setup-actions {
+  margin-block: var(--space-6);
+}
+.source-app .outline input {
+  font: inherit;
+  max-width: 100%;
+  padding: var(--space-3);
+  border: 1px solid var(--color-line);
+  background: var(--color-paper-raised);
+}

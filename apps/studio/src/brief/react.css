@@ -1,0 +1,38 @@
+.source-app .brief textarea {
+  display: block;
+  width: 100%;
+  padding: var(--space-3);
+  font: inherit;
+  color: var(--color-ink);
+  background: var(--color-paper-raised);
+  border: 1px solid var(--color-green);
+}
+.source-app .brief article {
+  margin-block: var(--space-6);
+}
+.source-app .brief [role="alert"] {
+  border-left: var(--space-1) solid var(--color-focus);
+  padding: var(--space-4);
+}
+.source-app .brief dd {
+  margin-inline-start: 0;
+  white-space: pre-wrap;
+  margin-bottom: var(--space-4);
+}
+.source-app .brief dt {
+  font-weight: 700;
+}
+.source-app .brief h1 span {
+  display: inline-block;
+}
+.source-app .brief h2 {
+  text-wrap: balance;
+}
+.source-app .brief ol {
+  padding-left: var(--space-6);
+  list-style: decimal;
+}
+.source-app .brief ul {
+  padding-left: var(--space-6);
+  list-style: disc;
+}

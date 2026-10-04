@@ -1,0 +1,16 @@
+{
+  "extends": "./tsconfig.base.json",
+  "compilerOptions": {
+    "lib": ["DOM", "DOM.Iterable", "ES2024"],
+    "types": ["node", "vitest/globals"]
+  },
+  "include": [
+    "deploy/**/*.ts",
+    "scripts/**/*.ts",
+    "packages/storage/src/backup-tables.ts",
+    "tests/deployment/**/*.ts",
+    "tests/e2e/**/*.ts",
+    "tests/exports/**/*.ts",
+    "playwright.config.ts"
+  ]
+}

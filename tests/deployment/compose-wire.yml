@@ -1,0 +1,17 @@
+services:
+  api:
+    build: {context: .., dockerfile: deploy/Dockerfile, target: api-wire}
+    environment:
+      STUDIO_PROVIDER_BASE_URL: http://127.0.0.1:43117/v1
+    command:
+      - sh
+      - -c
+      - node --experimental-transform-types tests/deployment/production-wire-server.ts & exec node --experimental-transform-types apps/server/src/index.ts
+  worker:
+    build: {context: .., dockerfile: deploy/Dockerfile, target: worker-wire}
+    environment:
+      STUDIO_PROVIDER_BASE_URL: http://127.0.0.1:43117/v1
+    command:
+      - sh
+      - -c
+      - node --experimental-transform-types tests/deployment/production-wire-server.ts & exec node --experimental-transform-types apps/worker/src/hosted.ts

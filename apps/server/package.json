@@ -1,0 +1,36 @@
+{
+  "name": "@reading-studio/server",
+  "version": "0.0.0",
+  "private": true,
+  "type": "module",
+  "exports": {
+    "./publication-fixture": "./src/testing/publication-fixture.ts",
+    "./evidence-fixture": "./src/testing/evidence-fixture.ts",
+    "./source-viewer-fixture": "./src/testing/source-viewer-fixture.ts",
+    "./interview-fixture": "./src/testing/interview-fixture.ts",
+    "./local-startup": "./src/local-startup.ts",
+    "./owner-cli": "./src/owner-cli.ts",
+    "./publication-service": "./src/publication-service.ts",
+    "./task31-records": "./src/testing/task31-records.ts"
+  },
+  "scripts": {
+    "dev": "node --env-file-if-exists=../../.env --experimental-transform-types --watch src/index.ts",
+    "start": "node --env-file-if-exists=../../.env --experimental-transform-types src/index.ts",
+    "build": "tsc --noEmit -p tsconfig.json",
+    "typecheck": "tsc --noEmit -p tsconfig.json"
+  },
+  "dependencies": {
+    "@reading-studio/export": "workspace:*",
+    "@better-auth/drizzle-adapter": "1.6.23",
+    "@hono/node-server": "2.1.1",
+    "@reading-studio/contracts": "workspace:*",
+    "@reading-studio/generation": "workspace:*",
+    "@reading-studio/ingestion": "workspace:*",
+    "@reading-studio/providers": "workspace:*",
+    "@reading-studio/storage": "workspace:*",
+    "@reading-studio/studio": "workspace:*",
+    "better-auth": "1.6.23",
+    "hono": "4.13.8",
+    "zod": "4.6.5"
+  }
+}

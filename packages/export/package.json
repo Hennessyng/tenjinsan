@@ -1,0 +1,28 @@
+{
+  "name": "@reading-studio/export",
+  "version": "0.0.0",
+  "private": true,
+  "type": "module",
+  "exports": {
+    "./html": "./html/index.ts",
+    "./print": "./print/index.ts",
+    "./pdf": "./pdf/index.ts",
+    "./testing": "./tests/fixture.ts",
+    "./testing/print": "./tests/print-fixture.ts",
+    "./testing/pdf": "./tests/pdf-harness.ts",
+    "./testing/assets": "./tests/assets-fixture.ts"
+  },
+  "scripts": {
+    "build": "tsc --noEmit -p tsconfig.json"
+  },
+  "dependencies": {
+    "@fontsource/noto-sans-jp": "5.2.8",
+    "@reading-studio/contracts": "workspace:*",
+    "@reading-studio/reader": "workspace:*",
+    "esbuild": "0.28.2",
+    "hono": "4.13.8",
+    "pdf-lib": "1.17.1",
+    "playwright": "1.63.0",
+    "three": "0.186.0"
+  }
+}

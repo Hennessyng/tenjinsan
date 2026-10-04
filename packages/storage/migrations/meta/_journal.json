@@ -1,0 +1,104 @@
+{
+  "version": "7",
+  "dialect": "sqlite",
+  "entries": [
+    {
+      "idx": 0,
+      "version": "6",
+      "when": 1789969584242,
+      "tag": "0000_lively_microbe",
+      "breakpoints": true
+    },
+    {
+      "idx": 1,
+      "version": "6",
+      "when": 1789974634132,
+      "tag": "0001_dusty_natasha_romanoff",
+      "breakpoints": true
+    },
+    {
+      "idx": 2,
+      "version": "6",
+      "when": 1789998418734,
+      "tag": "0002_right_nightshade",
+      "breakpoints": true
+    },
+    {
+      "idx": 3,
+      "version": "6",
+      "when": 1790098038978,
+      "tag": "0003_lazy_yellow_claw",
+      "breakpoints": true
+    },
+    {
+      "idx": 4,
+      "version": "6",
+      "when": 1790184438978,
+      "tag": "0004_saved_interviews",
+      "breakpoints": true
+    },
+    {
+      "idx": 5,
+      "version": "6",
+      "when": 1790270838978,
+      "tag": "0005_reading_briefs",
+      "breakpoints": true
+    },
+    {
+      "idx": 6,
+      "version": "6",
+      "when": 1790357238978,
+      "tag": "0006_study_outlines",
+      "breakpoints": true
+    },
+    {
+      "idx": 7,
+      "version": "6",
+      "when": 1790443638978,
+      "tag": "0007_evidence_reviews",
+      "breakpoints": true
+    },
+    {
+      "idx": 8,
+      "version": "6",
+      "when": 1790530038978,
+      "tag": "0008_publication_outputs",
+      "breakpoints": true
+    },
+    {
+      "idx": 9,
+      "version": "6",
+      "when": 1790616438978,
+      "tag": "0009_study_forks",
+      "breakpoints": true
+    },
+    {
+      "idx": 10,
+      "version": "6",
+      "when": 1790702838978,
+      "tag": "0010_logical_backup",
+      "breakpoints": true
+    },
+    {
+      "idx": 11,
+      "version": "6",
+      "when": 1790789238978,
+      "tag": "0011_maintenance",
+      "breakpoints": true
+    },
+    {
+      "idx": 12,
+      "version": "6",
+      "when": 1790875638978,
+      "tag": "0012_maintenance_instances",
+      "breakpoints": true
+    },
+    {
+      "idx": 13,
+      "version": "6",
+      "when": 1790962038978,
+      "tag": "0013_owner_job_decisions",
+      "breakpoints": true
+    }
+  ]
+}

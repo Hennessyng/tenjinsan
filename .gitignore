@@ -1,0 +1,16 @@
+node_modules/
+dist/
+coverage/
+playwright-report/
+test-results/
+.playwright-mcp/
+*.tsbuildinfo
+.env
+.env.*
+!.env.example
+.DS_Store
+data/
+how to know a person.epub
+how to know a person-summary.html
+.omo/
+books/

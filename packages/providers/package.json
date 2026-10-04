@@ -1,0 +1,23 @@
+{
+  "name": "@reading-studio/providers",
+  "version": "0.0.0",
+  "private": true,
+  "type": "module",
+  "exports": {
+    ".": {
+      "types": "./src/index.ts",
+      "node": "./src/index.ts"
+    }
+  },
+  "scripts": {
+    "build": "tsc --noEmit -p tsconfig.json"
+  },
+  "dependencies": {
+    "@ai-sdk/anthropic": "^4.0.62",
+    "@ai-sdk/openai": "^4.0.74",
+    "@reading-studio/contracts": "workspace:*",
+    "@reading-studio/storage": "workspace:*",
+    "ai": "^7.0.113",
+    "zod": "4.6.5"
+  }
+}
