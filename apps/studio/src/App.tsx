@@ -1,6 +1,7 @@
 import type { ReactElement } from "react"
-import { lazy, Suspense } from "react"
+import { lazy, Suspense, useState } from "react"
 import { ImportBook } from "./intake/ImportBook.tsx"
+import { EntryTransition } from "./library/EntryTransition.tsx"
 
 const BriefRoutes = lazy(() =>
   import("./brief/BriefRoutes.tsx").then(({ BriefRoutes }) => ({ default: BriefRoutes })),
@@ -144,7 +145,9 @@ function withNavigation(page: ReactElement): ReactElement {
   )
 }
 
-export function App(): ReactElement {
+function WorkspaceApp(): ReactElement {
+  const [logoutError, setLogoutError] = useState<string | null>(null)
+  const [loggingOut, setLoggingOut] = useState(false)
   if (window.location.pathname === "/jobs") return withNavigation(authoringRoute(<JobRoutes />))
   if (window.location.pathname === "/imports") return withNavigation(<ImportBook />)
   if (/^\/publications\/[^/]+$/.test(window.location.pathname))
@@ -191,8 +194,39 @@ export function App(): ReactElement {
           Personal workspace
           <small lang="ja">個人用ワークスペース</small>
         </span>
-        <form action="/logout" method="post" className="owner-logout">
-          <button type="submit">Log out</button>
+        <form
+          action="/logout"
+          method="post"
+          className="owner-logout"
+          onSubmit={async (event) => {
+            event.preventDefault()
+            setLoggingOut(true)
+            setLogoutError(null)
+            try {
+              const response = await fetch("/api/auth/sign-out", {
+                method: "POST",
+                credentials: "same-origin",
+                headers: { "Content-Type": "application/json" },
+                body: "{}",
+              })
+              if (!response.ok) {
+                setLogoutError("Log out failed. Please try again. / ログアウトに失敗しました。")
+                return
+              }
+              document.cookie = `tj_entry=; Path=/; Max-Age=0; SameSite=Strict${location.protocol === "https:" ? "; Secure" : ""}`
+              window.location.assign("/login")
+            } catch (error) {
+              if (!(error instanceof TypeError)) throw error
+              setLogoutError("Could not connect. Please try again. / 接続できませんでした。")
+            } finally {
+              setLoggingOut(false)
+            }
+          }}
+        >
+          <button type="submit" disabled={loggingOut}>
+            Log out
+          </button>
+          {logoutError && <p role="alert">{logoutError}</p>}
         </form>
       </header>
 
@@ -304,5 +338,13 @@ export function App(): ReactElement {
         <span lang="ja">最初から、静的に。</span>
       </footer>
     </div>
+  )
+}
+
+export function App(): ReactElement {
+  return (
+    <EntryTransition>
+      <WorkspaceApp />
+    </EntryTransition>
   )
 }

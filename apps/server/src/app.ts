@@ -8,6 +8,7 @@ import type {
   Storage,
   WorkflowRepository,
 } from "@reading-studio/storage"
+import { decorateGate } from "@reading-studio/studio/gate-artwork"
 import { Hono } from "hono"
 import { z } from "zod"
 import { loginPage, ownerPage } from "./auth/login-page.ts"
@@ -156,6 +157,13 @@ export function createApp({
     return context.html(loginPage())
   })
 
+  app.get("/entrance-decoration.js", (context) =>
+    context.body(`(${decorateGate.toString()})(document);`, 200, {
+      "Content-Type": "text/javascript; charset=utf-8",
+      "X-Content-Type-Options": "nosniff",
+    }),
+  )
+
   app.post("/login", access.loginRateLimit, access.loginBodyLimit, async (context) => {
     if (context.req.header("origin") === undefined) {
       return context.text("Forbidden", 403)
@@ -173,7 +181,12 @@ export function createApp({
     if (!response.ok) {
       return context.html(loginPage(true), 401)
     }
-    return redirectWithCookies(response, "/")
+    const redirect = redirectWithCookies(response, "/")
+    redirect.headers.append(
+      "Set-Cookie",
+      `tj_entry=1; Path=/; Max-Age=30; SameSite=Strict${new URL(context.req.url).protocol === "https:" ? "; Secure" : ""}`,
+    )
+    return redirect
   })
 
   app.post("/logout", async (context) => {
@@ -181,7 +194,9 @@ export function createApp({
       return context.text("Forbidden", 403)
     }
     const request = adaptAuthRequest(context.req.raw, "/api/auth/sign-out")
-    return redirectWithCookies(await auth.handler(request), "/login")
+    const redirect = redirectWithCookies(await auth.handler(request), "/login")
+    redirect.headers.append("Set-Cookie", "tj_entry=; Path=/; Max-Age=0; SameSite=Strict")
+    return redirect
   })
 
   app.get("/", async (context) => {

@@ -1,3 +1,12 @@
+import { readFileSync } from "node:fs"
+import { gateArtwork } from "@reading-studio/studio/gate-artwork"
+
+const copiedEntranceStyles = ["tokens.css", "gate.css"]
+  .map((file) =>
+    readFileSync(new URL(`../../../studio/src/library/css/${file}`, import.meta.url), "utf8"),
+  )
+  .join("\n")
+
 const sharedStyles = `
   :root {
     color-scheme: light;
@@ -90,10 +99,6 @@ const ownerStyles = `
   button { border: 1px solid var(--green); background: var(--green); color: var(--paper-raised); padding: .75rem 1rem; font: 700 1rem/1.4 var(--font-body); cursor: pointer; }
 `
 
-const crest = `<symbol id="crest" viewBox="-50 -50 100 100">
-  <circle cx="0" cy="-26" r="17"/><circle cx="0" cy="-26" r="17" transform="rotate(72)"/><circle cx="0" cy="-26" r="17" transform="rotate(144)"/><circle cx="0" cy="-26" r="17" transform="rotate(216)"/><circle cx="0" cy="-26" r="17" transform="rotate(288)"/><circle cx="0" cy="0" r="4"/>
-</symbol>`
-
 export function loginPage(loginFailed = false): string {
   const alert = loginFailed
     ? '<p class="alert" role="alert">Login failed. Check your credentials and try again.<br><span lang="ja">ログインに失敗しました。入力内容を確認して、もう一度お試しください。</span></p>'
@@ -104,33 +109,13 @@ export function loginPage(loginFailed = false): string {
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width, initial-scale=1">
     <title>Members' entrance | Tenjinsan Reading Studio</title>
-    <style>${loginStyles}</style>
+    <style>${loginStyles}${copiedEntranceStyles}.gate-scene{filter:none}.library-entrance .brand-mark{fill:none;stroke:currentColor;stroke-width:4}</style>
+    <script src="/entrance-decoration.js" defer></script>
   </head>
   <body>
-    <svg width="0" height="0" style="position:absolute" aria-hidden="true" focusable="false"><defs>${crest}</defs></svg>
-    <main id="gate" class="gate" aria-labelledby="gate-title">
+    <main id="gate" class="gate library-entrance" aria-labelledby="gate-title">
       <div class="gate-scene" aria-hidden="true">
-        <svg class="scene-art" viewBox="0 0 560 680" focusable="false">
-          <defs><linearGradient id="sky" x1="0" y1="0" x2="0" y2="1"><stop stop-color="var(--sky)"/><stop offset="1" stop-color="var(--sky-low)"/></linearGradient></defs>
-          <path class="scene-frame" d="M0 64 280 0 560 64v616H0z"/>
-          <path class="scene-sky" d="M14 76 280 16l266 60v590H14z"/>
-          <path class="scene-hill" d="M14 390q80-70 165-12t175-12q95-44 192 0v130H14z"/>
-          <path class="scene-ground" d="M14 456h532v210H14z"/>
-          <path class="scene-path" d="m205 456 150 0 95 210H110z"/>
-          <rect class="scene-wood" x="130" y="296" width="300" height="162"/>
-          <rect class="scene-dark" x="205" y="305" width="150" height="153"/>
-          <path class="scene-roof" d="M96 296q40-36 136-44h96q96 8 136 44l-4 12H100z"/>
-          <path class="scene-roof" d="M104 226q70-66 128-66h96q58 0 128 66l-4 10H108z"/>
-          <rect class="scene-wood" x="170" y="214" width="220" height="58"/>
-          <rect class="scene-plaque" x="240" y="238" width="80" height="28"/>
-          <text class="scene-plaque-text" x="280" y="258">図書室</text>
-          <rect class="scene-stone" x="62" y="116" width="24" height="432"/><rect class="scene-stone" x="474" y="116" width="24" height="432"/>
-          <rect class="scene-stone" x="58" y="142" width="444" height="14"/><rect class="scene-stone" x="28" y="90" width="504" height="18" rx="2"/>
-          <rect class="scene-plaque" x="248" y="114" width="64" height="28"/><text class="scene-plaque-text" x="280" y="135">天満宮</text>
-          <path class="scene-branch" d="M14 340q72-64 184-72M546 272q-76-18-154-46"/>
-          <g class="scene-blossom"><circle cx="104" cy="286" r="11"/><circle cx="154" cy="278" r="9"/><circle cx="464" cy="246" r="11"/><circle cx="420" cy="238" r="9"/></g>
-          <use class="scene-crest" href="#crest" x="250" y="340" width="60" height="60"/>
-        </svg>
+        ${gateArtwork}
       </div>
       <form class="register" id="login" action="/login" method="post">
         <div class="lockup">
@@ -144,7 +129,7 @@ export function loginPage(loginFailed = false): string {
         ${alert}
         <label><span>Email <small lang="ja">メール</small></span><input name="email" type="email" autocomplete="username" required></label>
         <label><span>Password <small lang="ja">パスワード</small></span><input name="password" type="password" autocomplete="current-password" required></label>
-        <button type="submit" aria-label="Log in">Enter <span lang="ja">入館する</span></button>
+        <button class="btn btn-primary" type="submit" aria-label="Log in">Enter <span lang="ja">入館する</span></button>
         <p class="shrine-reference">A quiet place for literature and learning, inspired by <a href="https://ja.wikipedia.org/wiki/北野天満宮" lang="ja">北野天満宮</a>.<small lang="ja">学問の神さま、天神さんに着想を得た私の図書室。</small><small>Independent design study, not affiliated with the shrine.</small></p>
       </form>
     </main>
