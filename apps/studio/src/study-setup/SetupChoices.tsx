@@ -164,7 +164,11 @@ export function SetupChoices({
             <dt>Access</dt>
             <dd>Official Codex subscription sign-in</dd>
           </dl>
-          <p className={codexAvailable ? "setup-connection-state" : "setup-connection-state workspace-empty"}>
+          <p
+            className={
+              codexAvailable ? "setup-connection-state" : "setup-connection-state workspace-empty"
+            }
+          >
             {codexAvailable
               ? "Codex models are available to this workspace."
               : "No Codex models are available to this workspace. Connect, then refresh after completing sign-in."}

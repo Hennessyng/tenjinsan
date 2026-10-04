@@ -63,7 +63,7 @@ const loginStyles = `
   h1 { margin: 0 0 .75rem; font: 400 1.9rem/1.15 var(--font-display); letter-spacing: -.02em; }
   h1 [lang="ja"] { margin-top: .25rem; font: 400 1.05rem/1.85 var(--font-display-ja); }
   .register-note { margin: 0 0 .25rem; color: var(--muted); font-size: .8125rem; line-height: 1.55; }
-  .alert { margin: 1rem 0 0; padding: .75rem; border-inline-start: 3px solid var(--focus); color: var(--focus); background: #8a3d270d; font-size: .8125rem; font-weight: 700; }
+  .alert { margin: 1rem 0 0; padding: .75rem; border: 1px dashed var(--focus); color: var(--focus); background: var(--paper-raised); font-size: .8125rem; font-weight: 700; }
   label { display: block; margin-top: 1rem; font-size: .8125rem; font-weight: 600; }
   label small { margin-inline-start: .25rem; color: var(--muted); font-weight: 500; }
   input { display: block; width: 100%; margin-top: .25rem; padding: .75rem; border: 1px solid var(--line); border-radius: 2px; color: inherit; background: var(--paper); font: inherit; }

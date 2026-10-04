@@ -89,7 +89,9 @@ export function OutlineContent({ value }: { readonly value: Outline }): ReactEle
           ))}
         </ul>
       ) : (
-        <p className="workspace-empty">No qualifications recorded in this analysis; this is not a claim that none exist.</p>
+        <p className="workspace-empty">
+          No qualifications recorded in this analysis; this is not a claim that none exist.
+        </p>
       )}
       <h2>
         Excluded areas / <span lang="ja">扱わない範囲</span>

@@ -48,13 +48,15 @@ export function InterviewRoutes(): ReactElement {
   if (page.kind === "loading")
     return (
       <SourceFrame language={language}>
-        <p className="workspace-loading" role="status">Loading interview</p>
+        <p className="workspace-loading" role="status">
+          Loading interview
+        </p>
       </SourceFrame>
     )
   if (page.kind === "error")
     return (
       <SourceFrame language={language}>
-        <section className="setup">
+        <section className="setup workspace-error">
           <h1>Interview unavailable / 質問は未準備です</h1>
           <p>No saved question bank is available for this study.</p>
           <a href="/sources">Return to sources</a>
@@ -67,7 +69,9 @@ export function InterviewRoutes(): ReactElement {
         <section className="setup">
           <h1>Reading interviews / 読書の質問</h1>
           {page.definitions.length === 0 ? (
-            <p className="workspace-empty">No question bank is ready yet. / 質問はまだ準備されていません。</p>
+            <p className="workspace-empty">
+              No question bank is ready yet. / 質問はまだ準備されていません。
+            </p>
           ) : (
             <ul>
               {page.definitions.map((definition) => (

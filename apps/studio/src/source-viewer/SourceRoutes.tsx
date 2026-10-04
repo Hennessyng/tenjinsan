@@ -59,7 +59,7 @@ export function SourceFrame({
 
 function MissingSource(): ReactElement {
   return (
-    <hgroup>
+    <hgroup className="workspace-error">
       <h1>Missing reference</h1>
       <p>This source, chapter or citation is unavailable in this edition and normalization.</p>
       <p>
@@ -71,7 +71,12 @@ function MissingSource(): ReactElement {
 
 function SourceLibrary(): ReactElement {
   const state = useSource("/api/source-library", Library)
-  if (state.kind === "loading") return <p className="workspace-loading" role="status">Loading sources</p>
+  if (state.kind === "loading")
+    return (
+      <p className="workspace-loading" role="status">
+        Loading sources
+      </p>
+    )
   if (state.kind === "error") return <p role="alert">Sources unavailable. Please try again.</p>
   const { documents, pending } = state.value
   return (
@@ -126,7 +131,12 @@ function SourceReader({ revision }: { readonly revision: string }): ReactElement
     const target = state.value.span?.blockId ?? "chapter-title"
     document.getElementById(target)?.focus()
   }, [state])
-  if (state.kind === "loading") return <p className="workspace-loading" role="status">Loading source</p>
+  if (state.kind === "loading")
+    return (
+      <p className="workspace-loading" role="status">
+        Loading source
+      </p>
+    )
   if (state.kind === "error") {
     if (state.status === 401) return <p role="alert">Sign in to read your sources.</p>
     if (state.status === 404) return <MissingSource />

@@ -60,13 +60,15 @@ export function BriefRoutes(): ReactElement {
     return (
       <SourceFrame>
         {error ? (
-          <section className="setup">
+          <section className="setup workspace-error">
             <h1>Brief unavailable / 読書方針は未準備です</h1>
             <p>A current setup and saved interview are required.</p>
             <a href="/interviews">Return to interviews</a>
           </section>
         ) : (
-          <p className="workspace-loading" role="status">Loading brief</p>
+          <p className="workspace-loading" role="status">
+            Loading brief
+          </p>
         )}
       </SourceFrame>
     )
@@ -144,7 +146,7 @@ export function BriefRoutes(): ReactElement {
               ))}
             </ul>
           ) : (
-                <p className="workspace-empty">None / なし</p>
+            <p className="workspace-empty">None / なし</p>
           )}
           <p>
             Source scope comes from study setup. Changing it requires reviewing a new brief. /

@@ -86,9 +86,13 @@ export function SetupRoutes(): ReactElement {
             {message}
           </p>
         )}
-        {page.kind === "loading" && <p className="workspace-loading" role="status">Loading study setup</p>}
+        {page.kind === "loading" && (
+          <p className="workspace-loading" role="status">
+            Loading study setup
+          </p>
+        )}
         {page.kind === "error" && (
-          <section className="setup">
+          <section className="setup workspace-error">
             <h1>Setup unavailable</h1>
             <p>
               This draft is missing, cancelled, or superseded. Review a fresh setup before sending.

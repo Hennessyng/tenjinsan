@@ -1,5 +1,6 @@
 import { parseServerConfig, ServerConfigError } from "./config.ts"
 
+// biome-ignore lint/complexity/useLiteralKeys: TypeScript requires bracket access for environment index signatures.
 if (process.env["HOSTED_ROLE"] === "api") {
   const config = parseServerConfig(process.env)
   const origin = new URL(config.authBaseURL)

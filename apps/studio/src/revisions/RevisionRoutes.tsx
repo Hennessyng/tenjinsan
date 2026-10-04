@@ -68,12 +68,14 @@ export function RevisionRoutes(): ReactElement {
     return (
       <SourceFrame>
         {error ? (
-          <section className="setup">
+          <section className="setup workspace-error">
             <h1>Study unavailable / 読書が見つかりません</h1>
             <a href="/interviews">Return to interviews / 質問に戻る</a>
           </section>
         ) : (
-        <p className="workspace-loading" role="status">Loading revisions</p>
+          <p className="workspace-loading" role="status">
+            Loading revisions
+          </p>
         )}
       </SourceFrame>
     )
