@@ -61,7 +61,7 @@ export function SetupChoices({
         <a href={`/sources/${normalization.id}`}>Back to source preview</a>
       </p>
       <form onSubmit={submit}>
-        <div className="setup-provider-paper">
+        <section className="setup-provider-paper" role="region" title="Provider and model">
           <label id="provider-label" htmlFor="provider">
             Provider and model
           </label>
@@ -76,7 +76,7 @@ export function SetupChoices({
               </option>
             ))}
           </select>
-        </div>
+        </section>
         <fieldset>
           <legend>Source scope</legend>
           <label>
