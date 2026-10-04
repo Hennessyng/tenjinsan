@@ -122,13 +122,11 @@ it("TEN-12 AC2 keeps real loading readable until held responses complete", async
     release()
     await visible(lazy).toHaveCount(0)
     await page.goto(`${origin}/imports`)
-    await page
-      .getByLabel("Choose EPUB")
-      .setInputFiles({
-        name: "synthetic.epub",
-        mimeType: "application/epub+zip",
-        buffer: Buffer.from("invalid synthetic fixture"),
-      })
+    await page.getByLabel("Choose EPUB").setInputFiles({
+      name: "synthetic.epub",
+      mimeType: "application/epub+zip",
+      buffer: Buffer.from("invalid synthetic fixture"),
+    })
     held = new Promise<void>((done) => {
       release = done
     })
