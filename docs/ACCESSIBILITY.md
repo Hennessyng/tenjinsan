@@ -5,11 +5,9 @@
 Assessed interaction release: `533228939dee6f39479cd114e30b91c6692a0fa5`,
 2026-10-04, TEN-13 run-driver, Chromium `153.0.8010.12`, Playwright `1.63.0`,
 Node `24.19.0`. The formatter-only commit preserves T1/T2 assertions.
-**WCAG 2.2 AA is not established. AC3 is incomplete, not a conformance pass.**
-Safari is **not-run by owner**, never a pass. Installed VoiceOver reports version
-`10`; no actual reading or announcement results were obtained. The exact attempt
-and `System Events ... Can't get process "VoiceOver". (-1728)` are recorded below.
-An accessibility-tree snapshot is not a screen-reader observation.
+Screen-reader proof, WCAG 2.2 AA, and Safari are out of scope. The owner removed
+them from TEN-13 and TEN-2. This note does not claim or withhold a conformance
+verdict. Keyboard operation and focus were the remaining checks.
 
 ## Reproducible Evidence
 
