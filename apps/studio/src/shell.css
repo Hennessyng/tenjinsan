@@ -308,6 +308,10 @@ h1 em {
 .library-workspace .privacy-note small {
   color: var(--color-paper);
 }
+.library-workspace .owner-logout button {
+  color: var(--color-ink);
+  background: var(--color-paper-raised);
+}
 .library-crest {
   width: 3rem;
   height: 3rem;
