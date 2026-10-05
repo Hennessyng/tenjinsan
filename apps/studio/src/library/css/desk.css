@@ -466,7 +466,7 @@
   }
   @media (max-width: 959px) {
     .desk {
-      inset: 38vh 0 64px 0;
+      inset: min(38vh, max(56px, calc(100dvh - 40rem))) 0 64px 0;
       width: auto;
       padding: 12px 0 0;
       transform: translateY(104%);
