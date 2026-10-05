@@ -108,7 +108,7 @@ it("TEN-12 AC1 presents existing normal routes as a private library", async () =
       await page.setViewportSize({ width, height: 900 })
       for (const path of routes) {
         await page.goto(`${origin}${path}`)
-        await browserExpect(page.locator("main")).toBeVisible()
+        await browserExpect(page.getByRole("main")).toBeVisible()
         await browserExpect(
           page.getByText(
             /^Loading (studio|sources|source|study|interview|brief|outline|jobs|evidence|publication|revision)/,
@@ -126,7 +126,7 @@ it("TEN-12 AC1 presents existing normal routes as a private library", async () =
           width,
           material,
           bounded: await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth),
-          mains: await page.locator("main").count(),
+          mains: await page.getByRole("main").count(),
         })
         await navigation
           .getByRole("button", { name: /2\. The stacks/ })

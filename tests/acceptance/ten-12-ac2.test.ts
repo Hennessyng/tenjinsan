@@ -107,7 +107,7 @@ it("TEN-12 AC2 keeps real loading readable until held responses complete", async
         await page.screenshot({ path: `${directory}/${width}-${routes.indexOf(path)}.png` })
         release()
         await visible(loading).toHaveCount(0)
-        await visible(page.locator("main")).toBeVisible()
+        await visible(page.getByRole("main")).toBeVisible()
       }
     }
     const lazyPage = await browser.newPage()
