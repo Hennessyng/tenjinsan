@@ -6,9 +6,9 @@ ${[0, 72, 144, 216, 288].map((angle) => `<circle cx="0" cy="-26" r="17" transfor
 export const gateArtwork = `<svg class="scene-art" viewBox="0 0 560 680" aria-hidden="true" focusable="false">
 <defs>${gateCrest}
 <pattern id="sc-lattice" width="8" height="16" patternUnits="userSpaceOnUse"><rect width="8" height="16" fill="var(--shrine-wood-deep)"/><path d="M2 0 V16 M0 14 H8" stroke="var(--lib-oak-dark)" stroke-width="2"/></pattern>
-<linearGradient id="sc-sky" x1="0" y1="0" x2="0" y2="1"><stop offset="0" style="stop-color: var(--shrine-sky-top)"/><stop offset="1" style="stop-color: var(--shrine-sky-low)"/></linearGradient>
-<linearGradient id="sc-gravel" x1="0" y1="0" x2="0" y2="1"><stop offset="0" style="stop-color: var(--shrine-gravel)"/><stop offset="1" style="stop-color: #bfae85"/></linearGradient>
-<linearGradient id="sc-path" x1="0" y1="0" x2="0" y2="1"><stop offset="0" style="stop-color: #efebdf"/><stop offset="1" style="stop-color: #dcd7c6"/></linearGradient>
+<linearGradient id="sc-sky" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="var(--shrine-sky-top)"/><stop offset="1" stop-color="var(--shrine-sky-low)"/></linearGradient>
+<linearGradient id="sc-gravel" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="var(--shrine-gravel)"/><stop offset="1" stop-color="#bfae85"/></linearGradient>
+<linearGradient id="sc-path" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#efebdf"/><stop offset="1" stop-color="#dcd7c6"/></linearGradient>
 <linearGradient id="sc-frame" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#85603c"/><stop offset="1" stop-color="#533820"/></linearGradient>
 <linearGradient id="sc-haze" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#f6efdc" stop-opacity="0"/><stop offset="1" stop-color="#f6efdc" stop-opacity="0.85"/></linearGradient>
 <radialGradient id="sc-glow"><stop offset="0" stop-color="#ffd98a" stop-opacity="0.75"/><stop offset="1" stop-color="#ffd98a" stop-opacity="0"/></radialGradient>
