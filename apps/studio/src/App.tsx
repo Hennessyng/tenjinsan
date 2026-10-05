@@ -69,9 +69,12 @@ export function App(): ReactElement {
         {() => (
           <Suspense
             fallback={
-              <p className="workspace-loading" role="status">
-                Loading studio
-              </p>
+              <main id="reading" tabIndex={-1}>
+                <h1>Loading studio</h1>
+                <p className="workspace-loading" role="status">
+                  Loading studio
+                </p>
+              </main>
             }
           >
             <WorkspaceApp key={window.location.href} />

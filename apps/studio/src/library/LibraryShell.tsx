@@ -1,10 +1,10 @@
 import { createContext, type ReactElement, useEffect, useMemo, useRef, useState } from "react"
 import { AuthRequired, useAuthenticationRequired } from "./AuthRequired.tsx"
 import { SelectedLibraryStudy, selectLibraryStudy, useLibraryContext } from "./client.ts"
-import { LibraryDesk } from "./LibraryDesk.tsx"
+import { LibraryDesk, LibraryRoute } from "./LibraryDesk.tsx"
 import { LibraryHall } from "./LibraryHall.tsx"
 import { navigateRoom } from "./navigation.ts"
-import { libraryRooms, type RoomId, roomAt } from "./room-map.ts"
+import { type RoomId, roomAt } from "./room-map.ts"
 import { requestDeparture, UnsavedDepartureDialog, useUnsavedEdits } from "./useUnsavedEdits.ts"
 
 export const LibraryFrameContext = createContext(false)
@@ -51,9 +51,7 @@ export function LibraryShell({
   const routeStudy = conflict ? null : (selected ?? direct)
   const study = useMemo(
     () =>
-      url.pathname.startsWith("/sources/") &&
-      pathId &&
-      routeStudy?.normalizations.includes(pathId)
+      url.pathname.startsWith("/sources/") && pathId && routeStudy?.normalizations.includes(pathId)
         ? { ...routeStudy, normalizationId: pathId }
         : routeStudy,
     [url.pathname, pathId, routeStudy],
@@ -70,6 +68,8 @@ export function LibraryShell({
     })
   }
   if (authenticationRequired) return <AuthRequired />
+  const Container = room ? "div" : "main"
+  const Identity = room ? "p" : "h1"
   const selection = (
     <div className="study-selection">
       <form
@@ -109,13 +109,13 @@ export function LibraryShell({
           Select study / 読書を選ぶ
         </button>
       </form>
-      <p className="identity">
+      <Identity className="identity">
         {selected
           ? `${selected.title} · ${selected.id}`
           : direct
             ? `Inspecting linked study: ${direct.title} · ${direct.id}`
             : "No selected study / 読書は未選択です"}
-      </p>
+      </Identity>
       {context?.studies.length === 0 && <a href="/imports">Bring a book in / 本を受け入れる</a>}
       {(error || loadError) && (
         <p role="alert">
@@ -128,9 +128,9 @@ export function LibraryShell({
     </div>
   )
   return (
-    <div id="library" className="library" data-mode={room ? "desk" : "hall"}>
+    <Container id="library" className="library" data-mode={room ? "desk" : "hall"} tabIndex={-1}>
       <UnsavedDepartureDialog />
-      <a className="skip-link" href={room ? "#desk-title" : "#route"}>
+      <a className="skip-link" href={room ? "#desk-title" : "#library"}>
         Skip to the reading route / 読書ルートへ
       </a>
       <header className="hud-top">
@@ -187,30 +187,7 @@ export function LibraryShell({
           </button>
         </div>
       </header>
-      <nav id="route" className="route" ref={route} aria-label="Reading route / 読書ルート">
-        <p className="route-title">
-          Reading route <span lang="ja">読書ルート</span>
-        </p>
-        <ol>
-          {libraryRooms.map((item) => (
-            <li key={item.id}>
-              <button
-                type="button"
-                aria-label={`${item.n}. ${item.en} / ${item.ja}`}
-                aria-current={room?.id === item.id ? "step" : undefined}
-                onClick={() => onOpen(item.id)}
-              >
-                <span className="rn">{item.n}</span>
-                <span className="rt">
-                  <b>{item.en}</b>
-                  <small lang="ja">{item.ja}</small>
-                  <em>{item.doEn}</em>
-                </span>
-              </button>
-            </li>
-          ))}
-        </ol>
-      </nav>
+      <LibraryRoute room={room} onOpen={onOpen} routeRef={route} />
       <LibraryHall room={room} onOpen={onOpen} />
       {!room && selection}
       {!room && (
@@ -228,6 +205,8 @@ export function LibraryShell({
           onOpen={onOpen}
           onHall={onHall}
           selection={selection}
+          contextReady={ready}
+          nativeContent={ready && !conflict && url.pathname !== "/"}
         >
           {conflict ? (
             <div className="paper">
@@ -250,11 +229,13 @@ export function LibraryShell({
             <LibraryFrameContext value={true}>
               <SelectedLibraryStudy value={study}>{children()}</SelectedLibraryStudy>
             </LibraryFrameContext>
+          ) : loadError ? (
+            <p role="alert">{loadError}</p>
           ) : (
             <p role="status">Checking the current room context / 現在の読書を確認しています</p>
           )}
         </LibraryDesk>
       )}
-    </div>
+    </Container>
   )
 }

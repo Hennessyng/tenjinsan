@@ -1,4 +1,4 @@
-import { type ReactElement, type ReactNode, useLayoutEffect, useRef } from "react"
+import { type ReactElement, type ReactNode, type RefObject, useLayoutEffect, useRef } from "react"
 import { type LibraryStudy, useRoomPrerequisite } from "./client.ts"
 import { type LibraryRoom, libraryRooms, type RoomId, roomHref } from "./room-map.ts"
 
@@ -9,6 +9,8 @@ export function LibraryDesk({
   selection,
   onOpen,
   onHall,
+  contextReady,
+  nativeContent,
 }: {
   readonly room: LibraryRoom
   readonly study: LibraryStudy | null
@@ -16,6 +18,8 @@ export function LibraryDesk({
   readonly selection: ReactNode
   readonly onOpen: (id: RoomId) => void
   readonly onHall: () => void
+  readonly contextReady: boolean
+  readonly nativeContent: boolean
 }): ReactElement {
   const title = useRef<HTMLHeadingElement>(null)
   const prerequisite = useRoomPrerequisite(room.id, study)
@@ -28,7 +32,9 @@ export function LibraryDesk({
   }, [focusKey])
   const previous = libraryRooms.find((item) => item.n === room.n - 1)
   const next = libraryRooms.find((item) => item.n === room.n + 1)
+  const Frame = prerequisite.kind === "ready" && nativeContent ? "section" : "main"
   const content = () => {
+    if (!contextReady) return children
     switch (prerequisite.kind) {
       case "ready":
         return children
@@ -61,7 +67,7 @@ export function LibraryDesk({
     }
   }
   return (
-    <section
+    <Frame
       id="desk"
       className="desk is-open"
       aria-labelledby="desk-title"
@@ -112,6 +118,43 @@ export function LibraryDesk({
           </div>
         </footer>
       </div>
-    </section>
+    </Frame>
+  )
+}
+
+export function LibraryRoute({
+  room,
+  onOpen,
+  routeRef,
+}: {
+  readonly room: LibraryRoom | null
+  readonly onOpen: (id: RoomId) => void
+  readonly routeRef: RefObject<HTMLElement | null>
+}): ReactElement {
+  return (
+    <nav id="route" className="route" ref={routeRef} aria-label="Reading route / 読書ルート">
+      <p className="route-title">
+        Reading route <span lang="ja">読書ルート</span>
+      </p>
+      <ol>
+        {libraryRooms.map((item) => (
+          <li key={item.id}>
+            <button
+              type="button"
+              aria-label={`${item.n}. ${item.en} / ${item.ja}`}
+              aria-current={room?.id === item.id ? "step" : undefined}
+              onClick={() => onOpen(item.id)}
+            >
+              <span className="rn">{item.n}</span>
+              <span className="rt">
+                <b>{item.en}</b>
+                <small lang="ja">{item.ja}</small>
+                <em>{item.doEn}</em>
+              </span>
+            </button>
+          </li>
+        ))}
+      </ol>
+    </nav>
   )
 }
