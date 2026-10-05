@@ -99,7 +99,47 @@ const ownerStyles = `
   button { border: 1px solid var(--green); background: var(--green); color: var(--paper-raised); padding: .75rem 1rem; font: 700 1rem/1.4 var(--font-body); cursor: pointer; }
 `
 
-export function loginPage(loginFailed = false): string {
+export function redirectWithCookies(authResponse: Response, location: string): Response {
+  const headers = new Headers({ location })
+  for (const cookie of authResponse.headers.getSetCookie()) headers.append("set-cookie", cookie)
+  return new Response(null, { headers, status: 303 })
+}
+
+export function adaptAuthRequest(request: Request, path: string, body?: string): Request {
+  const headers = new Headers(request.headers)
+  headers.delete("content-length")
+  if (body === undefined)
+    return new Request(new URL(path, request.url), {
+      headers,
+      method: "POST",
+      signal: request.signal,
+    })
+  headers.set("content-type", "application/json")
+  return new Request(new URL(path, request.url), {
+    body,
+    headers,
+    method: "POST",
+    signal: request.signal,
+  })
+}
+
+export function loginPage(
+  loginFailed = false,
+  mode: "login" | "authentication-required" = "login",
+): string {
+  let notice = ""
+  switch (mode) {
+    case "login":
+      break
+    case "authentication-required":
+      notice =
+        '<section role="alert"><h2>Authentication required / 再ログインが必要です</h2><p>Your owner session expired. Sign in to return to the hall.</p><p lang="ja">ログインして広間に戻ってください。</p><a href="/login">Sign in / ログイン</a></section>'
+      break
+    default: {
+      const unreachable: never = mode
+      return unreachable
+    }
+  }
   const alert = loginFailed
     ? '<p class="alert" role="alert">Login failed. Check your credentials and try again.<br><span lang="ja">ログインに失敗しました。入力内容を確認して、もう一度お試しください。</span></p>'
     : ""
@@ -127,6 +167,7 @@ export function loginPage(loginFailed = false): string {
         <p class="register-note">A private library for one owner. There is no public sign-up.</p>
         <p class="register-note" lang="ja">個人専用の図書室です。新規登録はありません。</p>
         ${alert}
+        ${notice}
         <label><span>Email <small lang="ja">メール</small></span><input name="email" type="email" autocomplete="username" required></label>
         <label><span>Password <small lang="ja">パスワード</small></span><input name="password" type="password" autocomplete="current-password" required></label>
         <button class="btn btn-primary" type="submit" aria-label="Log in">Enter <span lang="ja">入館する</span></button>

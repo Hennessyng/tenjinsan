@@ -27,7 +27,10 @@ export function readLibraryContext(signal: AbortSignal): Promise<LibraryContext>
   return sourceRequest("/api/library-context", LibraryContext, signal)
 }
 
-export function useLibraryContext(generation: string): {
+export function useLibraryContext(
+  generation: string,
+  active = true,
+): {
   readonly context: LibraryContext | null
   readonly error: string
 } {
@@ -37,6 +40,10 @@ export function useLibraryContext(generation: string): {
   }>({ context: null, error: "" })
   const current = useRef(generation)
   useEffect(() => {
+    if (!active) {
+      setState({ context: null, error: "" })
+      return
+    }
     current.current = generation
     const abort = new AbortController()
     readLibraryContext(abort.signal)
@@ -56,7 +63,7 @@ export function useLibraryContext(generation: string): {
         }))
       })
     return () => abort.abort()
-  }, [generation])
+  }, [generation, active])
   return state
 }
 

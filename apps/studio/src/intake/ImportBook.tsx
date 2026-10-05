@@ -2,6 +2,7 @@ import type { FormEvent, ReactElement } from "react"
 import { useState } from "react"
 import { z } from "zod"
 import { captureEditSave } from "../library/useUnsavedEdits.ts"
+import { notifyAuthenticationRequired } from "../source-viewer/client.ts"
 
 const Receipt = z.object({
   id: z.string(),
@@ -30,6 +31,7 @@ export function ImportBook(): ReactElement {
         signal: AbortSignal.timeout(120_000),
       })
       if (!response.ok) {
+        notifyAuthenticationRequired(response.status)
         const failure = z.object({ error: z.string() }).safeParse(await response.json())
         setError(
           failure.success

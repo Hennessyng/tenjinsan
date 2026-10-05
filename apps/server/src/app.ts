@@ -12,7 +12,7 @@ import { decorateGate } from "@reading-studio/studio/gate-artwork"
 import { Hono } from "hono"
 import { deleteCookie } from "hono/cookie"
 import { z } from "zod"
-import { loginPage, ownerPage } from "./auth/login-page.ts"
+import { adaptAuthRequest, loginPage, ownerPage, redirectWithCookies } from "./auth/login-page.ts"
 import { configureBrief } from "./brief.ts"
 import { configureEvidence } from "./evidence.ts"
 import { configureInterview } from "./interview.ts"
@@ -29,7 +29,12 @@ import { configurePublication } from "./publication.ts"
 import { configureRevisionPage } from "./revision-page.ts"
 import { configureRevisions } from "./revisions.ts"
 import { configureSourceViewer } from "./source-viewer.ts"
-import { configureStudioAssets, type StudioAssets, studioResponse } from "./studio-assets.ts"
+import {
+  configureRoomOwnerGuards,
+  configureStudioAssets,
+  type StudioAssets,
+  studioResponse,
+} from "./studio-assets.ts"
 import { configureStudySetup } from "./study-setup.ts"
 import { configureUpload, type UploadWithHook } from "./upload.ts"
 
@@ -80,33 +85,6 @@ const loginSchema = z.object({
   email: z.email(),
   password: z.string().min(1),
 })
-
-function redirectWithCookies(authResponse: Response, location: string): Response {
-  const headers = new Headers({ location })
-  for (const cookie of authResponse.headers.getSetCookie()) {
-    headers.append("set-cookie", cookie)
-  }
-  return new Response(null, { headers, status: 303 })
-}
-
-function adaptAuthRequest(request: Request, path: string, body?: string): Request {
-  const headers = new Headers(request.headers)
-  headers.delete("content-length")
-  if (body === undefined) {
-    return new Request(new URL(path, request.url), {
-      headers,
-      method: "POST",
-      signal: request.signal,
-    })
-  }
-  headers.set("content-type", "application/json")
-  return new Request(new URL(path, request.url), {
-    body,
-    headers,
-    method: "POST",
-    signal: request.signal,
-  })
-}
 
 export function createApp({
   studioAssets,
@@ -222,13 +200,7 @@ export function createApp({
       sources,
       security.trustedOrigins.some((origin) => new URL(origin).protocol === "https:"),
     )
-  app.use("/sources/*", access.requireOwner(auth.ownerId))
-  app.use("/interviews/*", access.requireOwner(auth.ownerId))
-  app.use("/briefs/*", access.requireOwner(auth.ownerId))
-  app.use("/outlines/*", access.requireOwner(auth.ownerId))
-  app.use("/evidence/*", access.requireOwner(auth.ownerId))
-  app.use("/publications/*", access.requireOwner(auth.ownerId))
-  app.use("/revisions/*", access.requireOwner(auth.ownerId))
+  configureRoomOwnerGuards(app, access.requireOwner(auth.ownerId), studioAssets !== undefined)
   app.use("/publication-artifacts/*", access.requireOwner(auth.ownerId))
   if (studioAssets) configureStudioAssets(app, studioAssets, auth.ownerId)
   if (reviewStorage)

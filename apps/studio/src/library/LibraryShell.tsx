@@ -1,4 +1,5 @@
 import { createContext, type ReactElement, useEffect, useRef, useState } from "react"
+import { AuthRequired, useAuthenticationRequired } from "./AuthRequired.tsx"
 import { SelectedLibraryStudy, selectLibraryStudy, useLibraryContext } from "./client.ts"
 import { LibraryDesk } from "./LibraryDesk.tsx"
 import { LibraryHall } from "./LibraryHall.tsx"
@@ -14,12 +15,16 @@ export function LibraryShell({
   readonly children: () => ReactElement
 }): ReactElement {
   useUnsavedEdits()
+  const authenticationRequired = useAuthenticationRequired()
   const [url, setUrl] = useState(() => new URL(location.href))
   const [choice, setChoice] = useState("")
   const [error, setError] = useState("")
   const [refresh, setRefresh] = useState(0)
   const [busy, setBusy] = useState(false)
-  const { context, error: loadError } = useLibraryContext(`${url.href}:${refresh}`)
+  const { context, error: loadError } = useLibraryContext(
+    `${url.href}:${refresh}`,
+    !authenticationRequired,
+  )
   const opener = useRef<HTMLElement | null>(null)
   const route = useRef<HTMLElement>(null)
   useEffect(() => {
@@ -54,6 +59,7 @@ export function LibraryShell({
       else route.current?.querySelector<HTMLButtonElement>("button")?.focus()
     })
   }
+  if (authenticationRequired) return <AuthRequired />
   const selection = (
     <div className="study-selection">
       <form

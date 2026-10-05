@@ -1,6 +1,7 @@
 import { readdirSync, readFileSync } from "node:fs"
 import { join } from "node:path"
-import type { Context, Hono } from "hono"
+import type { Context, Hono, MiddlewareHandler } from "hono"
+import { loginPage } from "./auth/login-page.ts"
 import type { AppEnvironment } from "./middleware/access.ts"
 
 type Asset = { readonly body: string; readonly contentType: string }
@@ -12,6 +13,39 @@ export type StudioAssets = {
 const studioPath =
   /^\/(?:jobs|imports|sources(?:\/[^/]+(?:\/setup(?:\/[^/]+)?)?)?|interviews(?:\/[^/]+)?|briefs\/[^/]+|outlines\/[^/]+|evidence\/[^/]+(?:\/[^/]+)?|publications\/[^/]+|revisions\/[^/]+)$/u
 const legacyOutputPath = /^\/publications\/[^/]+\/outputs\/[^/]+$/u
+
+export function configureRoomOwnerGuards(
+  app: Hono<AppEnvironment>,
+  guard: MiddlewareHandler<AppEnvironment>,
+  built: boolean,
+): void {
+  const roomOwner: MiddlewareHandler<AppEnvironment> = async (context, next) => {
+    const response = await guard(context, next)
+    if (
+      built &&
+      context.req.method === "GET" &&
+      studioPath.test(context.req.path) &&
+      response instanceof Response &&
+      response.status === 401
+    ) {
+      context.header("Cache-Control", "private, no-store")
+      context.header("X-Content-Type-Options", "nosniff")
+      context.header("Referrer-Policy", "no-referrer")
+      return context.html(loginPage(false, "authentication-required"), 401)
+    }
+    return response
+  }
+  for (const room of [
+    "sources",
+    "interviews",
+    "briefs",
+    "outlines",
+    "evidence",
+    "publications",
+    "revisions",
+  ])
+    app.use(`/${room}/*`, roomOwner)
+}
 
 export function loadStudioAssets(directory: string): StudioAssets {
   const index = readFileSync(join(directory, "index.html"), "utf8")
@@ -57,7 +91,12 @@ export function configureStudioAssets(
     )
       return context.text("Use the authenticated JSON API", 405)
     if (context.req.method !== "GET" || !studioPath.test(context.req.path)) return next()
-    if ((await ownerId(context.req.raw.headers)) === null) return context.text("Unauthorized", 401)
+    if ((await ownerId(context.req.raw.headers)) === null) {
+      context.header("Cache-Control", "private, no-store")
+      context.header("X-Content-Type-Options", "nosniff")
+      context.header("Referrer-Policy", "no-referrer")
+      return context.html(loginPage(false, "authentication-required"), 401)
+    }
     return studioResponse(context, assets)
   })
 }
