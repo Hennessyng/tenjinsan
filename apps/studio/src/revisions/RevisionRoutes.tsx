@@ -1,5 +1,6 @@
 import type { ReactElement } from "react"
 import { useEffect, useRef, useState } from "react"
+import { captureEditSave, requestDeparture } from "../library/useUnsavedEdits.ts"
 import { SourceRequestError, sourceCommand, sourceRequest } from "../source-viewer/client.ts"
 import { SourceFrame } from "../source-viewer/SourceRoutes.tsx"
 import type { Revision } from "./client.ts"
@@ -33,6 +34,7 @@ export function RevisionRoutes(): ReactElement {
     if (error) alert.current?.focus()
   }, [error])
   async function decide(action: "fork" | "provider" | "consent"): Promise<void> {
+    const committed = captureEditSave()
     if (!state) return
     setBusy(true)
     setError(false)
@@ -49,11 +51,12 @@ export function RevisionRoutes(): ReactElement {
     try {
       if (action === "fork") {
         const fork = await sourceCommand(endpoint, input, ForkedRevision)
-        window.location.assign(`/revisions/${fork.forkStudyId}`)
+        requestDeparture(() => window.location.assign(`/revisions/${fork.forkStudyId}`))
       } else {
         const updated = await sourceCommand(endpoint, input, RevisionState)
         setState(updated)
         setProvider("0")
+        committed(true)
       }
     } catch (failure) {
       if (failure instanceof SourceRequestError) {

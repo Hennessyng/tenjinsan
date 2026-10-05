@@ -4,6 +4,7 @@ import { LibraryDesk } from "./LibraryDesk.tsx"
 import { LibraryHall } from "./LibraryHall.tsx"
 import { navigateRoom } from "./navigation.ts"
 import { libraryRooms, type RoomId, roomAt } from "./room-map.ts"
+import { requestDeparture, UnsavedDepartureDialog, useUnsavedEdits } from "./useUnsavedEdits.ts"
 
 export const LibraryFrameContext = createContext(false)
 
@@ -12,6 +13,7 @@ export function LibraryShell({
 }: {
   readonly children: () => ReactElement
 }): ReactElement {
+  useUnsavedEdits()
   const [url, setUrl] = useState(() => new URL(location.href))
   const [choice, setChoice] = useState("")
   const [error, setError] = useState("")
@@ -55,20 +57,22 @@ export function LibraryShell({
   const selection = (
     <div className="study-selection">
       <form
-        onSubmit={async (event) => {
+        onSubmit={(event) => {
           event.preventDefault()
           if (!choice) return
-          setBusy(true)
-          setError("")
-          try {
-            await selectLibraryStudy(choice)
-            setRefresh((value) => value + 1)
-          } catch (failure) {
-            if (!(failure instanceof Error)) throw failure
-            setError("Study selection failed. Please retry. / 読書を選択できませんでした。")
-          } finally {
-            setBusy(false)
-          }
+          requestDeparture(async () => {
+            setBusy(true)
+            setError("")
+            try {
+              await selectLibraryStudy(choice)
+              setRefresh((value) => value + 1)
+            } catch (failure) {
+              if (!(failure instanceof Error)) throw failure
+              setError("Study selection failed. Please retry. / 読書を選択できませんでした。")
+            } finally {
+              setBusy(false)
+            }
+          })
         }}
       >
         <label htmlFor="selected-study">Selected study / 選択した読書</label>
@@ -109,6 +113,7 @@ export function LibraryShell({
   )
   return (
     <div id="library" className="library" data-mode={room ? "desk" : "hall"}>
+      <UnsavedDepartureDialog />
       <a className="skip-link" href={room ? "#desk-title" : "#route"}>
         Skip to the reading route / 読書ルートへ
       </a>

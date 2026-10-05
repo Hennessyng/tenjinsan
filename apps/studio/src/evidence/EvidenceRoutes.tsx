@@ -1,5 +1,6 @@
 import type { ReactElement } from "react"
 import { useEffect, useRef, useState } from "react"
+import { captureEditSave } from "../library/useUnsavedEdits.ts"
 import { SourceRequestError, sourceCommand, sourceRequest } from "../source-viewer/client.ts"
 import { SourceFrame } from "../source-viewer/SourceRoutes.tsx"
 import type { Evidence, EvidenceAction } from "./client.ts"
@@ -52,6 +53,7 @@ export function EvidenceRoutes(): ReactElement {
     if (error) alert.current?.focus()
   }, [error])
   async function act(action: EvidenceAction): Promise<void> {
+    const committed = captureEditSave()
     if (!state) return
     setBusy(true)
     setError(false)
@@ -63,7 +65,10 @@ export function EvidenceRoutes(): ReactElement {
           EvidenceState,
         ),
       )
-      if (action.action === "private-detail") setDetail("")
+      if (action.action === "private-detail") {
+        setDetail("")
+        committed(true)
+      } else committed()
     } catch (failure) {
       if (failure instanceof SourceRequestError) {
         setState(await sourceRequest(endpoint, EvidenceState, new AbortController().signal))

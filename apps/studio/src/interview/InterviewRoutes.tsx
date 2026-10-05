@@ -2,6 +2,7 @@ import type { Answer } from "@reading-studio/contracts/choices"
 import type { ReactElement } from "react"
 import { useEffect, useState } from "react"
 import type { z } from "zod"
+import { captureEditSave, requestDeparture } from "../library/useUnsavedEdits.ts"
 import { SourceRequestError, sourceCommand, sourceRequest } from "../source-viewer/client.ts"
 import { SourceFrame } from "../source-viewer/SourceRoutes.tsx"
 import type { Interview } from "./client.ts"
@@ -120,6 +121,7 @@ export function InterviewRoutes(): ReactElement {
       !answers.some((answer) => answer.question.id === item.question.id),
   )
   async function save(answer: Answer): Promise<void> {
+    const committed = captureEditSave()
     setBusy(true)
     setError(false)
     try {
@@ -128,7 +130,8 @@ export function InterviewRoutes(): ReactElement {
         { interviewId: definition.id, ...answer },
         SavedAnswer,
       )
-      window.location.assign(`${link(answer.questionId)}&saved=1`)
+      committed()
+      requestDeparture(() => window.location.assign(`${link(answer.questionId)}&saved=1`))
     } catch (failure) {
       if (failure instanceof SourceRequestError) {
         setError(true)

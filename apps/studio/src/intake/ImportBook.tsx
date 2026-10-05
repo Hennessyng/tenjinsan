@@ -1,6 +1,7 @@
 import type { FormEvent, ReactElement } from "react"
 import { useState } from "react"
 import { z } from "zod"
+import { captureEditSave } from "../library/useUnsavedEdits.ts"
 
 const Receipt = z.object({
   id: z.string(),
@@ -16,6 +17,7 @@ export function ImportBook(): ReactElement {
 
   async function upload(event: FormEvent<HTMLFormElement>): Promise<void> {
     event.preventDefault()
+    const committed = captureEditSave()
     if (!file) return
     setBusy(true)
     setError("")
@@ -37,6 +39,7 @@ export function ImportBook(): ReactElement {
         return
       }
       setReceipt(Receipt.parse(await response.json()))
+      committed()
     } catch (failure) {
       if (failure instanceof Error)
         setError("Import interrupted. Check your connection and try again.")

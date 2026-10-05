@@ -1,6 +1,7 @@
 import type { ReactElement } from "react"
 import { useEffect, useRef, useState } from "react"
 import type { z } from "zod"
+import { captureEditSave, requestDeparture } from "../library/useUnsavedEdits.ts"
 import { SourceRequestError, sourceCommand, sourceRequest } from "../source-viewer/client.ts"
 import { SourceFrame } from "../source-viewer/SourceRoutes.tsx"
 import type { SetupSelection } from "./client.ts"
@@ -47,11 +48,15 @@ export function SetupRoutes(): ReactElement {
     return () => controller.abort()
   }, [base, setupId])
   async function create(selection: SetupSelection): Promise<void> {
+    const committed = captureEditSave()
     setBusy(true)
     setMessage("")
     try {
       const created = await sourceCommand(base, selection, SetupCreated)
-      window.location.assign(`/sources/${revision}/setup/${created.setupId}`)
+      committed()
+      requestDeparture(() =>
+        window.location.assign(`/sources/${revision}/setup/${created.setupId}`),
+      )
     } catch (error) {
       setMessage(
         error instanceof SourceRequestError && error.status === 400

@@ -1,5 +1,6 @@
 import type { LibraryStudy } from "./client.ts"
 import { type RoomId, roomHref } from "./room-map.ts"
+import { commitRoomNavigation, requestDeparture } from "./useUnsavedEdits.ts"
 
 export function navigateRoom(room: RoomId | null, study: LibraryStudy | null): void {
   const current = new URL(window.location.href)
@@ -17,6 +18,5 @@ export function navigateRoom(room: RoomId | null, study: LibraryStudy | null): v
     }
     target.hash = current.hash
   }
-  window.history.pushState(null, "", target)
-  window.dispatchEvent(new PopStateEvent("popstate"))
+  requestDeparture(() => commitRoomNavigation(target))
 }
