@@ -114,8 +114,10 @@ it("TEN-12 AC1 presents existing normal routes as a private library", async () =
             /^Loading (studio|sources|source|study|interview|brief|outline|jobs|evidence|publication|revision)/,
           ),
         ).toHaveCount(0)
-        const navigation = page.getByRole("navigation", { name: "Workspace rooms" })
+        const navigation = page.getByRole("navigation", { name: "Reading route / 読書ルート" })
         await browserExpect(navigation).toBeVisible()
+        await browserExpect(navigation.getByRole("button")).toHaveCount(10)
+        await browserExpect(navigation.locator("[lang=ja]")).not.toHaveCount(0)
         const material = await navigation.evaluate(
           (element) => getComputedStyle(element).backgroundColor,
         )
@@ -127,11 +129,11 @@ it("TEN-12 AC1 presents existing normal routes as a private library", async () =
           mains: await page.locator("main").count(),
         })
         await navigation
-          .getByRole("link", { name: /Your sources/ })
+          .getByRole("button", { name: /2\. The stacks/ })
           .first()
           .focus()
         await browserExpect(
-          navigation.getByRole("link", { name: /Your sources/ }).first(),
+          navigation.getByRole("button", { name: /2\. The stacks/ }).first(),
         ).toBeFocused()
         await page.screenshot({
           path: `${directory}/${width}-${routes.indexOf(path)}.png`,
@@ -166,7 +168,9 @@ it("TEN-12 AC1 presents existing normal routes as a private library", async () =
       ),
     )
     expect(
-      rows.filter((row) => row.material !== "rgb(37, 74, 64)" || !row.bounded || row.mains !== 1),
+      rows.filter(
+        (row) => row.material !== "rgb(255, 253, 248)" || !row.bounded || row.mains !== 1,
+      ),
     ).toEqual([])
   } finally {
     await browser.close()

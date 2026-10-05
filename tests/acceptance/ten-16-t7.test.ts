@@ -91,13 +91,11 @@ it("TEN-16 S5 T7 recovers real expired sessions without protected content or mut
     await page.getByRole("link", { name: /Sign in/ }).click()
     await signIn()
     await open("Accession desk")
-    await page
-      .getByLabel("Choose EPUB")
-      .setInputFiles({
-        name: "synthetic.epub",
-        mimeType: "application/epub+zip",
-        buffer: await syntheticEpub(),
-      })
+    await page.getByLabel("Choose EPUB").setInputFiles({
+      name: "synthetic.epub",
+      mimeType: "application/epub+zip",
+      buffer: await syntheticEpub(),
+    })
     expire()
     const uploads: string[] = []
     page.on("request", (request) => {

@@ -18,9 +18,10 @@ it("TEN-12 AC2 keeps real loading readable until held responses complete", async
   let release = () => {}
   let held = Promise.resolve()
   let holdChunks = false
+  let holdApi = true
   app.use("*", async (context, next) => {
     if (
-      context.req.path.startsWith("/api/") ||
+      (holdApi && context.req.path.startsWith("/api/")) ||
       (holdChunks && /Routes.*\.js$/.test(context.req.path))
     )
       await held
@@ -90,12 +91,17 @@ it("TEN-12 AC2 keeps real loading readable until held responses complete", async
           release = done
         })
         await page.goto(`${origin}${path}`)
-        const loading = page.getByRole("status").filter({ hasText: /^Loading/ })
+        const loading = page
+          .getByRole("status")
+          .filter({ hasText: /Checking .*context|Checking .*prerequisites/ })
+          .first()
         await visible(loading).toBeVisible()
         rows.push({
           path,
           width,
-          paper: await loading.evaluate((node) => getComputedStyle(node).backgroundColor),
+          paper: await loading.evaluate(
+            (node) => getComputedStyle(node.closest("#desk-body") ?? node).backgroundColor,
+          ),
           bounded: await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth),
         })
         await page.screenshot({ path: `${directory}/${width}-${routes.indexOf(path)}.png` })
@@ -106,6 +112,7 @@ it("TEN-12 AC2 keeps real loading readable until held responses complete", async
     }
     const lazyPage = await browser.newPage()
     await lazyPage.context().addCookies(await page.context().cookies())
+    holdApi = false
     holdChunks = true
     held = new Promise<void>((done) => {
       release = done
@@ -116,11 +123,14 @@ it("TEN-12 AC2 keeps real loading readable until held responses complete", async
     rows.push({
       path: "lazy /jobs",
       width: 1280,
-      paper: await lazy.evaluate((node) => getComputedStyle(node).backgroundColor),
+      paper: await lazy.evaluate(
+        (node) => getComputedStyle(node.closest("#desk-body") ?? node).backgroundColor,
+      ),
       bounded: true,
     })
     release()
     await visible(lazy).toHaveCount(0)
+    holdChunks = false
     await page.goto(`${origin}/imports`)
     await page.getByLabel("Choose EPUB").setInputFiles({
       name: "synthetic.epub",
@@ -130,6 +140,7 @@ it("TEN-12 AC2 keeps real loading readable until held responses complete", async
     held = new Promise<void>((done) => {
       release = done
     })
+    holdApi = true
     await page.getByRole("button", { name: "Import EPUB", exact: true }).click()
     const busy = page.getByRole("button", { name: "Importing…" })
     await visible(busy).toBeDisabled()
@@ -145,7 +156,7 @@ it("TEN-12 AC2 keeps real loading readable until held responses complete", async
         waiver: "Safari waived by user; Chromium only.",
       }),
     )
-    expect(rows.filter((row) => row.paper !== "rgb(255, 253, 248)" || !row.bounded)).toEqual([])
+    expect(rows.filter((row) => row.paper !== "rgb(245, 241, 233)" || !row.bounded)).toEqual([])
     expect(busyPaper).toBe("rgb(255, 253, 248)")
   } finally {
     release()
