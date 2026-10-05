@@ -33,15 +33,17 @@ export function useLibraryContext(
 ): {
   readonly context: LibraryContext | null
   readonly error: string
+  readonly ready: boolean
 } {
   const [state, setState] = useState<{
     readonly context: LibraryContext | null
     readonly error: string
-  }>({ context: null, error: "" })
+    readonly generation: string
+  }>({ context: null, error: "", generation: "" })
   const current = useRef(generation)
   useEffect(() => {
     if (!active) {
-      setState({ context: null, error: "" })
+      setState({ context: null, error: "", generation: "" })
       return
     }
     current.current = generation
@@ -49,13 +51,14 @@ export function useLibraryContext(
     readLibraryContext(abort.signal)
       .then((context) => {
         if (!abort.signal.aborted && current.current === generation)
-          setState({ context, error: "" })
+          setState({ context, error: "", generation })
       })
       .catch((failure: unknown) => {
         if (abort.signal.aborted || current.current !== generation) return
         if (!(failure instanceof Error)) throw failure
         setState((previous) => ({
           context: previous.context,
+          generation: "",
           error:
             failure instanceof SourceRequestError
               ? `Library unavailable (${failure.status}). / 図書室を読み込めません。`
@@ -64,7 +67,11 @@ export function useLibraryContext(
       })
     return () => abort.abort()
   }, [generation, active])
-  return state
+  return {
+    context: state.context,
+    error: state.error,
+    ready: active && state.generation === generation,
+  }
 }
 
 export function selectLibraryStudy(studyId: string): Promise<{ selectedStudyId: string }> {

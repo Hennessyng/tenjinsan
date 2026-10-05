@@ -21,10 +21,11 @@ export function LibraryShell({
   const [error, setError] = useState("")
   const [refresh, setRefresh] = useState(0)
   const [busy, setBusy] = useState(false)
-  const { context, error: loadError } = useLibraryContext(
-    `${url.href}:${refresh}`,
-    !authenticationRequired,
-  )
+  const {
+    context,
+    ready,
+    error: loadError,
+  } = useLibraryContext(`${url.href}:${refresh}`, !authenticationRequired)
   const opener = useRef<HTMLElement | null>(null)
   const route = useRef<HTMLElement>(null)
   useEffect(() => {
@@ -236,10 +237,12 @@ export function LibraryShell({
                 この部屋で進めるには読書を選んでください。
               </p>
             </div>
-          ) : (
+          ) : ready ? (
             <LibraryFrameContext value={true}>
               <SelectedLibraryStudy value={study}>{children()}</SelectedLibraryStudy>
             </LibraryFrameContext>
+          ) : (
+            <p role="status">Checking the current room context / 現在の読書を確認しています</p>
           )}
         </LibraryDesk>
       )}
