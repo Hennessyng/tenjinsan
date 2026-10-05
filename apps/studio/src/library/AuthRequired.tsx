@@ -18,7 +18,7 @@ export function AuthRequired(): ReactElement {
   }, [])
   return (
     <main className="source-app">
-      <section className="paper">
+      <section className="paper" role="alert">
         <h1 ref={title} tabIndex={-1}>
           Authentication required / 再ログインが必要です
         </h1>
