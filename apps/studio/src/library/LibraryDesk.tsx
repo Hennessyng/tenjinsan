@@ -32,7 +32,7 @@ export function LibraryDesk({
   }, [focusKey])
   const previous = libraryRooms.find((item) => item.n === room.n - 1)
   const next = libraryRooms.find((item) => item.n === room.n + 1)
-  const Frame = prerequisite.kind === "ready" && nativeContent ? "section" : "main"
+  const nativeMain = prerequisite.kind === "ready" && nativeContent
   const content = () => {
     if (!contextReady) return children
     switch (prerequisite.kind) {
@@ -67,8 +67,9 @@ export function LibraryDesk({
     }
   }
   return (
-    <Frame
+    <section
       id="desk"
+      role={nativeMain ? undefined : "main"}
       className="desk is-open"
       aria-labelledby="desk-title"
       onKeyDown={(event) => {
@@ -118,7 +119,7 @@ export function LibraryDesk({
           </div>
         </footer>
       </div>
-    </Frame>
+    </section>
   )
 }
 
