@@ -135,6 +135,49 @@ export const libraryRooms = [
 export type LibraryRoom = (typeof libraryRooms)[number]
 export type RoomId = LibraryRoom["id"]
 
+export const roomPrerequisites = {
+  accession: null,
+  stacks: null,
+  bindery: null,
+  lending: {
+    next: "stacks",
+    en: "A readable normalization is required.",
+    ja: "読める資料が必要です。",
+  },
+  reference: {
+    next: "lending",
+    en: "No saved question bank is available. Review and send the study setup first.",
+    ja: "質問が未準備です。先に読書設定と送信を確認してください。",
+  },
+  reading: {
+    next: "reference",
+    en: "A current setup and saved interview are required.",
+    ja: "現在の設定と保存済みの回答が必要です。",
+  },
+  catalogue: {
+    next: "reading",
+    en: "Approve the current reading brief before generating an outline.",
+    ja: "先に現在の読書方針を承認してください。",
+  },
+  review: {
+    next: "catalogue",
+    en: "An approved outline and current generated lesson are required.",
+    ja: "承認済みの構成案と現在の本文が必要です。",
+  },
+  ledger: {
+    next: "lending",
+    en: "A saved study setup is required to inspect revisions.",
+    ja: "版を確認するには読書設定を保存してください。",
+  },
+  display: {
+    next: "review",
+    en: "Review the current lesson's evidence and privacy before publication.",
+    ja: "公開前に現在の本文の根拠とプライバシーを確認してください。",
+  },
+} as const satisfies Readonly<
+  Record<RoomId, { readonly next: RoomId; readonly en: string; readonly ja: string } | null>
+>
+
 export function roomHref(room: RoomId, study: LibraryStudy | null): string {
   const inspect = `/?room=${room}`
   switch (room) {

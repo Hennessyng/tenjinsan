@@ -1,6 +1,6 @@
 import { type ReactElement, type ReactNode, useLayoutEffect, useRef } from "react"
-import type { LibraryStudy } from "./client.ts"
-import { type LibraryRoom, libraryRooms, type RoomId } from "./room-map.ts"
+import { type LibraryStudy, useRoomPrerequisite } from "./client.ts"
+import { type LibraryRoom, libraryRooms, type RoomId, roomHref } from "./room-map.ts"
 
 export function LibraryDesk({
   room,
@@ -18,6 +18,7 @@ export function LibraryDesk({
   readonly onHall: () => void
 }): ReactElement {
   const title = useRef<HTMLHeadingElement>(null)
+  const prerequisite = useRoomPrerequisite(room.id, study)
   const focused = useRef("")
   const focusKey = `${room.id}:${study?.id ?? ""}`
   useLayoutEffect(() => {
@@ -27,6 +28,38 @@ export function LibraryDesk({
   }, [focusKey])
   const previous = libraryRooms.find((item) => item.n === room.n - 1)
   const next = libraryRooms.find((item) => item.n === room.n + 1)
+  const content = () => {
+    switch (prerequisite.kind) {
+      case "ready":
+        return children
+      case "loading":
+        return <p role="status">Checking room prerequisites / 部屋の準備を確認しています</p>
+      case "missing": {
+        const destination = libraryRooms.find((item) => item.id === prerequisite.next)
+        return (
+          <section className="paper">
+            <p>{prerequisite.en}</p>
+            <p lang="ja">{prerequisite.ja}</p>
+            <a href={roomHref(prerequisite.next, study)}>
+              {destination?.en} / {destination?.ja}
+            </a>
+          </section>
+        )
+      }
+      case "unavailable":
+        return (
+          <section className="paper" role="alert">
+            <p>
+              Room unavailable ({prerequisite.status}). Please return to the hall and try again.
+            </p>
+            <p lang="ja">広間に戻り、もう一度お試しください。</p>
+            <button type="button" onClick={onHall}>
+              Return to hall / 広間に戻る
+            </button>
+          </section>
+        )
+    }
+  }
   return (
     <section
       id="desk"
@@ -51,7 +84,7 @@ export function LibraryDesk({
           {selection}
         </header>
         <div className="desk-main">
-          <div className="sheet">{children}</div>
+          <div className="sheet">{content()}</div>
           <aside className="note" aria-label="Margin note / 余白のメモ">
             <h3>Explicit decisions</h3>
             <p>Opening a room does not save, send, approve or generate anything.</p>
