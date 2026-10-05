@@ -43,7 +43,11 @@ test.describe("interview", () => {
       await page
         .getByLabel("Your own response")
         .fill("A difficult conversation at work.\n相手の話を丁寧に聞きたい。")
-      await page.getByRole("button", { name: "Save custom response" }).click()
+      await Promise.all([
+        page.waitForEvent("framenavigated", (frame) => frame === page.mainFrame()),
+        page.getByRole("button", { name: "Save custom response" }).click(),
+      ])
+      await page.waitForLoadState("load")
       await page.reload()
       await expect(page.getByLabel("At work", { exact: true })).not.toBeChecked()
       await page.getByRole("link", { name: "日本語", exact: true }).click()
