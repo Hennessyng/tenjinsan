@@ -5,16 +5,10 @@ import { SourceRequestError, sourceCommand, sourceRequest } from "../source-view
 import { SourceFrame } from "../source-viewer/SourceRoutes.tsx"
 import type { Evidence, EvidenceAction } from "./client.ts"
 import { EvidenceState, LatestLesson } from "./client.ts"
+import { EvidenceReviewControls } from "./EvidenceReviewControls.tsx"
 import { EvidenceSources } from "./EvidenceSources.tsx"
 import { EvidenceValues } from "./EvidenceValues.tsx"
 import "./review-room.css"
-
-const labels = {
-  support: "Support / 主張の裏付け",
-  qualification: "Qualifications / 留保",
-  translation: "Translation / 翻訳",
-  visual: "Visual assumptions / 図解の仮定",
-} as const
 
 export function EvidenceRoutes(): ReactElement {
   const [, , study, lesson] = window.location.pathname.split("/")
@@ -142,42 +136,7 @@ export function EvidenceRoutes(): ReactElement {
                 主張・留保・両言語・図解の仮定を確認してください。不確実性の認識は、正しさの証明ではありません。
               </span>
             </p>
-            <div className="meaning-decisions">
-              {draft.semantic.map((decision) => (
-                <section key={decision.category} aria-label={decision.category}>
-                  <h3>{labels[decision.category]}</h3>
-                  <p>State: {decision.status}</p>
-                  <div className="setup-actions">
-                    <button
-                      type="button"
-                      disabled={busy}
-                      onClick={() => {
-                        void act({
-                          action: "semantic",
-                          category: decision.category,
-                          status: "reviewed",
-                        })
-                      }}
-                    >
-                      Mark {decision.category} reviewed
-                    </button>
-                    <button
-                      type="button"
-                      disabled={busy}
-                      onClick={() => {
-                        void act({
-                          action: "semantic",
-                          category: decision.category,
-                          status: "acknowledged",
-                        })
-                      }}
-                    >
-                      Acknowledge {decision.category} uncertainty
-                    </button>
-                  </div>
-                </section>
-              ))}
-            </div>
+            <EvidenceReviewControls semantic={draft.semantic} busy={busy} onAction={act} />
           </div>
         </section>
         <section className="review-paper" aria-labelledby="privacy-review-title">
