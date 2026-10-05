@@ -1,4 +1,4 @@
-import { createContext, type ReactElement, useEffect, useRef, useState } from "react"
+import { createContext, type ReactElement, useEffect, useMemo, useRef, useState } from "react"
 import { AuthRequired, useAuthenticationRequired } from "./AuthRequired.tsx"
 import { SelectedLibraryStudy, selectLibraryStudy, useLibraryContext } from "./client.ts"
 import { LibraryDesk } from "./LibraryDesk.tsx"
@@ -48,7 +48,16 @@ export function LibraryShell({
     ) ?? []
   const direct = linked.length === 1 ? (linked[0] ?? null) : null
   const conflict = selected !== null && direct !== null && selected.id !== direct.id
-  const study = conflict ? null : (selected ?? direct)
+  const routeStudy = conflict ? null : (selected ?? direct)
+  const study = useMemo(
+    () =>
+      url.pathname.startsWith("/sources/") &&
+      pathId &&
+      routeStudy?.normalizations.includes(pathId)
+        ? { ...routeStudy, normalizationId: pathId }
+        : routeStudy,
+    [url.pathname, pathId, routeStudy],
+  )
   const onOpen = (id: RoomId) => {
     opener.current = document.activeElement instanceof HTMLElement ? document.activeElement : null
     navigateRoom(id, study)
