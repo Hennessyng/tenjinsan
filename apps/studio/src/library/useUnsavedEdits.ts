@@ -100,8 +100,10 @@ export function useUnsavedEdits(): void {
         }
       synchronize()
     }
+    const rootElement = document.getElementById("root")
+    if (rootElement === null) throw new TypeError("Studio root element is missing")
     const observer = new MutationObserver(scan)
-    observer.observe(document.getElementById("library") ?? document.body, {
+    observer.observe(rootElement, {
       childList: true,
       subtree: true,
     })
