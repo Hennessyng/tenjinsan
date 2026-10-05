@@ -1,6 +1,5 @@
 import { createContext, type ReactElement, useEffect, useRef, useState } from "react"
-import { SourceRequestError } from "../source-viewer/client.ts"
-import { type LibraryContext, readLibraryContext, selectLibraryStudy } from "./client.ts"
+import { SelectedLibraryStudy, selectLibraryStudy, useLibraryContext } from "./client.ts"
 import { LibraryDesk } from "./LibraryDesk.tsx"
 import { LibraryHall } from "./LibraryHall.tsx"
 import { navigateRoom } from "./navigation.ts"
@@ -14,41 +13,24 @@ export function LibraryShell({
   readonly children: () => ReactElement
 }): ReactElement {
   const [url, setUrl] = useState(() => new URL(location.href))
-  const [context, setContext] = useState<LibraryContext | null>(null)
   const [choice, setChoice] = useState("")
   const [error, setError] = useState("")
   const [refresh, setRefresh] = useState(0)
   const [busy, setBusy] = useState(false)
+  const { context, error: loadError } = useLibraryContext(`${url.href}:${refresh}`)
   const opener = useRef<HTMLElement | null>(null)
   const route = useRef<HTMLElement>(null)
-  const contextRequest = useRef("")
   useEffect(() => {
     const update = () => setUrl(new URL(location.href))
     window.addEventListener("popstate", update)
     return () => window.removeEventListener("popstate", update)
   }, [])
   useEffect(() => {
-    const abort = new AbortController()
-    const generation = `${url.href}:${refresh}`
-    contextRequest.current = generation
-    setError("")
-    readLibraryContext(abort.signal)
-      .then((value) => {
-        if (abort.signal.aborted || contextRequest.current !== generation) return
-        setContext(value)
-        setChoice(value.selectedStudyId ?? "")
-      })
-      .catch((failure: unknown) => {
-        if (abort.signal.aborted) return
-        if (!(failure instanceof Error)) throw failure
-        setError(
-          failure instanceof SourceRequestError
-            ? `Library unavailable (${failure.status}). / 図書室を読み込めません。`
-            : "Library unavailable. Please retry. / もう一度お試しください。",
-        )
-      })
-    return () => abort.abort()
-  }, [url.href, refresh])
+    if (context) {
+      setChoice(context.selectedStudyId ?? "")
+      setError("")
+    }
+  }, [context])
   const room = roomAt(url)
   const selected = context?.studies.find((study) => study.id === context.selectedStudyId) ?? null
   const pathId = url.pathname.split("/")[2]
@@ -115,9 +97,9 @@ export function LibraryShell({
             : "No selected study / 読書は未選択です"}
       </p>
       {context?.studies.length === 0 && <a href="/imports">Bring a book in / 本を受け入れる</a>}
-      {error && (
+      {(error || loadError) && (
         <p role="alert">
-          {error}{" "}
+          {error || loadError}{" "}
           <button type="button" onClick={() => setRefresh((value) => value + 1)}>
             Retry / 再試行
           </button>
@@ -244,7 +226,9 @@ export function LibraryShell({
               </p>
             </div>
           ) : (
-            <LibraryFrameContext value={true}>{children()}</LibraryFrameContext>
+            <LibraryFrameContext value={true}>
+              <SelectedLibraryStudy value={study}>{children()}</SelectedLibraryStudy>
+            </LibraryFrameContext>
           )}
         </LibraryDesk>
       )}

@@ -1,17 +1,22 @@
 import type { ReactElement } from "react"
-import { useEffect, useRef, useState } from "react"
+import { useContext, useEffect, useRef, useState } from "react"
+import { SelectedLibraryStudy } from "../library/client.ts"
 import { SourceRequestError, sourceCommand, sourceRequest } from "../source-viewer/client.ts"
 import { SourceFrame } from "../source-viewer/SourceRoutes.tsx"
 import { type JobStatus as Job, JobList, JobStatus } from "./client.ts"
 import { JobEntry } from "./JobEntry.tsx"
 
 export function JobRoutes(): ReactElement {
+  const selected = useContext(SelectedLibraryStudy)
+  const studyId = selected === undefined ? undefined : (selected?.id ?? null)
   const [jobs, setJobs] = useState<readonly Job[] | null>(null)
   const [error, setError] = useState("")
   const [busy, setBusy] = useState(false)
   const alert = useRef<HTMLParagraphElement>(null)
   const initiatingControl = useRef<HTMLElement>(null)
   const refreshControl = useRef<HTMLButtonElement>(null)
+  const [observation, setObservation] = useState(0)
+  const requestGeneration = useRef("")
   useEffect(() => {
     if (busy) return
     const control = initiatingControl.current
@@ -22,39 +27,66 @@ export function JobRoutes(): ReactElement {
     }
   }, [busy])
   useEffect(() => {
-    const controller = new AbortController()
-    sourceRequest("/api/study-jobs", JobList, controller.signal).then(
-      (value) => setJobs(value.jobs),
-      (failure: unknown) => {
-        if (controller.signal.aborted) return
+    const generation = `${studyId}:${observation}`
+    requestGeneration.current = generation
+    let active = true
+    let controller: AbortController | null = null
+    let timer: ReturnType<typeof setTimeout> | undefined
+    let failures = 0
+    setJobs(null)
+    const observe = async () => {
+      if (!active || document.hidden || controller) return
+      controller = new AbortController()
+      const request = controller
+      try {
+        const value = await sourceRequest("/api/study-jobs", JobList, request.signal)
+        if (!active || request.signal.aborted || requestGeneration.current !== generation) return
+        setJobs(value.jobs.filter((job) => studyId === undefined || job.studyId === studyId))
+        setError("")
+        failures = 0
+      } catch (failure) {
+        if (!active || request.signal.aborted) return
+        if (!(failure instanceof Error)) throw failure
+        if (failure instanceof SourceRequestError && failure.status === 401) {
+          active = false
+          setJobs(null)
+        }
+        failures += 1
         setError(
           failure instanceof SourceRequestError && failure.status === 503
             ? "Library maintenance in progress / メンテナンス中"
-            : "Jobs unavailable. Try again later. / 作業を表示できません。後でもう一度お試しください。",
+            : "Jobs unavailable; showing last recorded state. / 作業を取得できません。最後の記録を表示しています。",
         )
-      },
-    )
-    return () => controller.abort()
-  }, [])
-  useEffect(() => {
-    if (error) alert.current?.focus()
-  }, [error])
-  async function refresh(): Promise<void> {
-    initiatingControl.current =
-      document.activeElement instanceof HTMLElement ? document.activeElement : null
-    setBusy(true)
-    setError("")
-    try {
-      setJobs((await sourceRequest("/api/study-jobs", JobList, new AbortController().signal)).jobs)
-    } catch (failure) {
-      setError(
-        failure instanceof SourceRequestError && failure.status === 503
-          ? "Library maintenance in progress / メンテナンス中"
-          : "Jobs unavailable. Try again later. / 作業を表示できません。後でもう一度お試しください。",
-      )
-    } finally {
-      setBusy(false)
+      } finally {
+        if (controller === request) controller = null
+        if (active && !request.signal.aborted && !document.hidden)
+          timer = setTimeout(
+            () => {
+              void observe()
+            },
+            failures === 0 ? 2000 : failures === 1 ? 5000 : 15000,
+          )
+      }
     }
+    const visibility = () => {
+      clearTimeout(timer)
+      controller?.abort()
+      if (!document.hidden) {
+        controller = null
+        void observe()
+      }
+    }
+    void observe()
+    document.addEventListener("visibilitychange", visibility)
+    return () => {
+      active = false
+      clearTimeout(timer)
+      controller?.abort()
+      document.removeEventListener("visibilitychange", visibility)
+    }
+  }, [studyId, observation])
+  async function refresh(): Promise<void> {
+    setObservation((value) => value + 1)
   }
   async function act(
     job: Job,
@@ -78,12 +110,14 @@ export function JobRoutes(): ReactElement {
       setJobs(
         (current) => current?.map((entry) => (entry.id === updated.id ? updated : entry)) ?? null,
       )
+      setObservation((value) => value + 1)
     } catch (failure) {
       setError(
         failure instanceof SourceRequestError && failure.status === 409
           ? "This job changed. Refresh before deciding. / 状態が変わりました。更新してから選び直してください。"
           : "Decision unavailable. Review the current setup. / 操作できません。現在の設定を確認してください。",
       )
+      requestAnimationFrame(() => alert.current?.focus())
     } finally {
       setBusy(false)
     }
