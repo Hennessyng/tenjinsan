@@ -9,6 +9,7 @@ import type { Interview } from "./client.ts"
 import { InterviewList, InterviewState, SavedAnswer } from "./client.ts"
 import type { InterviewLanguage } from "./copy.ts"
 import { interviewCopy } from "./copy.ts"
+import { InterviewGroups } from "./InterviewGroups.tsx"
 import { InterviewQuestion } from "./InterviewQuestion.tsx"
 import { InterviewReview } from "./InterviewReview.tsx"
 
@@ -222,23 +223,7 @@ export function InterviewRoutes(): ReactElement {
             </nav>
           </>
         )}
-        <h2>{copy.browse}</h2>
-        {definition.groups.map((group) => (
-          <details key={group.id}>
-            <summary>{group.label[language]}</summary>
-            <ul>
-              {definition.steps
-                .filter((item) => item.groupId === group.id)
-                .map((item) => (
-                  <li key={item.question.id}>
-                    <a href={link(item.question.id)}>
-                      {item.question.lens?.label[language] ?? item.question.prompt[language]}
-                    </a>
-                  </li>
-                ))}
-            </ul>
-          </details>
-        ))}
+        <InterviewGroups definition={definition} language={language} link={link} />
         <p>
           <a href={`/briefs/${definition.studyId}`}>
             Reading brief / <span lang="ja">読書方針を確認</span>
