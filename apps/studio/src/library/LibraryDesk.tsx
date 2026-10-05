@@ -22,12 +22,14 @@ export function LibraryDesk({
   readonly nativeContent: boolean
 }): ReactElement {
   const title = useRef<HTMLHeadingElement>(null)
+  const pane = useRef<HTMLDivElement>(null)
   const prerequisite = useRoomPrerequisite(room.id, study)
   const focused = useRef("")
   const focusKey = `${room.id}:${study?.id ?? ""}`
   useLayoutEffect(() => {
     if (focused.current === focusKey) return
     focused.current = focusKey
+    if (pane.current) pane.current.scrollTop = 0
     title.current?.focus({ preventScroll: true })
   }, [focusKey])
   const previous = libraryRooms.find((item) => item.n === room.n - 1)
@@ -90,7 +92,7 @@ export function LibraryDesk({
           </h2>
           {selection}
         </header>
-        <div className="desk-main">
+        <div className="desk-main" ref={pane}>
           <div className="sheet">{content()}</div>
           <aside className="note" aria-label="Margin note / 余白のメモ">
             <h3>Explicit decisions</h3>

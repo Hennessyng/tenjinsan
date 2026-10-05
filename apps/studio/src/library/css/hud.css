@@ -301,15 +301,16 @@
     font-size: 0.75rem;
     overflow-wrap: anywhere;
   }
-  [data-mode="desk"] .study-selection {
+  :scope[data-mode="desk"] .study-selection {
     position: relative;
     top: 0;
     left: 0;
+    right: auto;
     max-width: none;
     background: transparent;
     color: var(--color-ink);
   }
-  [data-mode="desk"] .study-selection .btn {
+  :scope[data-mode="desk"] .study-selection .btn {
     color: var(--color-ink);
   }
   @media (max-width: 959px) {
