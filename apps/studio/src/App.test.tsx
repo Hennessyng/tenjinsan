@@ -6,7 +6,10 @@ import { App } from "./App"
 
 describe("studio shell", () => {
   it("names the private library and pairs its reading route with Japanese", () => {
-    render(<App />)
+    const root = document.createElement("div")
+    root.id = "root"
+    document.body.append(root)
+    render(<App />, { container: root })
 
     expect(
       screen.getByRole("link", { name: "Back to the hall / ホールへ戻る" }).textContent,
