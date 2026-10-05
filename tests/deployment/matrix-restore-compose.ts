@@ -109,7 +109,12 @@ export async function restoreComposeMatrix(
     await page.getByLabel("Email").fill("destination-owner@example.test")
     await page.getByLabel("Password").fill("correct horse battery staple")
     await page.getByRole("button", { name: "Log in" }).click()
-    await expect(page.locator("#root")).toBeVisible()
+    await page.waitForURL((url) => url.pathname === "/")
+    await page.getByRole("status", { name: "Entering the library" }).waitFor({ state: "detached" })
+    await expect(page.locator("main#library")).toBeVisible()
+    await expect(
+      page.getByRole("navigation", { name: "Reading route / 読書ルート" }).getByRole("button"),
+    ).toHaveCount(10)
     const destinationSessionCookie = (await context.cookies(origin)).find((cookie) =>
       cookie.name.endsWith("better-auth.session_token"),
     )?.value
@@ -150,7 +155,14 @@ export async function restoreComposeMatrix(
     await freshPage.getByLabel("Email").fill("destination-owner@example.test")
     await freshPage.getByLabel("Password").fill("correct horse battery staple")
     await freshPage.getByRole("button", { name: "Log in" }).click()
-    await expect(freshPage.locator("#root")).toBeVisible()
+    await freshPage.waitForURL((url) => url.pathname === "/")
+    await freshPage
+      .getByRole("status", { name: "Entering the library" })
+      .waitFor({ state: "detached" })
+    await expect(freshPage.locator("main#library")).toBeVisible()
+    await expect(
+      freshPage.getByRole("navigation", { name: "Reading route / 読書ルート" }).getByRole("button"),
+    ).toHaveCount(10)
     const fresh = await freshPage.request.get(`${origin}/api/publications/${targets.studyId}`)
     expect(fresh.status()).toBe(200)
     return {

@@ -36,15 +36,43 @@ export async function runSecondAngle(
   await page.getByRole("button", { name: "Review brief / 内容を確認" }).click()
   await page.getByRole("button", { name: "Approve brief" }).click()
   await page.getByRole("link", { name: "Study outline" }).click()
+  const previousOutlineId = await page
+    .locator("[data-outline-revision]")
+    .evaluateAll((nodes) => nodes.at(0)?.getAttribute("data-outline-revision") ?? "")
+  const generationResponse = page.waitForResponse(
+    (response) =>
+      response.url() === `${origin}/api/outlines/${forkId}` &&
+      response.request().method() === "POST" &&
+      response.request().postDataJSON().action === "generate",
+  )
   await page.getByRole("button", { name: "Generate fixture outline" }).click()
+  const generated = await generationResponse
+  expect(generated.status()).toBe(200)
+  await generated.finished()
+  await expect(page.locator("[data-outline-revision]")).not.toHaveAttribute(
+    "data-outline-revision",
+    previousOutlineId ?? "",
+  )
+  await expect(page.getByRole("button", { name: "Approve outline" })).toBeEnabled()
   const forkOutlineId = await page
     .locator("[data-outline-revision]")
     .getAttribute("data-outline-revision")
   if (!forkOutlineId) throw new TypeError("Missing fork outline revision")
+  const approvalResponse = page.waitForResponse(
+    (response) =>
+      response.url() === `${origin}/api/outlines/${forkId}` &&
+      response.request().method() === "POST" &&
+      response.request().postDataJSON().action === "approve",
+  )
   await page.getByRole("button", { name: "Approve outline" }).click()
+  const approved = await approvalResponse
+  expect(approved.status()).toBe(200)
+  await approved.finished()
+  await expect(page.getByRole("status")).toContainText("Outline approved")
   await expect(async () => {
     await page.goto(`${origin}/evidence/${forkId}/synthetic-lesson-${forkOutlineId}`)
     await expect(page.getByRole("heading", { name: "Evidence and privacy" })).toBeVisible()
+    await expect(page.getByRole("button", { name: "Mark support reviewed" })).toBeVisible()
   }).toPass({ timeout: 30_000 })
   for (const category of ["support", "qualification", "translation", "visual"]) {
     await page.getByRole("button", { name: `Mark ${category} reviewed` }).click()

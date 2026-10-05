@@ -41,8 +41,12 @@ test("local owner login is ready at three widths and stops cleanly", async ({ pa
     await page.getByLabel("Email").fill("owner@example.test")
     await page.getByLabel("Password").fill("correct horse battery staple")
     await page.getByRole("button", { name: "Log in" }).click()
-    await expect(page.locator("#root")).toBeVisible()
-    await expect(page.getByRole("heading", { name: "Import a book" })).toBeVisible()
+    await page.waitForURL((url) => url.pathname === "/")
+    await page.getByRole("status", { name: "Entering the library" }).waitFor({ state: "detached" })
+    await expect(page.locator("main#library")).toBeVisible()
+    await expect(
+      page.getByRole("navigation", { name: "Reading route / 読書ルート" }).getByRole("button"),
+    ).toHaveCount(10)
     await expect(page.locator('script[type="module"][src^="/assets/"]')).toHaveCount(1)
     expect(
       (
@@ -52,18 +56,34 @@ test("local owner login is ready at three widths and stops cleanly", async ({ pa
         })
       ).status(),
     ).toBe(405)
+    const skip = page.getByRole("link", { name: /Skip to the reading route/ })
+    for (let count = 0; count < 80; count++) {
+      await page.keyboard.press("Tab")
+      if (await skip.evaluate((node) => node === document.activeElement)) break
+    }
+    await expect(skip).toBeFocused()
+    await page.keyboard.press("Enter")
+    await expect(page.locator("main#library")).toBeFocused()
     await page.keyboard.press("Tab")
-    await expect(page.getByRole("link", { name: /Skip to the studio/ })).toBeFocused()
+    await expect(page.locator("main :focus")).toHaveCount(1)
     for (const width of [375, 768, 1280]) {
       await page.setViewportSize({ width, height: 900 })
       await page.goto(`${ready.apiUrl}/`)
+      await expect(page.locator("main#library")).toBeVisible()
+      await expect(
+        page.getByRole("navigation", { name: "Reading route / 読書ルート" }).getByRole("button"),
+      ).toHaveCount(10)
+      await page
+        .getByRole("navigation", { name: "Reading route / 読書ルート" })
+        .getByRole("button", { name: /Accession desk/ })
+        .click()
       await expect(page.getByRole("heading", { name: "Import a book" })).toBeVisible()
       await page.screenshot({
         path: resolve(evidence, `f1-b4-local-owner-${width}.png`),
         fullPage: true,
       })
       await page.goto(`${ready.apiUrl}/sources`)
-      await expect(page.locator("#root")).toBeVisible()
+      await expect(page.locator("main")).toBeVisible()
       await expect(page.getByRole("heading", { name: "Your sources" })).toBeVisible()
       await page.reload()
       await expect(page.getByRole("heading", { name: "Your sources" })).toBeVisible()
@@ -224,8 +244,12 @@ test("isolated Compose login is ready through local-CA HTTPS", async () => {
     await page.getByLabel("Email").fill("owner@example.test")
     await page.getByLabel("Password").fill("correct horse battery staple")
     await page.getByRole("button", { name: "Log in" }).click()
-    await expect(page.locator("#root")).toBeVisible()
-    await expect(page.getByRole("heading", { name: "Import a book" })).toBeVisible()
+    await page.waitForURL((url) => url.pathname === "/")
+    await page.getByRole("status", { name: "Entering the library" }).waitFor({ state: "detached" })
+    await expect(page.locator("main#library")).toBeVisible()
+    await expect(
+      page.getByRole("navigation", { name: "Reading route / 読書ルート" }).getByRole("button"),
+    ).toHaveCount(10)
     expect(
       (
         await page.request.post("https://localhost/briefs/missing", {
@@ -237,6 +261,14 @@ test("isolated Compose login is ready through local-CA HTTPS", async () => {
     for (const width of [375, 768, 1280]) {
       await page.setViewportSize({ width, height: 900 })
       await page.goto("https://localhost/")
+      await expect(page.locator("main#library")).toBeVisible()
+      await expect(
+        page.getByRole("navigation", { name: "Reading route / 読書ルート" }).getByRole("button"),
+      ).toHaveCount(10)
+      await page
+        .getByRole("navigation", { name: "Reading route / 読書ルート" })
+        .getByRole("button", { name: /Accession desk/ })
+        .click()
       await expect(page.getByRole("heading", { name: "Import a book" })).toBeVisible()
       await page.screenshot({
         path: resolve(evidence, `f1-b4-compose-owner-${width}.png`),

@@ -11,6 +11,12 @@ import { syntheticEpub } from "./synthetic-epub.ts"
 const exec = promisify(execFile)
 
 export async function runDeployedJourney(page: Page, origin: string, evidence: string) {
+  const saveAnswer = async (name: string) => {
+    const documentStart = await page.evaluate(() => performance.timeOrigin)
+    await page.getByRole("button", { name, exact: true }).click()
+    await page.waitForFunction((started) => performance.timeOrigin !== started, documentStart)
+    await page.waitForLoadState("load")
+  }
   const runId = randomUUID()
   const runDir = join(evidence, "runs", runId)
   await mkdir(runDir, { recursive: true })
@@ -18,7 +24,17 @@ export async function runDeployedJourney(page: Page, origin: string, evidence: s
   await page.getByLabel("Email").fill("owner@example.test")
   await page.getByLabel("Password").fill("correct horse battery staple")
   await page.getByRole("button", { name: "Log in" }).click()
-  await expect(page.locator("#root")).toBeVisible()
+  await page.waitForURL(`${origin}/`)
+  await page.getByRole("status", { name: "Entering the library" }).waitFor({ state: "detached" })
+  await expect(page.locator("main#library")).toBeVisible()
+  await expect(
+    page.getByRole("navigation", { name: "Reading route / 読書ルート" }).getByRole("button"),
+  ).toHaveCount(10)
+  await page
+    .getByRole("navigation", { name: "Reading route / 読書ルート" })
+    .getByRole("button", { name: /Accession desk/ })
+    .click()
+  await expect(page.getByRole("heading", { name: "Import a book" })).toBeVisible()
   await page.getByLabel("Choose EPUB").setInputFiles({
     name: "synthetic.epub",
     mimeType: "application/epub+zip",
@@ -32,6 +48,19 @@ export async function runDeployedJourney(page: Page, origin: string, evidence: s
   }).toPass({ timeout: 10_000 })
   await page.getByRole("link", { name: "Synthetic attention journal" }).click()
   await page.getByRole("link", { name: "Set up a study" }).click()
+  const selection = page.getByLabel("Selected study / 選択した読書")
+  const ownedStudyId = await selection
+    .getByRole("option", { name: /Synthetic attention journal/ })
+    .getAttribute("value")
+  if (!ownedStudyId) throw new TypeError("Missing imported owned study option")
+  await selection.selectOption(ownedStudyId)
+  await Promise.all([
+    page.waitForResponse(
+      (response) =>
+        response.url().endsWith("/api/library-selection") && response.request().method() === "POST",
+    ),
+    page.getByRole("button", { name: "Select study / 読書を選ぶ", exact: true }).click(),
+  ])
   await page.getByRole("button", { name: "Review transmission" }).click()
   await page.getByRole("button", { name: "Send", exact: true }).click()
   await expect(page.getByRole("heading", { name: "Transmission approved" })).toBeVisible()
@@ -41,19 +70,19 @@ export async function runDeployedJourney(page: Page, origin: string, evidence: s
   }).toPass({ timeout: 10_000 })
   await page.getByRole("link", { name: /Where would you like to begin/ }).click()
   await page.getByLabel("Ask a more open question").check()
-  await page.getByRole("button", { name: "Save choices" }).click()
+  await saveAnswer("Save choices")
   await page.getByRole("link", { name: "Next", exact: true }).click()
   await page.getByLabel("At work").check()
   await page.getByLabel("At home").check()
-  await page.getByRole("button", { name: "Save choices" }).click()
+  await saveAnswer("Save choices")
   await page.getByLabel("Your own response").fill("Questions in a shared garden")
-  await page.getByRole("button", { name: "Save custom response" }).click()
-  await page.getByRole("button", { name: "Not sure yet" }).click()
+  await saveAnswer("Save custom response")
+  await saveAnswer("Not sure yet")
   await page.getByLabel("Your own response").fill("Listen during a garden conversation")
-  await page.getByRole("button", { name: "Save custom response" }).click()
+  await saveAnswer("Save custom response")
   await page.getByRole("link", { name: "Next", exact: true }).click()
   await page.getByLabel("Approve these responses").check()
-  await page.getByRole("button", { name: "Save choices" }).click()
+  await saveAnswer("Save choices")
   await page.getByRole("link", { name: /Reading brief/ }).click()
   await page.getByLabel("Original question (English)").fill("How can asking change listening?")
   await page
@@ -136,7 +165,26 @@ export async function runDeployedJourney(page: Page, origin: string, evidence: s
   expect(pdfText).toContain("How can asking change listening?")
   await writeFile(join(runDir, "artifacts.json"), JSON.stringify(downloads, null, 2))
   await page.screenshot({ path: join(runDir, "publication.png"), fullPage: true })
-  const second = await runSecondAngle(page, { origin, runDir, studyId })
+  const selectFork = async () => {
+    await page.waitForURL(
+      (url) => url.pathname.startsWith("/revisions/") && url.pathname !== `/revisions/${studyId}`,
+    )
+    const forkId = new URL(page.url()).pathname.split("/").at(-1)
+    if (!forkId) throw new TypeError("Missing linked fork study")
+    await page.getByLabel("Selected study / 選択した読書").selectOption(forkId)
+    await Promise.all([
+      page.waitForResponse(
+        (response) =>
+          response.url().endsWith("/api/library-selection") &&
+          response.request().method() === "POST",
+      ),
+      page.getByRole("button", { name: "Select study / 読書を選ぶ", exact: true }).click(),
+    ])
+  }
+  const [second] = await Promise.all([
+    runSecondAngle(page, { origin, runDir, studyId }),
+    selectFork(),
+  ])
   return {
     runId,
     runDir,
