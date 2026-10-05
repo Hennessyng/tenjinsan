@@ -9,7 +9,7 @@ test.describe("React publication approval", () => {
     await page.getByLabel("Email").fill(fixture.credentials.email)
     await page.getByLabel("Password").fill(fixture.credentials.password)
     await page.getByRole("button", { name: "Log in" }).click()
-    await page.route(/\/api\/publications\/.*$/, async (route) => {
+    await page.route(/\/api\/(publications\/.*|library-(context|selection))$/, async (route) => {
       const url = new URL(route.request().url())
       await route.fulfill({
         response: await route.fetch({
