@@ -25,6 +25,7 @@ it("TEN-13 AC1 operates native workspace entrypoints by keyboard", async () => {
     await page.keyboard.press("Tab")
     await page.keyboard.press("Enter")
     await page.waitForURL(`${fixture.origin}/`)
+    await page.getByRole("status", { name: "Entering the library" }).waitFor({ state: "detached" })
     await tabTo(page, page.locator(".skip-link"))
     await page.keyboard.press("Enter")
     await visible(page.locator("main")).toBeFocused()

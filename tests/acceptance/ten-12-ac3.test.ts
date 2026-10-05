@@ -42,6 +42,7 @@ it("TEN-12 AC3 presents real absence without hiding existing sources", async () 
           bounded: await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth),
         })
         await page.screenshot({ path: `${directory}/${width}-${rows.length}.png`, fullPage: true })
+        await page.getByRole("button", { name: "Return to hall / 広間に戻る", exact: true }).click()
         await page
           .getByRole("navigation", { name: "Reading route / 読書ルート" })
           .getByRole("button", { name: /2\. The stacks/ })
