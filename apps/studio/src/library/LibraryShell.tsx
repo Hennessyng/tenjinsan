@@ -1,10 +1,12 @@
-import { type ReactElement, useEffect, useRef, useState } from "react"
+import { createContext, type ReactElement, useEffect, useRef, useState } from "react"
 import { SourceRequestError } from "../source-viewer/client.ts"
 import { type LibraryContext, readLibraryContext, selectLibraryStudy } from "./client.ts"
 import { LibraryDesk } from "./LibraryDesk.tsx"
 import { LibraryHall } from "./LibraryHall.tsx"
 import { navigateRoom } from "./navigation.ts"
 import { libraryRooms, type RoomId, roomAt } from "./room-map.ts"
+
+export const LibraryFrameContext = createContext(false)
 
 export function LibraryShell({
   children,
@@ -242,7 +244,7 @@ export function LibraryShell({
               </p>
             </div>
           ) : (
-            children()
+            <LibraryFrameContext value={true}>{children()}</LibraryFrameContext>
           )}
         </LibraryDesk>
       )}

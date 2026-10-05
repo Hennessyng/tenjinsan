@@ -1,6 +1,7 @@
 import type { ReactElement } from "react"
-import { useEffect, useState } from "react"
+import { useContext, useEffect, useState } from "react"
 import type { z } from "zod"
+import { LibraryFrameContext } from "../library/LibraryShell.tsx"
 import { Library, Reader, SourceRequestError, sourceRequest } from "./client.ts"
 
 type Load<T> =
@@ -35,6 +36,15 @@ export function SourceFrame({
   readonly children: ReactElement
   readonly language?: "en" | "ja"
 }): ReactElement {
+  const libraryFrame = useContext(LibraryFrameContext)
+  if (libraryFrame)
+    return (
+      <div className="source-app">
+        <main id="reading" tabIndex={-1}>
+          {children}
+        </main>
+      </div>
+    )
   return (
     <div className="source-app">
       <header>
