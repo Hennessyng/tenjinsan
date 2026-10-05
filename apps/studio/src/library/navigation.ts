@@ -9,8 +9,10 @@ export function navigateRoom(room: RoomId | null, study: LibraryStudy | null): v
     room === "stacks"
       ? ["chapter", "citation"]
       : room === "reference" || room === "review"
-        ? ["lang", "step"]
-        : ["lang"]
+         ? ["lang", "step"]
+         : ["lang"]
+  const language = current.searchParams.get("lang")
+  if (room !== "stacks" && language !== null) target.searchParams.set("lang", language)
   if (current.pathname === target.pathname) {
     for (const key of keys) {
       const value = current.searchParams.get(key)
