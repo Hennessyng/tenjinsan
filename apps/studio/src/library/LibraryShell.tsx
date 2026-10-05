@@ -33,12 +33,12 @@ export function LibraryShell({
     window.addEventListener("popstate", update)
     return () => window.removeEventListener("popstate", update)
   }, [])
+  const persistedSelectedStudyId = context?.selectedStudyId
   useEffect(() => {
-    if (context) {
-      setChoice(context.selectedStudyId ?? "")
-      setError("")
-    }
-  }, [context])
+    if (persistedSelectedStudyId === undefined) return
+    setChoice(persistedSelectedStudyId ?? "")
+    setError("")
+  }, [persistedSelectedStudyId])
   const room = roomAt(url)
   const selected = context?.studies.find((study) => study.id === context.selectedStudyId) ?? null
   const pathId = url.pathname.split("/")[2]
