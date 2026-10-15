@@ -42,6 +42,13 @@ async function makeTemporaryWorkspace(provisionOwner = true, port = 8787): Promi
   temporaryDirectories.push(temporaryRoot)
   await mkdir(join(temporaryRoot, "apps"), { recursive: true })
   await mkdir(join(temporaryRoot, "apps/studio/dist/assets"), { recursive: true })
+  await mkdir(join(temporaryRoot, "apps/studio/src/library/css"), { recursive: true })
+  for (const file of ["tokens.css", "gate.css"]) {
+    await cp(
+      join(workspaceRoot, "apps/studio/src/library/css", file),
+      join(temporaryRoot, "apps/studio/src/library/css", file),
+    )
+  }
   await writeFile(
     join(temporaryRoot, "apps/studio/dist/index.html"),
     '<!doctype html><div id="root"></div>',

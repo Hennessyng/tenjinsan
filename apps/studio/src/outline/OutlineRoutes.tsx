@@ -1,6 +1,7 @@
 import type { ReactElement } from "react"
 import { useEffect, useRef, useState } from "react"
 import type { z } from "zod"
+import { captureEditSave } from "../library/useUnsavedEdits.ts"
 import { SourceRequestError, sourceCommand, sourceRequest } from "../source-viewer/client.ts"
 import { SourceFrame } from "../source-viewer/SourceRoutes.tsx"
 import type { Outline } from "./client.ts"
@@ -37,10 +38,12 @@ export function OutlineRoutes(): ReactElement {
     if (error) alert.current?.focus()
   }, [error])
   async function submit(action: z.infer<typeof OutlineAction>): Promise<void> {
+    const committed = captureEditSave()
     setBusy(true)
     setError(false)
     try {
       setState(await sourceCommand(endpoint, action, OutlineState))
+      committed()
     } catch (failure) {
       if (failure instanceof SourceRequestError) {
         setState(await sourceRequest(endpoint, OutlineState, new AbortController().signal))

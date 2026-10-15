@@ -2,12 +2,14 @@ import type { Answer } from "@reading-studio/contracts/choices"
 import type { ReactElement } from "react"
 import { useEffect, useState } from "react"
 import type { z } from "zod"
+import { captureEditSave, requestDeparture } from "../library/useUnsavedEdits.ts"
 import { SourceRequestError, sourceCommand, sourceRequest } from "../source-viewer/client.ts"
 import { SourceFrame } from "../source-viewer/SourceRoutes.tsx"
 import type { Interview } from "./client.ts"
 import { InterviewList, InterviewState, SavedAnswer } from "./client.ts"
 import type { InterviewLanguage } from "./copy.ts"
 import { interviewCopy } from "./copy.ts"
+import { InterviewGroups } from "./InterviewGroups.tsx"
 import { InterviewQuestion } from "./InterviewQuestion.tsx"
 import { InterviewReview } from "./InterviewReview.tsx"
 
@@ -120,6 +122,7 @@ export function InterviewRoutes(): ReactElement {
       !answers.some((answer) => answer.question.id === item.question.id),
   )
   async function save(answer: Answer): Promise<void> {
+    const committed = captureEditSave()
     setBusy(true)
     setError(false)
     try {
@@ -128,7 +131,8 @@ export function InterviewRoutes(): ReactElement {
         { interviewId: definition.id, ...answer },
         SavedAnswer,
       )
-      window.location.assign(`${link(answer.questionId)}&saved=1`)
+      committed()
+      requestDeparture(() => window.location.assign(`${link(answer.questionId)}&saved=1`))
     } catch (failure) {
       if (failure instanceof SourceRequestError) {
         setError(true)
@@ -219,23 +223,7 @@ export function InterviewRoutes(): ReactElement {
             </nav>
           </>
         )}
-        <h2>{copy.browse}</h2>
-        {definition.groups.map((group) => (
-          <details key={group.id}>
-            <summary>{group.label[language]}</summary>
-            <ul>
-              {definition.steps
-                .filter((item) => item.groupId === group.id)
-                .map((item) => (
-                  <li key={item.question.id}>
-                    <a href={link(item.question.id)}>
-                      {item.question.lens?.label[language] ?? item.question.prompt[language]}
-                    </a>
-                  </li>
-                ))}
-            </ul>
-          </details>
-        ))}
+        <InterviewGroups definition={definition} language={language} link={link} />
         <p>
           <a href={`/briefs/${definition.studyId}`}>
             Reading brief / <span lang="ja">読書方針を確認</span>

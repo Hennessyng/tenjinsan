@@ -96,6 +96,17 @@ test("owner sees current job, checkpoint and usage, then cancels from keyboard a
     await page.getByLabel("Email").fill(fixture.credentials.email)
     await page.getByLabel("Password").fill(fixture.credentials.password)
     await page.getByRole("button", { name: "Log in" }).click()
+    await page.waitForURL(`${fixture.origin}/`)
+    await page.getByRole("status", { name: "Entering the library" }).waitFor({ state: "detached" })
+    await page.getByLabel("Selected study / 選択した読書").selectOption(owner.id)
+    await Promise.all([
+      page.waitForResponse(
+        (response) =>
+          response.url().endsWith("/api/library-selection") &&
+          response.request().method() === "POST",
+      ),
+      page.getByRole("button", { name: "Select study / 読書を選ぶ", exact: true }).click(),
+    ])
     for (const width of [375, 768, 1280]) {
       await page.setViewportSize({ width, height: 900 })
       await page.goto(`${fixture.origin}/jobs`)

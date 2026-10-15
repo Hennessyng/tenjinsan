@@ -15,6 +15,8 @@ const readyEventSchema = z.object({
   launcherPid: z.number().int().positive(),
   apiUrl: z.url(),
   studioUrl: z.url(),
+  diagnosticEventsUrl: z.url(),
+  diagnosticEventsFile: z.string().min(1),
   children: z.object({
     api: z.number().int().positive(),
     studio: z.number().int().positive(),
@@ -149,9 +151,9 @@ export class LocalLauncher {
   readonly #outputEvents = new EventEmitter()
   #output = ""
 
-  constructor(environment: NodeJS.ProcessEnv) {
+  constructor(environment: NodeJS.ProcessEnv, root = workspaceRoot) {
     this.child = spawn("bun", ["run", "start:local"], {
-      cwd: workspaceRoot,
+      cwd: root,
       detached: true,
       env: environment,
       stdio: ["ignore", "pipe", "pipe"],

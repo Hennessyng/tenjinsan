@@ -8,13 +8,16 @@ import type {
   Storage,
   WorkflowRepository,
 } from "@reading-studio/storage"
+import { decorateGate } from "@reading-studio/studio/gate-artwork"
 import { Hono } from "hono"
-import { z } from "zod"
-import { loginPage, ownerPage } from "./auth/login-page.ts"
+import { deleteCookie } from "hono/cookie"
+import { adaptAuthRequest, loginPage, ownerPage, redirectWithCookies } from "./auth/login-page.ts"
+import { configureLoginRoute } from "./auth/login-route.ts"
 import { configureBrief } from "./brief.ts"
 import { configureEvidence } from "./evidence.ts"
 import { configureInterview } from "./interview.ts"
 import { configureJobs } from "./jobs.ts"
+import { configureLibraryContext } from "./library-context.ts"
 import {
   type AppEnvironment,
   createAccessMiddleware,
@@ -26,7 +29,12 @@ import { configurePublication } from "./publication.ts"
 import { configureRevisionPage } from "./revision-page.ts"
 import { configureRevisions } from "./revisions.ts"
 import { configureSourceViewer } from "./source-viewer.ts"
-import { configureStudioAssets, type StudioAssets, studioResponse } from "./studio-assets.ts"
+import {
+  configureRoomOwnerGuards,
+  configureStudioAssets,
+  type StudioAssets,
+  studioResponse,
+} from "./studio-assets.ts"
 import { configureStudySetup } from "./study-setup.ts"
 import { configureUpload, type UploadWithHook } from "./upload.ts"
 
@@ -71,38 +79,6 @@ export type AppDependencies = {
   ) => boolean
   readonly onSetupSend?: NonNullable<Parameters<typeof configureStudySetup>[1]["onSend"]>
   readonly renderOutputsInWorker?: boolean
-}
-
-const loginSchema = z.object({
-  email: z.email(),
-  password: z.string().min(1),
-})
-
-function redirectWithCookies(authResponse: Response, location: string): Response {
-  const headers = new Headers({ location })
-  for (const cookie of authResponse.headers.getSetCookie()) {
-    headers.append("set-cookie", cookie)
-  }
-  return new Response(null, { headers, status: 303 })
-}
-
-function adaptAuthRequest(request: Request, path: string, body?: string): Request {
-  const headers = new Headers(request.headers)
-  headers.delete("content-length")
-  if (body === undefined) {
-    return new Request(new URL(path, request.url), {
-      headers,
-      method: "POST",
-      signal: request.signal,
-    })
-  }
-  headers.set("content-type", "application/json")
-  return new Request(new URL(path, request.url), {
-    body,
-    headers,
-    method: "POST",
-    signal: request.signal,
-  })
 }
 
 export function createApp({
@@ -156,32 +132,23 @@ export function createApp({
     return context.html(loginPage())
   })
 
-  app.post("/login", access.loginRateLimit, access.loginBodyLimit, async (context) => {
-    if (context.req.header("origin") === undefined) {
-      return context.text("Forbidden", 403)
-    }
-    const parsed = loginSchema.safeParse(await context.req.parseBody())
-    if (!parsed.success) {
-      return context.html(loginPage(true), 401)
-    }
-    const request = adaptAuthRequest(
-      context.req.raw,
-      "/api/auth/sign-in/email",
-      JSON.stringify(parsed.data),
-    )
-    const response = await auth.handler(request)
-    if (!response.ok) {
-      return context.html(loginPage(true), 401)
-    }
-    return redirectWithCookies(response, "/")
-  })
+  app.get("/entrance-decoration.js", (context) =>
+    context.body(`(${decorateGate.toString()})(document);`, 200, {
+      "Content-Type": "text/javascript; charset=utf-8",
+      "X-Content-Type-Options": "nosniff",
+    }),
+  )
+
+  configureLoginRoute(app, access, auth.handler)
 
   app.post("/logout", async (context) => {
     if (context.req.header("origin") === undefined) {
       return context.text("Forbidden", 403)
     }
     const request = adaptAuthRequest(context.req.raw, "/api/auth/sign-out")
-    return redirectWithCookies(await auth.handler(request), "/login")
+    const redirect = redirectWithCookies(await auth.handler(request), "/login")
+    redirect.headers.append("Set-Cookie", "tj_entry=; Path=/; Max-Age=0; SameSite=Strict")
+    return redirect
   })
 
   app.get("/", async (context) => {
@@ -191,16 +158,20 @@ export function createApp({
     return studioAssets ? studioResponse(context, studioAssets) : context.html(ownerPage())
   })
 
-  app.use("/api/auth/sign-in/email", access.loginRateLimit, access.loginBodyLimit)
+  app.use("/api/auth/sign-out", async (context, next) => {
+    await next()
+    if (context.res.ok)
+      deleteCookie(context, "tj_study", { path: "/", httpOnly: true, sameSite: "Strict" })
+  })
   app.on(["GET", "POST"], "/api/auth/*", (context) => auth.handler(context.req.raw))
   app.use("/api/*", access.requireOwner(auth.ownerId, upload !== undefined))
-  app.use("/sources/*", access.requireOwner(auth.ownerId))
-  app.use("/interviews/*", access.requireOwner(auth.ownerId))
-  app.use("/briefs/*", access.requireOwner(auth.ownerId))
-  app.use("/outlines/*", access.requireOwner(auth.ownerId))
-  app.use("/evidence/*", access.requireOwner(auth.ownerId))
-  app.use("/publications/*", access.requireOwner(auth.ownerId))
-  app.use("/revisions/*", access.requireOwner(auth.ownerId))
+  if (sources)
+    configureLibraryContext(
+      app,
+      sources,
+      security.trustedOrigins.some((origin) => new URL(origin).protocol === "https:"),
+    )
+  configureRoomOwnerGuards(app, access.requireOwner(auth.ownerId), studioAssets !== undefined)
   app.use("/publication-artifacts/*", access.requireOwner(auth.ownerId))
   if (studioAssets) configureStudioAssets(app, studioAssets, auth.ownerId)
   if (reviewStorage)

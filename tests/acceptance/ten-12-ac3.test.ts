@@ -19,10 +19,13 @@ it("TEN-12 AC3 presents real absence without hiding existing sources", async () 
     await page.getByLabel("Password").fill(fixture.credentials.password)
     await page.getByRole("button", { name: "Log in" }).click()
     await page.waitForURL(`${fixture.origin}/`)
+    expect(
+      (await page.request.get(`${fixture.origin}/api/interviews/study-fixture`)).status(),
+    ).toBe(404)
     for (const width of [375, 768, 1280]) {
       await page.setViewportSize({ width, height: 700 })
       for (const [path, text] of [
-        ["/interviews", "No question bank is ready yet."],
+        ["/interviews", "Choose an owned study to continue."],
         ["/jobs", "No jobs on a current approved setup."],
         ["/sources/revision-fixture?chapter=2", "This resource was excluded:"],
         ["/sources/revision-fixture/setup", "No Codex models are available"],
@@ -33,13 +36,16 @@ it("TEN-12 AC3 presents real absence without hiding existing sources", async () 
         rows.push({
           path: path ?? "",
           width,
-          paper: await empty.evaluate((node) => getComputedStyle(node).backgroundColor),
+          paper: await empty.evaluate(
+            (node) => getComputedStyle(node.closest("#desk-body") ?? node).backgroundColor,
+          ),
           bounded: await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth),
         })
         await page.screenshot({ path: `${directory}/${width}-${rows.length}.png`, fullPage: true })
+        await page.getByRole("button", { name: "Return to hall / 広間に戻る", exact: true }).click()
         await page
-          .getByRole("navigation", { name: "Workspace rooms" })
-          .getByRole("link", { name: /Your sources/ })
+          .getByRole("navigation", { name: "Reading route / 読書ルート" })
+          .getByRole("button", { name: /2\. The stacks/ })
           .first()
           .click()
         await visible(
@@ -59,7 +65,7 @@ it("TEN-12 AC3 presents real absence without hiding existing sources", async () 
         waiver: "Safari waived by user; Chromium only.",
       }),
     )
-    expect(rows.filter((row) => row.paper !== "rgb(255, 253, 248)" || !row.bounded)).toEqual([])
+    expect(rows.filter((row) => row.paper !== "rgb(245, 241, 233)" || !row.bounded)).toEqual([])
   } finally {
     await browser.close()
     await fixture.close()

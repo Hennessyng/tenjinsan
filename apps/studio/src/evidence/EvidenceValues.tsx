@@ -35,7 +35,7 @@ export function EvidenceValues({
       <details>
         <summary>Inspect every projected value / すべての値を確認</summary>
         {value.entries.map((entry, index) => (
-          <details key={`${value.view.draft.id}-${entry.path}`}>
+          <details key={entry.path}>
             <summary>{entry.path}</summary>
             <p lang={entry.path.endsWith("/ja") ? "ja" : "en"}>{entry.text}</p>
             <form

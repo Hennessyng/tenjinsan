@@ -43,7 +43,12 @@ export async function runMatrix(deployment: MatrixDeployment): Promise<readonly 
   await page.getByLabel("Email").fill("owner@example.test")
   await page.getByLabel("Password").fill("correct horse battery staple")
   await page.getByRole("button", { name: "Log in" }).click()
-  await expect(page.locator("#root")).toBeVisible()
+  await page.waitForURL(`${origin}/`)
+  await page.getByRole("status", { name: "Entering the library" }).waitFor({ state: "detached" })
+  await expect(page.locator("main#library")).toBeVisible()
+  await expect(
+    page.getByRole("navigation", { name: "Reading route / 読書ルート" }).getByRole("button"),
+  ).toHaveCount(10)
   const post = (path: string, data: object) =>
     page.request.post(`${origin}${path}`, { data, headers: { origin }, failOnStatusCode: false })
   const before = await deployment.snapshot()
@@ -98,6 +103,19 @@ export async function runMatrix(deployment: MatrixDeployment): Promise<readonly 
     })
     expect(created.status()).toBe(201)
     const setupId = z.object({ setupId: z.string() }).parse(await created.json()).setupId
+    const owned = (await deployment.snapshot(setupId)).setup
+    if (!owned) throw new TypeError("Missing created owned study setup")
+    await page.goto(`${origin}/`)
+    await expect(page.locator("main#library")).toBeVisible()
+    await page.getByLabel("Selected study / 選択した読書").selectOption(owned.studyId)
+    await Promise.all([
+      page.waitForResponse(
+        (response) =>
+          response.url().endsWith("/api/library-selection") &&
+          response.request().method() === "POST",
+      ),
+      page.getByRole("button", { name: "Select study / 読書を選ぶ", exact: true }).click(),
+    ])
     const count = await deployment.wireCount()
     const granted = await post(`/api/study-setup/${revision}/${setupId}`, { decision: "send" })
     expect(granted.status()).toBe(200)

@@ -16,7 +16,7 @@ test.describe("React study setup", () => {
     await page.getByLabel("Password").fill(fixture.credentials.password)
     await page.getByRole("button", { name: "Log in" }).click()
     await expect(page.locator('[data-authenticated="true"]')).toBeVisible()
-    await page.route(/\/api\/study-setup\/.*$/, async (route) => {
+    await page.route(/\/api\/(study-setup\/.*|library-(context|selection))$/, async (route) => {
       const url = new URL(route.request().url())
       await route.fulfill({
         response: await route.fetch({
@@ -95,7 +95,7 @@ test.describe("React study setup", () => {
       await page.getByLabel("Password").fill(missing.credentials.password)
       await page.getByRole("button", { name: "Log in" }).click()
       await page.unrouteAll({ behavior: "wait" })
-      await page.route(/\/api\/study-setup\/.*$/, async (route) => {
+      await page.route(/\/api\/(study-setup\/.*|library-(context|selection))$/, async (route) => {
         const url = new URL(route.request().url())
         await route.fulfill({
           response: await route.fetch({

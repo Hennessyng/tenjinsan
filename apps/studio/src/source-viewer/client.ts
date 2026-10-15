@@ -20,13 +20,22 @@ export class SourceRequestError extends Error {
   }
 }
 
+export const authenticationRequiredEvent = "studio-authentication-required"
+export function notifyAuthenticationRequired(status: number): void {
+  if (status === 401 && typeof window !== "undefined")
+    window.dispatchEvent(new Event(authenticationRequiredEvent))
+}
+
 export async function sourceRequest<T>(
   path: string,
   schema: z.ZodType<T>,
   signal: AbortSignal,
 ): Promise<T> {
   const response = await fetch(path, { credentials: "same-origin", cache: "no-store", signal })
-  if (!response.ok) throw new SourceRequestError(response.status)
+  if (!response.ok) {
+    notifyAuthenticationRequired(response.status)
+    throw new SourceRequestError(response.status)
+  }
   return schema.parse(await response.json())
 }
 
@@ -42,6 +51,9 @@ export async function sourceCommand<T>(
     headers: { "content-type": "application/json" },
     body: JSON.stringify(payload),
   })
-  if (!response.ok) throw new SourceRequestError(response.status)
+  if (!response.ok) {
+    notifyAuthenticationRequired(response.status)
+    throw new SourceRequestError(response.status)
+  }
   return schema.parse(await response.json())
 }

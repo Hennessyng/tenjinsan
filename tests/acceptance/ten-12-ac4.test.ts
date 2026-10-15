@@ -37,30 +37,36 @@ it("TEN-12 AC4 preserves failures and recovery inside the library", async () => 
     await page.waitForURL(`${fixture.origin}/`)
     for (const width of [375, 768, 1280]) {
       await page.setViewportSize({ width, height: 700 })
-      for (const [path, selector] of [
-        ["/sources/missing", "hgroup"],
-        ["/interviews/missing", "main section.setup"],
-        ["/sources/missing/setup", "main section.setup"],
-        ["/briefs/missing", "main section.setup"],
-        ["/outlines/missing", "main [role=alert]"],
-        ["/evidence/missing", "main [role=alert]"],
-        ["/publications/missing", "main [role=alert]"],
-        ["/revisions/missing", "main section.setup"],
+      for (const [path, endpoint] of [
+        ["/sources/missing", "/api/source-reader/missing"],
+        ["/interviews/missing", "/api/interviews/missing"],
+        ["/sources/missing/setup", "/api/study-setup/missing"],
+        ["/briefs/missing", "/api/briefs/missing"],
+        ["/outlines/missing", "/api/outlines/missing"],
+        ["/evidence/missing", "/api/evidence/missing"],
+        ["/publications/missing", "/api/publications/missing"],
+        ["/revisions/missing", "/api/revision-page/missing"],
       ]) {
         await page.goto(`${fixture.origin}${path}`)
-        const error = page.locator(selector ?? "").first()
+        expect((await page.request.get(`${fixture.origin}${endpoint}`)).status()).toBe(404)
+        const error = page.locator(".sheet").first()
         await visible(error).toBeVisible()
-        await visible(error).toContainText(/unavailable|not found/i)
+        await visible(error).toContainText(
+          /unavailable|not found|Missing reference|Choose an owned study/i,
+        )
+        await visible(error.getByRole("link").first()).toBeVisible()
         rows.push({
           path: path ?? "",
           width,
-          paper: await error.evaluate((node) => getComputedStyle(node).backgroundColor),
+          paper: await error.evaluate(
+            (node) => getComputedStyle(node.closest("#desk-body") ?? node).backgroundColor,
+          ),
           bounded: await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth),
         })
         await page.screenshot({ path: `${directory}/${width}-${rows.length}.png`, fullPage: true })
         await page
-          .getByRole("navigation", { name: "Workspace rooms" })
-          .getByRole("link", { name: /Your sources/ })
+          .getByRole("navigation", { name: "Reading route / 読書ルート" })
+          .getByRole("button", { name: /2\. The stacks/ })
           .first()
           .click()
         await visible(
@@ -72,7 +78,13 @@ it("TEN-12 AC4 preserves failures and recovery inside the library", async () => 
       `${directory}/receipt.json`,
       JSON.stringify({ rows, waiver: "Safari waived by user; Chromium only." }),
     )
-    expect(rows.filter((row) => row.paper !== "rgb(255, 253, 248)" || !row.bounded)).toEqual([])
+    expect(
+      rows.filter(
+        (row) =>
+          row.paper !== (row.path === "/login" ? "rgb(255, 253, 248)" : "rgb(245, 241, 233)") ||
+          !row.bounded,
+      ),
+    ).toEqual([])
   } finally {
     await browser.close()
     await fixture.close()

@@ -1,9 +1,11 @@
 import type { ReactElement } from "react"
 import { useEffect, useRef, useState } from "react"
+import { captureEditSave, requestDeparture } from "../library/useUnsavedEdits.ts"
 import { SourceRequestError, sourceCommand, sourceRequest } from "../source-viewer/client.ts"
 import { SourceFrame } from "../source-viewer/SourceRoutes.tsx"
 import type { Revision } from "./client.ts"
 import { ForkedRevision, RevisionState } from "./client.ts"
+import { RevisionForkControls } from "./RevisionControls.tsx"
 import { RevisionHistory } from "./RevisionHistory.tsx"
 
 export function RevisionRoutes(): ReactElement {
@@ -33,6 +35,7 @@ export function RevisionRoutes(): ReactElement {
     if (error) alert.current?.focus()
   }, [error])
   async function decide(action: "fork" | "provider" | "consent"): Promise<void> {
+    const committed = captureEditSave()
     if (!state) return
     setBusy(true)
     setError(false)
@@ -49,11 +52,12 @@ export function RevisionRoutes(): ReactElement {
     try {
       if (action === "fork") {
         const fork = await sourceCommand(endpoint, input, ForkedRevision)
-        window.location.assign(`/revisions/${fork.forkStudyId}`)
+        requestDeparture(() => window.location.assign(`/revisions/${fork.forkStudyId}`))
       } else {
         const updated = await sourceCommand(endpoint, input, RevisionState)
         setState(updated)
         setProvider("0")
+        committed(true)
       }
     } catch (failure) {
       if (failure instanceof SourceRequestError) {
@@ -143,24 +147,12 @@ export function RevisionRoutes(): ReactElement {
             ? "Matching lens-neutral analysis available / 視点に依存しない解析を再利用できます"
             : "New provider analysis required / 現在の設定に合う解析が必要です"}
         </p>
-        <div>
-          <button
-            type="button"
-            disabled={busy}
-            onClick={() => {
-              void decide("fork")
-            }}
-          >
-            Fork a second lens / 別の視点に分岐
-          </button>
-          <p>
-            Reuse matching analysis, not answers, approvals or transmission consent. The original
-            stays unchanged.{" "}
-            <span lang="ja">
-              一致する解析のみ再利用し、回答・承認・送信許可は引き継ぎません。元の読書は保持されます。
-            </span>
-          </p>
-        </div>
+        <RevisionForkControls
+          busy={busy}
+          onFork={() => {
+            void decide("fork")
+          }}
+        />
         <h2>
           Change provider / <span lang="ja">プロバイダーを変更</span>
         </h2>

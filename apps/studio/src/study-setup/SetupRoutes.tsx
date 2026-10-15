@@ -1,6 +1,7 @@
 import type { ReactElement } from "react"
-import { useEffect, useState } from "react"
+import { useEffect, useRef, useState } from "react"
 import type { z } from "zod"
+import { captureEditSave, requestDeparture } from "../library/useUnsavedEdits.ts"
 import { SourceRequestError, sourceCommand, sourceRequest } from "../source-viewer/client.ts"
 import { SourceFrame } from "../source-viewer/SourceRoutes.tsx"
 import type { SetupSelection } from "./client.ts"
@@ -21,6 +22,15 @@ export function SetupRoutes(): ReactElement {
   const [page, setPage] = useState<Page>({ kind: "loading" })
   const [busy, setBusy] = useState(false)
   const [message, setMessage] = useState("")
+  const alert = useRef<HTMLParagraphElement>(null)
+  const result = useRef<HTMLHeadingElement>(null)
+  const resultReady = page.kind === "result"
+  useEffect(() => {
+    if (message) alert.current?.focus()
+  }, [message])
+  useEffect(() => {
+    if (resultReady) result.current?.focus()
+  }, [resultReady])
   useEffect(() => {
     const controller = new AbortController()
     const endpoint = setupId ? `${base}/${encodeURIComponent(setupId)}` : base
@@ -38,11 +48,15 @@ export function SetupRoutes(): ReactElement {
     return () => controller.abort()
   }, [base, setupId])
   async function create(selection: SetupSelection): Promise<void> {
+    const committed = captureEditSave()
     setBusy(true)
     setMessage("")
     try {
       const created = await sourceCommand(base, selection, SetupCreated)
-      window.location.assign(`/sources/${revision}/setup/${created.setupId}`)
+      committed()
+      requestDeparture(() =>
+        window.location.assign(`/sources/${revision}/setup/${created.setupId}`),
+      )
     } catch (error) {
       setMessage(
         error instanceof SourceRequestError && error.status === 400
@@ -82,7 +96,7 @@ export function SetupRoutes(): ReactElement {
     <SourceFrame>
       <div>
         {message && (
-          <p role="alert" tabIndex={-1}>
+          <p role="alert" ref={alert} tabIndex={-1}>
             {message}
           </p>
         )}
@@ -108,7 +122,9 @@ export function SetupRoutes(): ReactElement {
         )}
         {page.kind === "result" && (
           <section className="setup">
-            <h1>{page.decision === "send" ? "Transmission approved" : "Transmission cancelled"}</h1>
+            <h1 ref={result} tabIndex={-1}>
+              {page.decision === "send" ? "Transmission approved" : "Transmission cancelled"}
+            </h1>
             <p>
               {page.decision === "send"
                 ? "Your provider and source scope are saved. Analysis is not queued until its stage is available."

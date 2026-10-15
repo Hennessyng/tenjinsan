@@ -16,12 +16,15 @@ test.describe("React source reader", () => {
     await page.getByLabel("Password").fill(fixture.credentials.password)
     await page.getByRole("button", { name: "Log in" }).click()
     await expect(page.locator('[data-authenticated="true"]')).toBeVisible()
-    await page.route(/\/api\/source-(?:library|reader\/.*)/, async (route) => {
-      const url = new URL(route.request().url())
-      await route.fulfill({
-        response: await route.fetch({ url: `${fixture.origin}${url.pathname}${url.search}` }),
-      })
-    })
+    await page.route(
+      /\/api\/(source-(?:library|reader\/.*)|library-(context|selection)$)/,
+      async (route) => {
+        const url = new URL(route.request().url())
+        await route.fulfill({
+          response: await route.fetch({ url: `${fixture.origin}${url.pathname}${url.search}` }),
+        })
+      },
+    )
   })
 
   for (const width of [375, 768, 1280]) {

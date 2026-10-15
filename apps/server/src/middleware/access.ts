@@ -1,6 +1,10 @@
 import type { Context, MiddlewareHandler } from "hono"
 import { bodyLimit } from "hono/body-limit"
 import { z } from "zod"
+import { loginRejectionPage } from "../auth/login-page.ts"
+import { accessCategories, createSecurityRecorder, type SecurityLogger } from "./security-events.ts"
+
+export type { SecurityEvent, SecurityLogger } from "./security-events.ts"
 
 const resourceIdSchema = z.string().regex(/^[a-zA-Z0-9][a-zA-Z0-9_-]{0,127}$/)
 const resourceKinds = ["books", "studies", "jobs", "artifacts"] as const
@@ -11,24 +15,6 @@ export type PrivateResource = {
   readonly id: string
   readonly kind: PrivateResourceKind
 }
-
-export type SecurityEvent = {
-  readonly event:
-    | "access.body_limit"
-    | "access.content_type"
-    | "access.host"
-    | "access.origin"
-    | "access.rate_limit"
-    | "access.resource"
-    | "access.session"
-  readonly level: "warn"
-  readonly method: string
-  readonly requestId: string
-  readonly route: string
-  readonly status: number
-}
-
-export type SecurityLogger = (event: SecurityEvent) => void
 
 export type ResourceAccess = {
   readonly canAccess: (ownerId: string, resource: PrivateResource) => Promise<boolean>
@@ -58,15 +44,6 @@ export type AppVariables = {
 export type AppEnvironment = { Variables: AppVariables }
 
 type AppContext = Context<AppEnvironment>
-
-function defaultSecurityLogger(event: SecurityEvent): void {
-  process.stdout.write(`${JSON.stringify(event)}\n`)
-}
-
-function routeName(pathname: string): string {
-  const parts = pathname.split("/").filter((part) => part !== "")
-  return parts.length === 0 ? "/" : `/${parts.slice(0, 2).join("/")}`
-}
 
 function normalizeHost(host: string): string | null {
   if (host.includes(",") || host.includes("/") || host.includes("\\")) return null
@@ -152,23 +129,44 @@ class FailedLoginLimiter {
 export function createAccessMiddleware(config: SecurityConfig) {
   const trustedOrigins = new Set(config.trustedOrigins.map((origin) => new URL(origin).origin))
   const trustedHosts = new Set([...trustedOrigins].map((origin) => new URL(origin).host))
-  const logger = config.logger ?? defaultSecurityLogger
+  const record = createSecurityRecorder(config.logger)
   const loginLimiter = new FailedLoginLimiter(config.loginRateLimit)
 
-  function reject(context: AppContext, event: SecurityEvent["event"], status: number): Response {
-    logger({
+  function reject(
+    context: AppContext,
+    event: keyof typeof accessCategories,
+    status: number,
+  ): Response {
+    record(context, {
       event,
+      category: accessCategories[event],
       level: "warn",
-      method: context.req.method,
-      requestId: context.get("requestId"),
-      route: routeName(new URL(context.req.url).pathname),
       status,
     })
-    return new Response(status === 401 ? "Unauthorized" : "Request rejected", { status })
+    if (
+      context.req.method === "POST" &&
+      context.req.path === "/login" &&
+      (event === "access.origin" || event === "access.rate_limit" || event === "access.body_limit")
+    ) {
+      return new Response(loginRejectionPage(context.get("requestId")), {
+        status,
+        headers: {
+          "content-type": "text/html; charset=utf-8",
+          "X-Request-ID": context.get("requestId"),
+          "X-Trace-ID": context.get("requestId"),
+        },
+      })
+    }
+    return new Response(status === 401 ? "Unauthorized" : "Request rejected", {
+      status,
+      headers: { "X-Request-ID": context.get("requestId"), "X-Trace-ID": context.get("requestId") },
+    })
   }
 
   const requestBoundary: MiddlewareHandler<AppEnvironment> = async (context, next) => {
     context.set("requestId", crypto.randomUUID())
+    context.header("X-Request-ID", context.get("requestId"))
+    context.header("X-Trace-ID", context.get("requestId"))
     const requestUrl = new URL(context.req.url)
     const forwardedHost = context.req.header("x-forwarded-host")
     const candidateHost =
@@ -182,7 +180,8 @@ export function createAccessMiddleware(config: SecurityConfig) {
       return reject(context, "access.origin", 403)
     }
     await next()
-    context.res.headers.set("x-request-id", context.get("requestId"))
+    context.header("X-Request-ID", context.get("requestId"))
+    context.header("X-Trace-ID", context.get("requestId"))
     return context.res
   }
 
@@ -237,5 +236,5 @@ export function createAccessMiddleware(config: SecurityConfig) {
       onError: (limitedContext) => reject(limitedContext, "access.body_limit", 413),
     })(context, next)
 
-  return { loginBodyLimit, loginRateLimit, requestBoundary, requireOwner } as const
+  return { loginBodyLimit, loginRateLimit, requestBoundary, requireOwner, record } as const
 }

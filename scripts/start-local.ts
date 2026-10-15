@@ -1,4 +1,5 @@
 import { execFile } from "node:child_process"
+import { join } from "node:path"
 import { fileURLToPath, pathToFileURL } from "node:url"
 import { promisify } from "node:util"
 import {
@@ -12,6 +13,7 @@ import {
   parseLocalConfig,
   prepareLocalData,
 } from "./local-config.ts"
+import { startLocalLogCapture } from "./local-log-capture.ts"
 import {
   assertLocalPortsAvailable,
   LocalChildError,
@@ -67,11 +69,20 @@ export async function runLocalLauncher(): Promise<void> {
   await buildStudio(process.execPath, ["node_modules/vite/bin/vite.js", "build", "apps/studio"], {
     cwd: workspaceRoot,
   })
+  const logCapture = await startLocalLogCapture(
+    join(config.privateDataRoot, "diagnostics", "events.jsonl"),
+  )
   const signal = waitForSignal()
   process.stdout.write(
     `LOCAL_EVENT ${JSON.stringify({ event: "local-starting", launcherPid: process.pid })}\n`,
   )
-  const children = await startLocalChildren(config, workspaceRoot)
+  let children: LocalChildren
+  try {
+    children = await startLocalChildren(config, workspaceRoot, logCapture)
+  } catch (error: unknown) {
+    await logCapture.close()
+    throw error
+  }
 
   try {
     const stop = waitForStop(children, signal)
@@ -91,6 +102,8 @@ export async function runLocalLauncher(): Promise<void> {
             launcherPid: process.pid,
             apiUrl: config.apiUrl,
             studioUrl: config.studioUrl,
+            diagnosticEventsUrl: `${logCapture.url}/events`,
+            diagnosticEventsFile: logCapture.path,
             children: childPids(children),
           })}\n`,
         )
@@ -109,6 +122,7 @@ export async function runLocalLauncher(): Promise<void> {
     }
   } finally {
     await stopLocalChildren(children)
+    await logCapture.close()
     process.stdout.write(`LOCAL_EVENT ${JSON.stringify({ event: "local-stopped" })}\n`)
   }
 }

@@ -4,6 +4,7 @@
   "private": true,
   "type": "module",
   "exports": {
+    "./gate-artwork": "./src/library/gate-artwork.ts",
     "./revisions": "./src/revisions/page.ts",
     "./publication": "./src/publication/page.ts",
     "./evidence": "./src/evidence/page.ts",

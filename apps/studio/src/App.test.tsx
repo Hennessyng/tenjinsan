@@ -5,12 +5,21 @@ import { describe, expect, it } from "vitest"
 import { App } from "./App"
 
 describe("studio shell", () => {
-  it("names the reading studio and pairs English with Japanese", () => {
-    render(<App />)
+  it("names the private library and pairs its reading route with Japanese", () => {
+    const root = document.createElement("div")
+    root.id = "root"
+    document.body.append(root)
+    render(<App />, { container: root })
 
-    expect(screen.getByRole("heading", { level: 1, name: /reading studio/i })).toBeDefined()
-    expect(screen.getAllByText(/読書スタジオ/, { selector: "[lang='ja']" }).length).toBeGreaterThan(
-      0,
-    )
+    expect(
+      screen.getByRole("link", { name: "Back to the hall / ホールへ戻る" }).textContent,
+    ).toContain("TENJINSAN")
+    expect(screen.getByRole("navigation", { name: "Reading route / 読書ルート" })).toBeDefined()
+    expect(screen.getAllByText(/読書ルート/, { selector: "[lang='ja']" }).length).toBeGreaterThan(0)
+    expect(
+      screen
+        .getByRole("navigation", { name: "Reading route / 読書ルート" })
+        .querySelectorAll("button").length,
+    ).toBe(10)
   })
 })

@@ -52,6 +52,11 @@ Spacing follows a 4px base: `--space-1` 4px, `--space-2` 8px, `--space-3` 12px, 
 
 ## 5. Components
 
+### Login protection rejection (TEN-17)
+
+- A script-free rejection document reuses the existing owner panel, offline typography, paper/ink/green tokens and keyboard-focus ring. A semantic alert presents generic rejection text, bilingual explanation and a wrapping validated trace reference; a native link returns to login.
+- Origin, rate and body protections retain their 403/429/413 status and never imply invalid credentials. No submitted fields are reflected. Document scrolling owns overflow at 375/768/1280px; no new motion, tokens or React tooling.
+
 ### Accession intake (TEN-6)
 
 - The existing native EPUB chooser and submit action sit inside a raised-paper accession sheet and dashed intake tray. A private-import margin note sits beside the sheet when wide and follows it below at narrow widths; document scroll remains the only scroll owner.
