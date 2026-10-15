@@ -5,6 +5,7 @@ import { get } from "node:http"
 import { createServer } from "node:net"
 import { setTimeout as delay } from "node:timers/promises"
 import type { LocalConfig } from "./local-config.ts"
+import type { LocalLogCapture } from "./local-log-capture.ts"
 
 const childNames = ["api", "studio", "worker"] as const
 type ChildName = (typeof childNames)[number]
@@ -91,6 +92,7 @@ async function spawnChild(
   command: ChildCommand,
   config: LocalConfig,
   workspaceRoot: string,
+  logCapture: LocalLogCapture,
 ): Promise<ChildProcess> {
   const child = spawn(process.execPath, command.args, {
     cwd: workspaceRoot,
@@ -100,7 +102,7 @@ async function spawnChild(
       DATABASE_PATH: config.databasePath,
       PRIVATE_DATA_ROOT: config.privateDataRoot,
     },
-    stdio: "inherit",
+    stdio: command.name === "api" ? ["inherit", "pipe", "inherit"] : "inherit",
   })
   try {
     await once(child, "spawn", { signal: AbortSignal.timeout(5_000) })
@@ -108,6 +110,38 @@ async function spawnChild(
     throw new LocalChildError(`Unable to start local ${command.name}`, { cause: error })
   }
   if (child.pid === undefined) throw new LocalChildError(`Local ${command.name} has no process ID`)
+  if (command.name === "api" && child.stdout !== null) {
+    let pending = ""
+    const recordDiagnosticLine = (line: string): void => {
+      try {
+        void Promise.resolve(logCapture.recordLine(line)).catch(() => {
+          process.stderr.write('LOCAL_EVENT {"event":"local-log-capture-error"}\n')
+        })
+      } catch (error: unknown) {
+        if (error instanceof Error) {
+          process.stderr.write('LOCAL_EVENT {"event":"local-log-capture-error"}\n')
+          return
+        }
+        throw error
+      }
+    }
+    child.stdout.setEncoding("utf8")
+    child.stdout.on("data", (chunk: string) => {
+      process.stdout.write(chunk)
+      pending += chunk
+      const lines = pending.split("\n")
+      pending = lines.pop() ?? ""
+      if (pending.length > 8192) pending = ""
+      for (const line of lines) {
+        recordDiagnosticLine(line)
+      }
+    })
+    child.stdout.on("end", () => {
+      if (pending.length > 0) {
+        recordDiagnosticLine(pending)
+      }
+    })
+  }
   process.stdout.write(
     `LOCAL_EVENT ${JSON.stringify({ event: "local-child-started", name: command.name, pid: child.pid })}\n`,
   )
@@ -117,11 +151,12 @@ async function spawnChild(
 export async function startLocalChildren(
   config: LocalConfig,
   workspaceRoot: string,
+  logCapture: LocalLogCapture,
 ): Promise<LocalChildren> {
   const started = new Map<ChildName, ChildProcess>()
   try {
     for (const command of childCommands(config)) {
-      started.set(command.name, await spawnChild(command, config, workspaceRoot))
+      started.set(command.name, await spawnChild(command, config, workspaceRoot, logCapture))
     }
   } catch (error: unknown) {
     await stopLocalChildren(Object.fromEntries(started))

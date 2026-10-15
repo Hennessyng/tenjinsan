@@ -34,8 +34,7 @@ describe("local launcher preflight failures", () => {
   it("reports invalid configuration before starting children", async () => {
     const fixture = await makeLocalFixture(true)
     fixtures.push(fixture)
-    const environment = { ...fixture.environment }
-    Reflect.deleteProperty(environment, "AUTH_SECRET")
+    const environment = { ...fixture.environment, AUTH_SECRET: "" }
 
     const output = await runToFailure(environment)
 

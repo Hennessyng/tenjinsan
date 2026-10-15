@@ -30,7 +30,7 @@ describe("documented local launcher", () => {
     expect(await health.json()).toEqual({ status: "ok" })
     expect(studio.status).toBe(200)
     expect(loginPage.status).toBe(200)
-    expect(await loginPage.text()).toContain('form action="/login"')
+    expect(await loginPage.text()).toContain('id="login" action="/login" method="post"')
 
     const login = await fetch(`${ready.apiUrl}/login`, {
       body: new URLSearchParams({
@@ -51,6 +51,14 @@ describe("documented local launcher", () => {
     })
 
     expect(login.status).toBe(303)
+    const traceId = login.headers.get("X-Trace-ID")
+    expect(traceId).toMatch(/^[0-9a-f-]{36}$/)
+    const diagnostics = await fetch(`${ready.diagnosticEventsUrl}?trace_id=${traceId}`)
+    expect(await diagnostics.json()).toMatchObject({
+      events: [
+        expect.objectContaining({ event: "auth.login.success", trace_id: traceId, status: 303 }),
+      ],
+    })
     expect(ownerPage.status).toBe(200)
     expect(await ownerPage.text()).toContain('<div id="root"></div>')
 
