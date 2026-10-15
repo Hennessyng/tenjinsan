@@ -11,8 +11,8 @@ import type {
 import { decorateGate } from "@reading-studio/studio/gate-artwork"
 import { Hono } from "hono"
 import { deleteCookie } from "hono/cookie"
-import { z } from "zod"
 import { adaptAuthRequest, loginPage, ownerPage, redirectWithCookies } from "./auth/login-page.ts"
+import { configureLoginRoute } from "./auth/login-route.ts"
 import { configureBrief } from "./brief.ts"
 import { configureEvidence } from "./evidence.ts"
 import { configureInterview } from "./interview.ts"
@@ -81,11 +81,6 @@ export type AppDependencies = {
   readonly renderOutputsInWorker?: boolean
 }
 
-const loginSchema = z.object({
-  email: z.email(),
-  password: z.string().min(1),
-})
-
 export function createApp({
   studioAssets,
   reviewStorage,
@@ -144,30 +139,7 @@ export function createApp({
     }),
   )
 
-  app.post("/login", access.loginRateLimit, access.loginBodyLimit, async (context) => {
-    if (context.req.header("origin") === undefined) {
-      return context.text("Forbidden", 403)
-    }
-    const parsed = loginSchema.safeParse(await context.req.parseBody())
-    if (!parsed.success) {
-      return context.html(loginPage(true), 401)
-    }
-    const request = adaptAuthRequest(
-      context.req.raw,
-      "/api/auth/sign-in/email",
-      JSON.stringify(parsed.data),
-    )
-    const response = await auth.handler(request)
-    if (!response.ok) {
-      return context.html(loginPage(true), 401)
-    }
-    const redirect = redirectWithCookies(response, "/")
-    redirect.headers.append(
-      "Set-Cookie",
-      `tj_entry=1; Path=/; Max-Age=30; SameSite=Strict${new URL(context.req.url).protocol === "https:" ? "; Secure" : ""}`,
-    )
-    return redirect
-  })
+  configureLoginRoute(app, access, auth.handler)
 
   app.post("/logout", async (context) => {
     if (context.req.header("origin") === undefined) {
@@ -186,7 +158,6 @@ export function createApp({
     return studioAssets ? studioResponse(context, studioAssets) : context.html(ownerPage())
   })
 
-  app.use("/api/auth/sign-in/email", access.loginRateLimit, access.loginBodyLimit)
   app.use("/api/auth/sign-out", async (context, next) => {
     await next()
     if (context.res.ok)

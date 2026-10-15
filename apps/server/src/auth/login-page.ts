@@ -1,5 +1,6 @@
 import { readFileSync } from "node:fs"
 import { gateArtwork } from "@reading-studio/studio/gate-artwork"
+import { z } from "zod"
 
 const copiedEntranceStyles = ["tokens.css", "gate.css"]
   .map((file) =>
@@ -73,6 +74,7 @@ const loginStyles = `
   h1 [lang="ja"] { margin-top: .25rem; font: 400 1.05rem/1.85 var(--font-display-ja); }
   .register-note { margin: 0 0 .25rem; color: var(--muted); font-size: .8125rem; line-height: 1.55; }
   .alert { margin: 1rem 0 0; padding: .75rem; border: 1px dashed var(--focus); color: var(--focus); background: var(--paper-raised); font-size: .8125rem; font-weight: 700; }
+  [data-trace-id] { overflow-wrap: anywhere; }
   label { display: block; margin-top: 1rem; font-size: .8125rem; font-weight: 600; }
   label small { margin-inline-start: .25rem; color: var(--muted); font-weight: 500; }
   input { display: block; width: 100%; margin-top: .25rem; padding: .75rem; border: 1px solid var(--line); border-radius: 2px; color: inherit; background: var(--paper); font: inherit; }
@@ -126,7 +128,13 @@ export function adaptAuthRequest(request: Request, path: string, body?: string):
 export function loginPage(
   loginFailed = false,
   mode: "login" | "authentication-required" = "login",
+  traceId?: string,
 ): string {
+  const trace = z.uuid().safeParse(traceId)
+  const reference =
+    loginFailed && trace.success
+      ? `<p class="alert">Debug reference [trace_id]: <code data-trace-id>${trace.data}</code></p>`
+      : ""
   let notice = ""
   switch (mode) {
     case "login":
@@ -167,6 +175,7 @@ export function loginPage(
         <p class="register-note">A private library for one owner. There is no public sign-up.</p>
         <p class="register-note" lang="ja">個人専用の図書室です。新規登録はありません。</p>
         ${alert}
+        ${reference}
         ${notice}
         <label><span>Email <small lang="ja">メール</small></span><input name="email" type="email" autocomplete="username" required></label>
         <label><span>Password <small lang="ja">パスワード</small></span><input name="password" type="password" autocomplete="current-password" required></label>
@@ -197,4 +206,19 @@ export function ownerPage(): string {
     </main>
   </body>
 </html>`
+}
+
+export function loginRejectionPage(traceId: string): string {
+  const trace = z.uuid().safeParse(traceId)
+  const reference = trace.success
+    ? `<p>Debug reference [trace_id]: <code data-trace-id>${trace.data}</code></p>`
+    : ""
+  return `<!doctype html><html lang="en"><head><meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Request rejected | Tenjinsan</title>
+<style>${ownerStyles}code{overflow-wrap:anywhere}a{color:var(--green)}</style></head>
+<body><main><section role="alert"><h1>Request rejected</h1>
+<p lang="ja">リクエストが拒否されました。</p>
+<p>The request could not be accepted. Use the debug reference when checking local diagnostics.</p>
+${reference}</section><p><a href="/login">Return to login</a></p></main></body></html>`
 }
