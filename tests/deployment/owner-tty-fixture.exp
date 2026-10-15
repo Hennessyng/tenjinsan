@@ -1,29 +1,117 @@
 #!/usr/bin/expect -f
 set timeout 90
 log_user 0
+if {[lindex $argv 0] eq "--capture"} {
+  log_file -a [lindex $argv 1]
+  set argv [lrange $argv 2 end]
+}
 set email "owner@example.test"
 set name "Fixture Owner"
+set mode "provision"
+if {[lindex $argv 0] eq "--mode"} {
+  set mode [lindex $argv 1]
+  set argv [lrange $argv 2 end]
+}
 if {[lindex $argv 0] eq "--destination"} {
   set email "destination-owner@example.test"
   set name "Destination Owner"
   set argv [lrange $argv 1 end]
 }
 spawn {*}$argv
+fconfigure $spawn_id -encoding binary -translation binary
 expect {
   -re {Action \(\[p\]rovision/\[r\]eset\): } {}
   eof { puts stderr "Owner CLI exited before action prompt"; exit 11 }
   timeout { puts stderr "Owner CLI action prompt timed out"; exit 124 }
 }
-send "p\r"
-expect "Email: "
-send "$email\r"
-expect "Name: "
-send "$name\r"
+if {$mode eq "provision-burst"} {
+  send "p\r$email\r$name\rcorrect horse battery staple\rcorrect horse battery staple\r"
+} elseif {$mode eq "provision"} {
+  send "p\r"
+  expect "Email: "
+  send "$email\r"
+  expect "Name: "
+  send "$name\r"
+} else {
+  if {$mode eq "reset-action-burst"} {
+    send "r\rnew synthetic ASCII password\r"
+  } else {
+    send "r\r"
+  }
+}
 expect "Password: "
-send "correct horse battery staple\r"
-expect "Confirm password: "
-send "correct horse battery staple\r"
-expect "Owner provisioned."
+set password "correct horse battery staple"
+switch -- $mode {
+  provision { send "$password\r" }
+  provision-burst {}
+  reset-split {
+    set password "before桜after"
+    send "before"
+    set bytes [encoding convertto utf-8 "桜"]
+    send -- [string range $bytes 0 0]
+    after 50
+    send -- [string range $bytes 1 end]
+    send "after\r"
+  }
+  reset-emoji {
+    set password "before雪after"
+    send "before"
+    send -- [binary format H* f09f9880]
+    after 50
+    send "\177"
+    send -- [encoding convertto utf-8 "雪after\r"]
+  }
+  reset-unicode { set password "日本語かなé"; send -- [encoding convertto utf-8 "$password\r"] }
+  reset-literal { set password " leading 雪 \"\\ trailing "; send -- [encoding convertto utf-8 "$password\r"] }
+  reset-single { set password "雪"; send -- [encoding convertto utf-8 "$password\r"] }
+  reset-max { set password [string repeat x 128]; send "$password\r" }
+  reset-ascii { set password "new synthetic ASCII password"; send "$password\r" }
+  reset-bracketed {
+    set password "clipboard雪value"
+    send "\033\[200~"
+    send -- [encoding convertto utf-8 $password]
+    send "\033\[201~\r"
+  }
+  reset-confirmation-burst {
+    set password "new synthetic ASCII password"
+    send "$password\r$password\r"
+  }
+  reset-burst-mismatch {
+    set password "new synthetic ASCII password"
+    send "$password\rdifferent confirmation\r"
+  }
+  reset-action-burst { set password "new synthetic ASCII password" }
+  reset-mismatch { set password "different confirmation"; send "other password\r" }
+  reset-empty { set password ""; send "\r" }
+  reset-overlimit { set password [string repeat x 129]; send "$password\r" }
+  reset-interrupt { send "\003" }
+  reset-eof { send "\004" }
+  default { puts stderr "Unknown synthetic input mode"; exit 2 }
+}
+if {$mode eq "reset-interrupt" || $mode eq "reset-eof"} {
+  expect eof
+  exit [lindex [wait] 3]
+}
+if {$mode eq "reset-action-burst" || $mode eq "reset-confirmation-burst" || $mode eq "reset-burst-mismatch" || $mode eq "provision-burst"} {
+  set timeout 2
+}
+expect {
+  "Confirm password: " {}
+  timeout { send "\003"; expect eof; exit [lindex [wait] 3] }
+}
+if {$mode eq "reset-bracketed"} {
+  send "\033\[200~"
+  send -- [encoding convertto utf-8 $password]
+  send "\033\[201~\r"
+} elseif {$mode ne "reset-confirmation-burst" && $mode ne "reset-burst-mismatch" && $mode ne "provision-burst"} {
+  send -- [encoding convertto utf-8 "$password\r"]
+}
+if {$mode eq "reset-confirmation-burst" || $mode eq "reset-burst-mismatch" || $mode eq "provision-burst"} {
+  expect {
+    eof { exit [lindex [wait] 3] }
+    timeout { send "\003"; expect eof; exit [lindex [wait] 3] }
+  }
+}
 if {[catch {expect eof} eof_error] && ![string match "*spawn id*not open*" $eof_error]} {
   puts stderr $eof_error
   exit 1

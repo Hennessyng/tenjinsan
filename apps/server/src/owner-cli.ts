@@ -1,5 +1,6 @@
 import { stdin, stdout } from "node:process"
-import { createInterface } from "node:readline/promises"
+import { createInterface } from "node:readline"
+import { Writable } from "node:stream"
 import { openAuthStorage } from "@reading-studio/storage"
 import { createOwnerAuth } from "./auth/auth.ts"
 import {
@@ -43,55 +44,84 @@ export function assertInteractiveInvocation(
   }
 }
 
-async function readPassword(label: string): Promise<string> {
-  stdout.write(label)
-  stdin.setRawMode(true)
-  stdin.resume()
-  return new Promise((resolvePassword, rejectPassword) => {
-    let password = ""
-    const finish = (): void => {
-      stdin.off("data", onData)
-      stdin.setRawMode(false)
-      stdin.pause()
-      stdout.write("\n")
-      resolvePassword(password)
-    }
-    const fail = (): void => {
-      stdin.off("data", onData)
-      stdin.setRawMode(false)
-      stdin.pause()
-      stdout.write("\n")
-      rejectPassword(new OwnerCliUsageError())
-    }
-    const onData = (chunk: Buffer): void => {
-      for (const character of chunk.toString("utf8")) {
-        if (character === "\r" || character === "\n") {
-          finish()
-          return
-        }
-        if (character === "\u0003") {
-          fail()
-          return
-        }
-        if (character === "\u007f") {
-          if (password.length > 0) {
-            password = password.slice(0, -1)
-            stdout.write("\b \b")
-          }
-        } else if (character >= " ") {
-          password += character
-          stdout.write("*")
-        }
-      }
-    }
-    stdin.on("data", onData)
-  })
+class OwnerTerminal {
+  private readonly lines: string[] = []
+  private waiter:
+    | { readonly resolve: (line: string) => void; readonly reject: (error: Error) => void }
+    | undefined
+  private readonly terminal: ReturnType<typeof createInterface>
+  private secret = false
+  private remainingPublic: number | undefined
+  private displayed = 0
+  private closed = false
+  private failure: OwnerCliUsageError | undefined
+
+  constructor() {
+    const output = new Writable({
+      write: (chunk, _encoding, done) => {
+        if (!this.secret) stdout.write(chunk)
+        done()
+      },
+    })
+    this.terminal = createInterface({ input: stdin, output, terminal: true, historySize: 0 })
+    this.terminal.on("line", (line: string) => {
+      if (this.secret) stdout.write("\n")
+      this.displayed = 0
+      if (this.remainingPublic === undefined) {
+        const action = line.trim().toLowerCase()
+        this.remainingPublic = action === "p" || action === "provision" ? 2 : 0
+      } else if (this.remainingPublic > 0) this.remainingPublic -= 1
+      this.secret = this.remainingPublic === 0
+      if (this.waiter !== undefined) {
+        this.waiter.resolve(line)
+        this.waiter = undefined
+      } else this.lines.push(line)
+    })
+    this.terminal.on("SIGINT", () => this.fail())
+    this.terminal.on("close", () => {
+      if (!this.closed) this.fail()
+    })
+    stdin.on("keypress", this.mask)
+  }
+
+  private readonly mask = (): void => {
+    if (!this.secret) return
+    const count = [...this.terminal.line].length
+    if (count > this.displayed) stdout.write("*".repeat(count - this.displayed))
+    if (count < this.displayed) stdout.write("\b \b".repeat(this.displayed - count))
+    this.displayed = count
+  }
+
+  private fail(): void {
+    this.failure = new OwnerCliUsageError()
+    this.waiter?.reject(this.failure)
+    this.waiter = undefined
+    this.close()
+  }
+
+  read(label: string): Promise<string> {
+    stdout.write(label)
+    if (this.failure !== undefined) return Promise.reject(this.failure)
+    const line = this.lines.shift()
+    if (line !== undefined) return Promise.resolve(line)
+    return new Promise((resolve, reject) => {
+      this.waiter = { resolve, reject }
+    })
+  }
+
+  close(): void {
+    this.closed = true
+    stdin.off("keypress", this.mask)
+    this.terminal.close()
+    this.lines.length = 0
+    stdin.pause()
+  }
 }
 
-async function readConfirmedPassword(): Promise<string> {
+async function readConfirmedPassword(terminal: OwnerTerminal): Promise<string> {
   stdout.write("Any non-empty password is accepted, up to 128 characters.\n")
-  const password = await readPassword("Password: ")
-  const confirmation = await readPassword("Confirm password: ")
+  const password = await terminal.read("Password: ")
+  const confirmation = await terminal.read("Confirm password: ")
   if (password !== confirmation) {
     throw new OwnerPasswordMismatchError()
   }
@@ -111,21 +141,21 @@ async function runOwnerCli(): Promise<void> {
     sessionExpiresIn: config.sessionExpiresIn,
   })
   const owner = createOwnerService(storage, auth)
-  const terminal = createInterface({ input: stdin, output: stdout })
+  const terminal = new OwnerTerminal()
   try {
-    const action = (await terminal.question("Action ([p]rovision/[r]eset): ")).trim().toLowerCase()
+    const action = (await terminal.read("Action ([p]rovision/[r]eset): ")).trim().toLowerCase()
     if (action === "p" || action === "provision") {
-      const email = await terminal.question("Email: ")
-      const name = await terminal.question("Name: ")
+      const email = await terminal.read("Email: ")
+      const name = await terminal.read("Name: ")
+      const password = await readConfirmedPassword(terminal)
       terminal.close()
-      const password = await readConfirmedPassword()
       await owner.provision({ email, name, password })
       stdout.write("Owner provisioned.\n")
       return
     }
     if (action === "r" || action === "reset") {
+      const password = await readConfirmedPassword(terminal)
       terminal.close()
-      const password = await readConfirmedPassword()
       await owner.resetPassword(password)
       stdout.write("Owner credentials reset; prior sessions invalidated.\n")
       return
