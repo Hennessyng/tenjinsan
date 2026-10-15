@@ -1,6 +1,6 @@
 import { createContext, type ReactElement, useEffect, useMemo, useRef, useState } from "react"
 import { AuthRequired, useAuthenticationRequired } from "./AuthRequired.tsx"
-import { SelectedLibraryStudy, selectLibraryStudy, useLibraryContext } from "./client.ts"
+import { SelectedLibraryStudy, useLibraryContext } from "./client.ts"
 import { LibraryDesk, LibraryRoute } from "./LibraryDesk.tsx"
 import { LibraryHall } from "./LibraryHall.tsx"
 import { navigateRoom } from "./navigation.ts"
@@ -24,6 +24,7 @@ export function LibraryShell({
   const {
     context,
     ready,
+    selectStudy,
     error: loadError,
   } = useLibraryContext(`${url.href}:${refresh}`, !authenticationRequired)
   const opener = useRef<HTMLElement | null>(null)
@@ -80,7 +81,7 @@ export function LibraryShell({
             setBusy(true)
             setError("")
             try {
-              await selectLibraryStudy(choice)
+              await selectStudy(choice)
               setRefresh((value) => value + 1)
             } catch (failure) {
               if (!(failure instanceof Error)) throw failure

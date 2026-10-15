@@ -34,6 +34,7 @@ export function useLibraryContext(
   readonly context: LibraryContext | null
   readonly error: string
   readonly ready: boolean
+  readonly selectStudy: typeof selectLibraryStudy
 } {
   const [state, setState] = useState<{
     readonly context: LibraryContext | null
@@ -71,6 +72,18 @@ export function useLibraryContext(
     context: state.context,
     error: state.error,
     ready: active && state.generation === generation,
+    selectStudy: async (studyId) => {
+      const selection = await selectLibraryStudy(studyId)
+      setState((previous) =>
+        previous.context === null
+          ? previous
+          : {
+              ...previous,
+              context: { ...previous.context, selectedStudyId: selection.selectedStudyId },
+            },
+      )
+      return selection
+    },
   }
 }
 
