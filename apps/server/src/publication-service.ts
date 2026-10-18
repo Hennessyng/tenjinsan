@@ -3,7 +3,9 @@ import { readFile } from "node:fs/promises"
 import {
   Artifact,
   contentDigest,
+  DEFAULT_EXPORT_UI,
   type EvidenceView,
+  ExportUi,
   PUBLICATION_RENDERER,
   type PublicationOutput,
   PublicationSnapshot,
@@ -14,7 +16,12 @@ import { exportPdf } from "@reading-studio/export/pdf"
 import { openEvidenceReview } from "@reading-studio/generation/review"
 import { ContractBoundaryError, type Storage } from "@reading-studio/storage"
 
-export function approvePublication(storage: Storage, view: EvidenceView): PublicationSnapshot {
+export function approvePublication(
+  storage: Storage,
+  view: EvidenceView,
+  exportUi: unknown = DEFAULT_EXPORT_UI,
+): PublicationSnapshot {
+  const choice = ExportUi.parse(exportUi)
   const current = openEvidenceReview(storage, view.draft.lessonRevisionId)
   if (
     !current.ready ||
@@ -29,6 +36,7 @@ export function approvePublication(storage: Storage, view: EvidenceView): Public
   const lesson = storage.workflow.getLesson(view.draft.lessonRevisionId)
   if (!lesson) throw new ContractBoundaryError("publication lesson")
   const snapshot = PublicationSnapshot.parse({
+    exportUi: choice,
     evidence: current,
     publication: {
       id: randomUUID(),
@@ -50,7 +58,7 @@ export function approvePublication(storage: Storage, view: EvidenceView): Public
       },
     },
   })
-  return storage.publicationOutputs.approve(snapshot)
+  return storage.publicationOutputs.approve(snapshot, choice)
 }
 
 function requireCurrent(storage: Storage, snapshot: PublicationSnapshot): void {
@@ -79,8 +87,12 @@ export async function renderPublicationOutput(
     const resolveAsset = (hash: string) => readFile(storage.blobs.pathFor(hash))
     const bytes =
       claimed.format === "html"
-        ? Buffer.from(await exportHtml(snapshot.publication, resolveAsset))
-        : await exportPdf(snapshot.publication, { resolveAsset, ...options })
+        ? Buffer.from(await exportHtml(snapshot.publication, resolveAsset, claimed.exportUi))
+        : await exportPdf(snapshot.publication, {
+            resolveAsset,
+            ...options,
+            ...(claimed.exportUi ? { ui: claimed.exportUi } : {}),
+          })
     requireCurrent(storage, snapshot)
     const artifact = Artifact.parse({
       id: randomUUID(),

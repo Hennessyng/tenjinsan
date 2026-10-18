@@ -43,6 +43,21 @@ const allMain = [
   { resourcePath: "text/a.xhtml", blockIds: ["block-a", "block-b"] },
   { resourcePath: "text/b.xhtml", blockIds: ["block-c"] },
 ]
+
+it("accepts whole-document scope only when all extracted supplementary blocks are selected", () => {
+  // Given
+  const selected = [...allMain, { resourcePath: "text/c.xhtml", blockIds: ["block-d"] }]
+  // When / Then
+  expect(
+    NormalizedStudySetup.safeParse(input({ kind: "whole-document", selected, exclusions: [] }))
+      .success,
+  ).toBe(true)
+  expect(
+    NormalizedStudySetup.safeParse(
+      input({ kind: "whole-document", selected: allMain, exclusions: [] }),
+    ).success,
+  ).toBe(false)
+})
 function input(scope: unknown) {
   return {
     normalization,

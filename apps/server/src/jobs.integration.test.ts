@@ -83,7 +83,7 @@ function command(action: string, input: unknown, headers?: Record<string, string
   })
 }
 
-test("rejects anonymous, cross-origin, foreign and stale job decisions", async () => {
+test("allows anonymous reads while rejecting cross-origin, foreign and stale job decisions", async () => {
   // Given: a valid queued job owned by the signed-in session.
   // When: unauthorized and stale callers try to act on it.
   const anonymous = await fetch(`${fixture.origin}/api/study-jobs`)
@@ -100,7 +100,7 @@ test("rejects anonymous, cross-origin, foreign and stale job decisions", async (
   const stale = await command("cancel", { expectedSetupRevisionId: "old-setup" })
   // Then: none mutates the job.
   expect([anonymous.status, foreign.status, crossOrigin.status, stale.status]).toEqual([
-    401, 404, 403, 409,
+    200, 404, 403, 409,
   ])
   expect(fixture.storage.execution.getJob("job-jobs")?.state).toBe("queued")
 })

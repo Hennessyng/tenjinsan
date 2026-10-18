@@ -1,4 +1,5 @@
 import { Digest, NormalizationRevisionId } from "@reading-studio/contracts"
+import { translate } from "@reading-studio/contracts/i18n"
 import type { SourceRepository } from "@reading-studio/storage"
 import { missingSource, sourcePage, sourceReader } from "@reading-studio/studio/source-viewer"
 import type { Hono } from "hono"
@@ -16,6 +17,7 @@ const Query = z
       .pipe(z.number().int().safe())
       .optional(),
     citation: Digest.optional(),
+    lang: z.string().optional(),
   })
   .refine((value) => value.chapter === undefined || value.citation === undefined)
 
@@ -77,27 +79,33 @@ export function configureSourceViewer(
     await next()
   })
   app.get("/sources", async (context) => {
+    const locale = context.req.query("lang") === "ja" ? "ja" : "en"
+    const t = (key: Parameters<typeof translate>[1], params?: Parameters<typeof translate>[2]) =>
+      translate(locale, key, params)
     const documents = sources.listDocuments(context.get("ownerId"))
     const pending = (await queuedImports(importRoot, context.get("ownerId"))).filter(
       (receipt) => !documents.some(({ edition }) => edition.originalHash === receipt.sha256),
     )
     return context.html(
       sourcePage(
-        "Your sources",
-        html`<p class="eyebrow">PRIVATE LIBRARY</p><h1>Your sources</h1>
-      <p>Normalized imports available to your studies. Uploads awaiting normalization are not ready to read.</p>
-      ${pending.length > 0 ? html`<h2>Awaiting normalization</h2><ul>${pending.map((receipt) => html`<li><code>${receipt.id}</code><p>Queued · ${receipt.bytes} bytes · Not yet readable</p></li>`)}</ul>` : html``}
-      ${documents.length === 0 ? html`<p>No normalized sources available.</p>` : html`<ul>${documents.map(({ edition, normalization }) => html`<li><a href="/sources/${normalization.id}">${edition.title}</a><p>Normalized · ${normalization.coverage} coverage</p><small>Revision: ${normalization.id}</small></li>`)}</ul>`}`,
+        t("source.library.title"),
+        html`<p class="eyebrow">${t("source.library.eyebrow")}</p><h1>${t("source.library.title")}</h1>
+       <p>${t("source.library.intro")}</p>
+       ${pending.length > 0 ? html`<h2>${t("source.library.pending.title")}</h2><ul>${pending.map((receipt) => html`<li><code>${receipt.id}</code><p>${t("source.library.pending.queued")} · ${t("source.library.pending.bytes", { bytes: receipt.bytes })} · ${t("source.library.pending.notReadable")}</p></li>`)}</ul>` : html``}
+       ${documents.length === 0 ? html`<p>${t("source.library.empty")}</p>` : html`<ul>${documents.map(({ edition, normalization }) => html`<li><a href="/sources/${normalization.id}?lang=${locale}">${edition.title}</a><p>${t("source.library.coverage", { coverage: t(normalization.coverage === "complete" ? "source.coverage.complete" : "source.coverage.partial") })}</p><small>${t("source.library.revision", { id: normalization.id })}</small></li>`)}</ul>`}`,
+        locale,
       ),
     )
   })
   app.get("/sources/:revision", (context) => {
+    const locale = context.req.query("lang") === "ja" ? "ja" : "en"
     const revision = NormalizationRevisionId.safeParse(context.req.param("revision"))
     const query = Query.safeParse(context.req.query())
     const duplicates = [...new URL(context.req.url).searchParams.keys()].some(
       (key) => context.req.queries(key)?.length !== 1,
     )
-    if (!revision.success || !query.success || duplicates) return context.html(missingSource(), 404)
+    if (!revision.success || !query.success || duplicates)
+      return context.html(missingSource(locale), 404)
     const normalization = sources.getNormalization(revision.data)
     if (
       !normalization ||
@@ -105,9 +113,9 @@ export function configureSourceViewer(
         .listStudiesByEdition(normalization.editionId)
         .some((study) => study.ownerId === context.get("ownerId"))
     )
-      return context.html(missingSource(), 404)
+      return context.html(missingSource(locale), 404)
     const edition = sources.getEdition(normalization.editionId)
-    if (!edition) return context.html(missingSource(), 404)
+    if (!edition) return context.html(missingSource(locale), 404)
     const resolved =
       query.data.citation === undefined ? null : sources.resolveSpan(query.data.citation)
     if (
@@ -116,13 +124,13 @@ export function configureSourceViewer(
         resolved.span.normalizationRevisionId !== normalization.id ||
         resolved.span.editionId !== edition.id)
     )
-      return context.html(missingSource(), 404)
+      return context.html(missingSource(locale), 404)
     const chapter = resolved
       ? normalization.resources.findIndex((item) => item.path === resolved.span.resourcePath)
       : (query.data.chapter ?? 0)
-    if (!normalization.resources[chapter]) return context.html(missingSource(), 404)
+    if (!normalization.resources[chapter]) return context.html(missingSource(locale), 404)
     return context.html(
-      sourceReader({ edition, normalization, chapter, span: resolved?.span ?? null }),
+      sourceReader({ edition, normalization, chapter, span: resolved?.span ?? null, locale }),
     )
   })
 }

@@ -1,5 +1,6 @@
 import { randomUUID } from "node:crypto"
 import { assertNever, SetupRevisionId, StudyId } from "@reading-studio/contracts"
+import { translate } from "@reading-studio/contracts/i18n"
 import { configuredCredential } from "@reading-studio/providers"
 import { ContractBoundaryError, type Storage } from "@reading-studio/storage"
 import { revisionPage } from "@reading-studio/studio/revisions"
@@ -38,6 +39,7 @@ export function configureRevisionPage(app: Hono<AppEnvironment>, options: Option
     await next()
   })
   const handle = async (context: Context<AppEnvironment>) => {
+    const locale = context.req.query("lang") === "ja" ? "ja" : "en"
     const json = context.req.path.startsWith("/api/")
     if (json) context.header("Cache-Control", "private, no-store")
     const id = StudyId.safeParse(context.req.param("study"))
@@ -57,8 +59,9 @@ export function configureRevisionPage(app: Hono<AppEnvironment>, options: Option
         ? context.json({ error: "Study unavailable" }, 404)
         : context.html(
             sourcePage(
-              "Study unavailable",
-              html`<h1>Study unavailable / 読書が見つかりません</h1><a href="/interviews">Return to interviews / 質問に戻る</a>`,
+              translate(locale, "revision.unavailable"),
+              html`<h1>${translate(locale, "revision.unavailable")}</h1><a href="/interviews?lang=${locale}">${translate(locale, "revision.back")}</a>`,
+              locale,
             ),
             404,
           )
@@ -71,6 +74,7 @@ export function configureRevisionPage(app: Hono<AppEnvironment>, options: Option
         error,
         canEdit: interview !== null && interview.analysisRevisionId === view.analysis?.id,
         choices: modelChoices,
+        locale,
       })
     }
     const state = () => {
@@ -109,7 +113,7 @@ export function configureRevisionPage(app: Hono<AppEnvironment>, options: Option
           const fork = storage.revisions.fork(identity)
           return json
             ? context.json({ forkStudyId: fork.setup.studyId })
-            : context.redirect(`/revisions/${fork.setup.studyId}`, 303)
+            : context.redirect(`/revisions/${fork.setup.studyId}?lang=${locale}`, 303)
         }
         case "provider": {
           const choice = modelChoices.find(
@@ -155,7 +159,9 @@ export function configureRevisionPage(app: Hono<AppEnvironment>, options: Option
       if (error instanceof ContractBoundaryError || error instanceof z.ZodError) return conflict()
       throw error
     }
-    return json ? context.json(state()) : context.redirect(`/revisions/${view.setup.studyId}`, 303)
+    return json
+      ? context.json(state())
+      : context.redirect(`/revisions/${view.setup.studyId}?lang=${locale}`, 303)
   }
   app.on(["GET", "POST"], "/revisions/:study", handle)
   app.on(["GET", "POST"], "/api/revision-page/:study", handle)

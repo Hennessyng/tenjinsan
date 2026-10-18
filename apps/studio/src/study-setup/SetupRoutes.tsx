@@ -1,11 +1,19 @@
+import type { SourcePreparationFailure } from "@reading-studio/contracts/source"
 import type { ReactElement } from "react"
 import { useEffect, useRef, useState } from "react"
 import type { z } from "zod"
+import { useLanguage } from "../i18n/LanguageProvider.tsx"
 import { captureEditSave, requestDeparture } from "../library/useUnsavedEdits.ts"
-import { SourceRequestError, sourceCommand, sourceRequest } from "../source-viewer/client.ts"
+import {
+  SourcePreparationError,
+  SourceRequestError,
+  sourceCommand,
+  sourceRequest,
+} from "../source-viewer/client.ts"
 import { SourceFrame } from "../source-viewer/SourceRoutes.tsx"
 import type { SetupSelection } from "./client.ts"
 import { SetupChoices, SetupCreated, SetupDecision, SetupReview } from "./client.ts"
+import { PreparationRefusal } from "./PreparationRefusal.tsx"
 import { SetupChoices as ChoicesView } from "./SetupChoices.tsx"
 import { SetupReview as ReviewView } from "./SetupReview.tsx"
 
@@ -17,11 +25,13 @@ type Page =
   | { readonly kind: "error"; readonly status: number }
 
 export function SetupRoutes(): ReactElement {
+  const { t } = useLanguage()
   const [, , revision, , setupId] = window.location.pathname.split("/")
   const base = `/api/study-setup/${encodeURIComponent(revision ?? "")}`
   const [page, setPage] = useState<Page>({ kind: "loading" })
   const [busy, setBusy] = useState(false)
   const [message, setMessage] = useState("")
+  const [refusal, setRefusal] = useState<SourcePreparationFailure | null>(null)
   const alert = useRef<HTMLParagraphElement>(null)
   const result = useRef<HTMLHeadingElement>(null)
   const resultReady = page.kind === "result"
@@ -60,8 +70,8 @@ export function SetupRoutes(): ReactElement {
     } catch (error) {
       setMessage(
         error instanceof SourceRequestError && error.status === 400
-          ? "Select available chapters explicitly."
-          : "Setup could not be saved. Please try again.",
+          ? t("setup.selectChapters")
+          : t("setup.saveError"),
       )
       setBusy(false)
     }
@@ -69,6 +79,7 @@ export function SetupRoutes(): ReactElement {
   async function decide(decision: "send" | "revise" | "cancel"): Promise<void> {
     setBusy(true)
     setMessage("")
+    setRefusal(null)
     try {
       const result = await sourceCommand(
         `${base}/${encodeURIComponent(setupId ?? "")}`,
@@ -83,10 +94,14 @@ export function SetupRoutes(): ReactElement {
           ...(result.decision === "send" ? { grantId: result.grantId } : {}),
         })
     } catch (error) {
+      if (error instanceof SourcePreparationError) {
+        setRefusal(error.failure)
+        return
+      }
       setMessage(
         error instanceof SourceRequestError && error.status === 409
-          ? "This draft is missing, cancelled, or superseded. Review a fresh setup before sending."
-          : "Decision could not be saved. Please try again.",
+          ? t("setup.stale")
+          : t("setup.decisionError"),
       )
     } finally {
       setBusy(false)
@@ -95,6 +110,7 @@ export function SetupRoutes(): ReactElement {
   return (
     <SourceFrame>
       <div>
+        {refusal && <PreparationRefusal failure={refusal} />}
         {message && (
           <p role="alert" ref={alert} tabIndex={-1}>
             {message}
@@ -102,16 +118,14 @@ export function SetupRoutes(): ReactElement {
         )}
         {page.kind === "loading" && (
           <p className="workspace-loading" role="status">
-            Loading study setup
+            {t("setup.loading")}
           </p>
         )}
         {page.kind === "error" && (
           <section className="setup workspace-error">
-            <h1>Setup unavailable</h1>
-            <p>
-              This draft is missing, cancelled, or superseded. Review a fresh setup before sending.
-            </p>
-            <a href={`/sources/${revision}/setup`}>Return to setup</a>
+            <h1>{t("setup.unavailable")}</h1>
+            <p>{t("setup.stale")}</p>
+            <a href={`/sources/${revision}/setup`}>{t("setup.back")}</a>
           </section>
         )}
         {page.kind === "choices" && (
@@ -123,16 +137,12 @@ export function SetupRoutes(): ReactElement {
         {page.kind === "result" && (
           <section className="setup">
             <h1 ref={result} tabIndex={-1}>
-              {page.decision === "send" ? "Transmission approved" : "Transmission cancelled"}
+              {page.decision === "send" ? t("setup.approved") : t("setup.cancelled")}
             </h1>
+            <p>{page.decision === "send" ? t("setup.approvedNote") : t("setup.cancelledNote")}</p>
+            {page.grantId && <p data-grant={page.grantId}>{t("setup.consentSaved")}</p>}
             <p>
-              {page.decision === "send"
-                ? "Your provider and source scope are saved. Analysis is not queued until its stage is available."
-                : "No cloud work was queued. This draft cannot authorize transmission."}
-            </p>
-            {page.grantId && <p data-grant={page.grantId}>Consent saved for this exact setup.</p>}
-            <p>
-              <a href={`/sources/${revision}/setup`}>Return to setup</a>
+              <a href={`/sources/${revision}/setup`}>{t("setup.back")}</a>
             </p>
           </section>
         )}

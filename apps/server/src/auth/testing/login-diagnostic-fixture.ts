@@ -11,6 +11,7 @@ export function harness(
 ) {
   const events: SecurityEvent[] = []
   const app = createApp({
+    libraryOwnerId: "library-owner",
     auth: { handler, ownerId: async () => null },
     security: {
       apiBodyBytes: 1024,

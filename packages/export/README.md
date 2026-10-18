@@ -1,10 +1,16 @@
 # Self-contained HTML export (Task25)
 
-`@reading-studio/export/html` exposes `exportHtml(storedPublicationRevision, resolveAsset?)`.
+`@reading-studio/export/html` exposes `exportHtml(storedPublicationRevision, resolveAsset?, ui?)`.
 It returns one UTF-8 HTML string; the caller owns writing or downloading that file.
 This package alone does not publish or store files. The application now provides
 an owner-scoped publication workflow with HTML/PDF jobs. Separate print
 composition and PDF rendering are documented below.
+
+`ui` is `en`, `ja`, or `en+ja`, defaulting to `en` for new files. It fixes application-owned
+labels independently of the native lesson-language radios. Approved bilingual content,
+serialized projection data, source quotations, and license bodies remain unchanged. Files
+contain neither the app preference bridge nor an export-interface selector. Paired interface
+paragraphs stack by language; compact labels remain inline.
 
 ```text
 authoritative reviewed revision + approved asset bytes
@@ -82,7 +88,7 @@ Evidence: `.omo/evidence/reading-studio/task-25/DoneClaim.json`.
 ## Static print composition (Task26)
 
 `@reading-studio/export/print` exposes `exportPrint(storedPublicationRevision,
-resolveAsset?)`. It produces a separate script-free document, not a snapshot of
+resolveAsset?, ui?)`. It produces a separate script-free document, not a snapshot of
 the reader: annotated SVG sequences, every spatial alternative, every practice
 choice and explanation, approved topic questions, and a sources appendix. No
 active selection, animation time, canvas, language preference or local answer
@@ -107,7 +113,7 @@ Verify with `bunx vitest run packages/export/tests/print.test.ts` and
 ## Paginated PDF (Task27)
 
 `@reading-studio/export/pdf` exposes `exportPdf(storedPublicationRevision,
-{ resolveAsset?, timeoutMs? }?)`, returning PDF bytes without publishing or writing
+{ resolveAsset?, timeoutMs?, chromiumExecutablePath?, ui? }?)`, returning PDF bytes without publishing or writing
 an artifact. Supply the authoritative stored approval, as for HTML/print. This
 boundary does not authenticate a caller-created approval or replace privacy review.
 

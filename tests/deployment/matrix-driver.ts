@@ -1,4 +1,3 @@
-import { createHash } from "node:crypto"
 import { expect, type Page } from "@playwright/test"
 import { epubEntries, zipFixture } from "@reading-studio/ingestion/test-support"
 import { z } from "zod"
@@ -89,10 +88,8 @@ export async function runMatrix(deployment: MatrixDeployment): Promise<readonly 
       headers: { origin, "content-type": "application/epub+zip" },
     })
     expect(upload.status()).toBe(202)
-    const receipt = z.object({ sha256: z.string().length(64) }).parse(await upload.json())
-    return `normalization-${createHash("sha256")
-      .update(JSON.stringify([receipt.sha256, "epub-parser-1", "epub-normalizer-1"]))
-      .digest("hex")}`
+    return z.object({ normalizationRevisionId: z.string().min(1) }).parse(await upload.json())
+      .normalizationRevisionId
   }
   let revision = await uploadSource("original")
   const createSetup = async (provider: "openrouter" | "anthropic") => {

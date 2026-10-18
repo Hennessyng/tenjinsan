@@ -1,5 +1,7 @@
 import type { ReactElement } from "react"
+import { useLanguage } from "../i18n/LanguageProvider.tsx"
 import type { Publication } from "./client.ts"
+import { exportInterfaceLabel, pendingOutputLabel } from "./copy.ts"
 
 export function PublicationHistory({
   value,
@@ -10,35 +12,22 @@ export function PublicationHistory({
   readonly busy: boolean
   readonly onGenerate: (id: string) => void
 }): ReactElement {
+  const { t } = useLanguage()
   const { history } = value
   return (
     <>
-      <h2>
-        Versioned files / <span lang="ja">ファイルの履歴</span>
-      </h2>
-      <p>
-        If generation fails or is interrupted, choose Revise, review again, then Publish a new
-        version. Existing successful files are retained. /{" "}
-        <span lang="ja">
-          生成に失敗した場合は修正と再確認の後、新しい版を承認してください。成功済みのファイルは保持されます。
-        </span>
-      </p>
-      <aside className="publication-note" aria-label="Download note">
-        <strong>Last stop / 最後の部屋</strong>
-        <span>
-          Files are versioned. Downloading never changes the approved copy. /{" "}
-          <span lang="ja">
-            ファイルは版ごとに保存されます。保存しても承認済みの内容は変わりません。
-          </span>
-        </span>
+      <h2>{t("publication.history")}</h2>
+      <p>{t("publication.history.retry")}</p>
+      <aside className="publication-note" aria-label={t("publication.downloadNote")}>
+        <strong>{t("publication.lastStop")}</strong>
+        <span>{t("publication.versionedNote")}</span>
       </aside>
       {history.length ? (
         history.map(({ snapshot, current, outputs }, index) => (
           <section className="publication-edition" key={snapshot.publication.id}>
             <h3>
-              Files, version {history.length - index} /{" "}
-              <span lang="ja">ファイル（{history.length - index}版）</span> ·{" "}
-              {current ? "Current approval / 現在の承認" : "Old version — stale / 旧版"}
+              {t("publication.version", { n: history.length - index })} ·{" "}
+              {current ? t("publication.currentApproval") : t("publication.stale")}
             </h3>
             <p className="metadata">
               {snapshot.publication.id}
@@ -47,24 +36,31 @@ export function PublicationHistory({
               <br />
               {snapshot.publication.approval.approvedAt}
             </p>
+            <p className="metadata">
+              {t("publication.history.ui", {
+                language: exportInterfaceLabel(snapshot.exportUi ?? outputs[0]?.exportUi, t),
+              })}
+            </p>
             <ul className="publication-volumes">
               {outputs.map((output) => (
                 <li className="publication-volume" data-format={output.format} key={output.id}>
-                  <strong>Lesson ({output.format.toUpperCase()})</strong>
+                  <strong>
+                    {t("publication.lessonFormat", { format: output.format.toUpperCase() })}
+                  </strong>
                   <span className="publication-output-state">
                     {output.state === "released"
                       ? current
-                        ? "Current / 現在"
-                        : "Old version / 旧版"
+                        ? t("publication.current")
+                        : t("publication.old")
                       : output.state === "failed"
-                        ? `Error / エラー: ${output.error}`
-                        : `${output.state} — not available / 未完成`}
+                        ? t("publication.outputError", { error: output.error ?? "" })
+                        : t("publication.notAvailable", {
+                            state: pendingOutputLabel(output.state, t),
+                          })}
                   </span>
                   {output.state === "released" && (
                     <span className="publication-format-note">
-                      {output.format === "html"
-                        ? "Opens in any browser. / どのブラウザでも開けます。"
-                        : "For printing. / 印刷用です。"}
+                      {output.format === "html" ? t("publication.browser") : t("publication.print")}
                     </span>
                   )}
                   {output.state === "released" && (
@@ -72,8 +68,10 @@ export function PublicationHistory({
                       className="publication-download"
                       href={`/publication-artifacts/${output.id}`}
                     >
-                      Download {output.format.toUpperCase()} / 保存する · version{" "}
-                      {history.length - index}
+                      {t("publication.download", {
+                        format: output.format.toUpperCase(),
+                        n: history.length - index,
+                      })}
                     </a>
                   )}
                 </li>
@@ -86,14 +84,14 @@ export function PublicationHistory({
                   disabled={busy}
                   onClick={() => onGenerate(snapshot.publication.id)}
                 >
-                  Generate approved files / 承認済みファイルを生成
+                  {t("publication.generate")}
                 </button>
               </div>
             )}
           </section>
         ))
       ) : (
-        <p className="workspace-empty">No approved files yet / 承認済みファイルはまだありません</p>
+        <p className="workspace-empty">{t("publication.empty")}</p>
       )}
     </>
   )

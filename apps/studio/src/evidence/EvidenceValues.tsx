@@ -1,4 +1,5 @@
 import type { FormEvent, ReactElement } from "react"
+import { useLanguage } from "../i18n/LanguageProvider.tsx"
 import type { Evidence, EvidenceAction } from "./client.ts"
 
 export function EvidenceValues({
@@ -10,30 +11,27 @@ export function EvidenceValues({
   readonly onAction: (action: EvidenceAction) => void
   readonly busy: boolean
 }): ReactElement {
+  const { t, locale } = useLanguage()
   return (
     <>
-      <h2 id="projected-content">
-        4. Inspect and clean / <span lang="ja">確認と修正</span>
-      </h2>
+      <h2 id="projected-content">{t("evidence.inspectTitle")}</h2>
       <a
-        href={`/api/evidence/${value.view.draft.studyId}/${value.view.draft.lessonRevisionId}/preview`}
+        href={`/api/evidence/${value.view.draft.studyId}/${value.view.draft.lessonRevisionId}/preview?lang=${locale}`}
       >
-        Preview cleaned projection / <span lang="ja">修正後の公開用データを確認</span>
+        {t("evidence.preview")}
       </a>
       <p>
         <a
-          href={`/api/evidence/${value.view.draft.studyId}/${value.view.draft.lessonRevisionId}/read`}
+          href={`/api/evidence/${value.view.draft.studyId}/${value.view.draft.lessonRevisionId}/read?lang=${locale}`}
         >
-          Read bilingual lesson / <span lang="ja">対訳で本文を読む</span>
+          {t("evidence.read")}
         </a>
       </p>
       <p>
-        <a href={`/publications/${value.view.draft.studyId}`}>
-          Publication and versioned files / <span lang="ja">公開承認とファイル履歴</span>
-        </a>
+        <a href={`/publications/${value.view.draft.studyId}`}>{t("evidence.publication")}</a>
       </p>
       <details>
-        <summary>Inspect every projected value / すべての値を確認</summary>
+        <summary>{t("evidence.inspectAll")}</summary>
         {value.entries.map((entry, index) => (
           <details key={entry.path}>
             <summary>{entry.path}</summary>
@@ -49,7 +47,9 @@ export function EvidenceValues({
                 })
               }}
             >
-              <label htmlFor={`value-${index}`}>Correct {entry.path}</label>
+              <label htmlFor={`value-${index}`}>
+                {t("evidence.correct", { path: entry.path })}
+              </label>
               <textarea
                 id={`value-${index}`}
                 name="text"
@@ -58,7 +58,7 @@ export function EvidenceValues({
                 defaultValue={entry.text}
               />
               <button type="submit" disabled={busy}>
-                Save correction / 修正を保存
+                {t("evidence.saveCorrection")}
               </button>
             </form>
             <button
@@ -66,13 +66,13 @@ export function EvidenceValues({
               disabled={busy}
               onClick={() => onAction({ action: "privacy-flag", path: entry.path })}
             >
-              Flag private information / 非公開情報を指摘
+              {t("evidence.flagPrivate")}
             </button>
           </details>
         ))}
       </details>
       <details>
-        <summary>Remove uncertain content / 不確かな内容を削除</summary>
+        <summary>{t("evidence.removeUncertain")}</summary>
         {value.removable.map((path) => (
           <p key={path}>
             <button
@@ -80,7 +80,7 @@ export function EvidenceValues({
               disabled={busy}
               onClick={() => onAction({ action: "remove-content", path })}
             >
-              Remove {path}
+              {t("evidence.remove", { path })}
             </button>
           </p>
         ))}

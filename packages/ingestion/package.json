@@ -15,6 +15,7 @@
   "dependencies": {
     "@reading-studio/contracts": "workspace:*",
     "@zip.js/zip.js": "2.8.26",
+    "pdfjs-dist": "6.4.299",
     "saxes": "6.0.0",
     "zod": "4.6.5"
   }

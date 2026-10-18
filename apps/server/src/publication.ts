@@ -1,7 +1,9 @@
 import { randomUUID } from "node:crypto"
 import {
   assertNever,
+  DEFAULT_EXPORT_UI,
   type EvidenceView,
+  ExportUi,
   JobId,
   PublicationRevisionId,
   projectedStrings,
@@ -18,6 +20,7 @@ import { approvePublication, renderPublicationOutput } from "./publication-servi
 const Action = z.strictObject({
   expectedId: z.string().min(1),
   action: z.enum(["publish", "revise", "keep-private"]),
+  exportUi: ExportUi.default(DEFAULT_EXPORT_UI),
 })
 
 export function configurePublication(
@@ -35,6 +38,7 @@ export function configurePublication(
     await next()
   })
   const handle = async (context: Context<AppEnvironment>) => {
+    const locale = context.req.query("lang") === "ja" ? "ja" : "en"
     const json = context.req.path.startsWith("/api/")
     if (json) context.header("Cache-Control", "private, no-store")
     const study = StudyId.safeParse(context.req.param("study"))
@@ -81,11 +85,11 @@ export function configurePublication(
             return json
               ? context.json({ error: "Evidence or privacy review blocks publication" }, 409)
               : context.text("Evidence or privacy review blocks publication", 409)
-          approvePublication(storage, view)
+          approvePublication(storage, view, action.data.exportUi)
           break
         case "keep-private":
           changeEvidenceReview(storage, view.draft.lessonRevisionId, {
-            ...action.data,
+            expectedId: action.data.expectedId,
             action: "keep-private",
           })
           break
@@ -96,16 +100,19 @@ export function configurePublication(
           )
           return json
             ? context.json({ redirect: `/evidence/${study.data}/${view.draft.lessonRevisionId}` })
-            : context.redirect(`/evidence/${study.data}/${view.draft.lessonRevisionId}`, 303)
+            : context.redirect(
+                `/evidence/${study.data}/${view.draft.lessonRevisionId}?lang=${locale}`,
+                303,
+              )
         default:
           return assertNever(action.data.action)
       }
       return json
         ? context.json(state(openEvidenceReview(storage, view.draft.lessonRevisionId)))
-        : context.redirect(`/publications/${study.data}`, 303)
+        : context.redirect(`/publications/${study.data}?lang=${locale}`, 303)
     }
     const result = state(view)
-    return json ? context.json(result) : context.html(publicationPage(view, result.history))
+    return json ? context.json(result) : context.html(publicationPage(view, result.history, locale))
   }
   app.on(["GET", "POST"], "/publications/:study", handle)
   app.on(["GET", "POST"], "/api/publications/:study", handle)
@@ -130,7 +137,10 @@ export function configurePublication(
         if (output.state === "queued") await renderPublicationOutput(storage, output)
     return json
       ? context.json({ generated: true as const })
-      : context.redirect(`/publications/${study.data}`, 303)
+      : context.redirect(
+          `/publications/${study.data}?lang=${context.req.query("lang") === "ja" ? "ja" : "en"}`,
+          303,
+        )
   }
   app.post("/publications/:study/outputs/:publication", generate)
   app.post("/api/publications/:study/outputs/:publication", generate)

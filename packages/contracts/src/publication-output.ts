@@ -5,11 +5,15 @@ import { PublicationRevision } from "./publication.ts"
 import { EvidenceView } from "./review.ts"
 
 // Bump when either output's composition, validation or rendering changes.
-export const PUBLICATION_RENDERER = "html-25-print-26-pdf-27-release-1"
+export const PUBLICATION_RENDERER = "html-print-pdf-fixed-ui-ten19-4"
+export const ExportUi = z.enum(["en", "ja", "en+ja"])
+export type ExportUi = z.infer<typeof ExportUi>
+export const DEFAULT_EXPORT_UI: ExportUi = "en"
 export const PublicationSnapshot = z
   .strictObject({
     publication: PublicationRevision,
     evidence: EvidenceView,
+    exportUi: ExportUi.optional(),
   })
   .refine(
     ({ publication, evidence }) =>
@@ -23,7 +27,12 @@ export const PublicationSnapshot = z
   .readonly()
 export type PublicationSnapshot = z.infer<typeof PublicationSnapshot>
 
-const output = { id: JobId, publicationId: PublicationRevisionId, format: z.enum(["html", "pdf"]) }
+const output = {
+  id: JobId,
+  publicationId: PublicationRevisionId,
+  format: z.enum(["html", "pdf"]),
+  exportUi: ExportUi.optional(),
+}
 export const PublicationOutput = z
   .discriminatedUnion("state", [
     z.strictObject({

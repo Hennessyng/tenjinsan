@@ -2,7 +2,7 @@ import { NormalizationRevision } from "@reading-studio/contracts/source"
 import { z } from "zod"
 
 const Provider = z.enum(["openai", "anthropic", "openrouter", "codex"])
-const Scope = z.enum(["all-main-chapters", "partial"])
+const Scope = z.enum(["whole-document", "all-main-chapters", "partial"])
 export const SetupChoices = z.object({
   normalization: NormalizationRevision,
   choices: z.array(z.object({ provider: Provider, model: z.string(), label: z.string() })),

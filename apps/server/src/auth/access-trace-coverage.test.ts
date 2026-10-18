@@ -4,18 +4,18 @@ import { canary, expectCorrelation, origin } from "./testing/login-diagnostic-fi
 
 describe("remaining access rejection correlation", () => {
   it.each([
-    ["anonymous", "GET", 401, "session"],
     ["wrong-media", "POST", 415, "content-type"],
     ["unowned", "GET", 404, "resource"],
   ])(
     "correlates %s rejection without private values",
-    async (condition, method, status, category) => {
+    async (_condition, method, status, category) => {
       // Given
       const events: SecurityEvent[] = []
       const app = createApp({
+        libraryOwnerId: canary,
         auth: {
           handler: async () => new Response(null),
-          ownerId: async () => (condition === "anonymous" ? null : canary),
+          ownerId: async () => null,
         },
         configurePrivateApi: (api) => {
           api.on(["GET", "POST"], "/api/jobs/:id", (context) => context.body(null, 202))

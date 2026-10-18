@@ -5,7 +5,15 @@ import { safeEntryPath } from "./archive-policy.ts"
 export class NormalizationError extends Error {
   override readonly name = "NormalizationError"
   constructor(
-    readonly code: "unsafe-xml" | "invalid-xml" | "invalid-package" | "unsafe-reference",
+    readonly code:
+      | "unsafe-xml"
+      | "invalid-xml"
+      | "invalid-package"
+      | "unsafe-reference"
+      | "invalid-encoding"
+      | "empty-text"
+      | "protected-document"
+      | "invalid-pdf",
   ) {
     super(code)
   }
@@ -20,13 +28,14 @@ export type XmlNode = {
   readonly children: (XmlNode | string)[]
 }
 
-export function xml(bytes: Uint8Array): XmlNode {
+export function xml(bytes: Uint8Array, context: "metadata" | "xhtml" = "metadata"): XmlNode {
   const parser = new SaxesParser({ xmlns: true })
   const stack: XmlNode[] = []
   let root: XmlNode | undefined
   let nodes = 0
-  parser.on("doctype", () => {
-    throw new NormalizationError("unsafe-xml")
+  parser.on("doctype", (declaration) => {
+    if (context !== "xhtml" || !/^\s*html\s*$/u.test(declaration))
+      throw new NormalizationError("unsafe-xml")
   })
   parser.on("error", () => {
     throw new NormalizationError("invalid-xml")

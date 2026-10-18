@@ -8,11 +8,7 @@ import type {
   Storage,
   WorkflowRepository,
 } from "@reading-studio/storage"
-import { decorateGate } from "@reading-studio/studio/gate-artwork"
 import { Hono } from "hono"
-import { deleteCookie } from "hono/cookie"
-import { adaptAuthRequest, loginPage, ownerPage, redirectWithCookies } from "./auth/login-page.ts"
-import { configureLoginRoute } from "./auth/login-route.ts"
 import { configureBrief } from "./brief.ts"
 import { configureEvidence } from "./evidence.ts"
 import { configureInterview } from "./interview.ts"
@@ -40,7 +36,7 @@ import { configureUpload, type UploadWithHook } from "./upload.ts"
 
 export type { SecurityEvent } from "./middleware/access.ts"
 
-type AppAuth = {
+type LegacyAuthFixture = {
   readonly handler: (request: Request) => Promise<Response>
   readonly ownerId: (headers: Headers) => Promise<string | null>
 }
@@ -48,7 +44,8 @@ type AppAuth = {
 export type AppDependencies = {
   readonly studioAssets?: StudioAssets
   readonly reviewStorage?: Storage
-  readonly auth: AppAuth
+  readonly auth?: LegacyAuthFixture
+  readonly libraryOwnerId?: string
   readonly configurePrivateApi?: (app: Hono<AppEnvironment>) => void
   readonly security: SecurityConfig
   readonly upload?: UploadWithHook
@@ -84,7 +81,7 @@ export type AppDependencies = {
 export function createApp({
   studioAssets,
   reviewStorage,
-  auth,
+  libraryOwnerId: configuredOwnerId,
   configurePrivateApi,
   security,
   upload,
@@ -103,6 +100,7 @@ export function createApp({
 }: AppDependencies) {
   const app = new Hono<AppEnvironment>()
   const access = createAccessMiddleware(security)
+  const libraryOwnerId = configuredOwnerId ?? reviewStorage?.libraryOwnerId()
   app.use("*", access.requestBoundary)
   if (reviewStorage)
     app.use("*", async (context, next) => {
@@ -125,55 +123,46 @@ export function createApp({
     })
   })
 
-  app.get("/login", async (context) => {
-    if ((await auth.ownerId(context.req.raw.headers)) !== null) {
-      return context.redirect("/", 303)
-    }
-    return context.html(loginPage())
-  })
-
-  app.get("/entrance-decoration.js", (context) =>
-    context.body(`(${decorateGate.toString()})(document);`, 200, {
-      "Content-Type": "text/javascript; charset=utf-8",
-      "X-Content-Type-Options": "nosniff",
-    }),
+  for (const path of ["/login", "/logout"]) {
+    app.get(path, (context) => context.redirect("/", 303))
+    app.post(
+      path,
+      async (context, next) => {
+        if (context.req.header("origin") === undefined) {
+          access.record(context, {
+            event: "access.origin",
+            category: "origin",
+            level: "warn",
+            status: 403,
+          })
+          return context.text("Request rejected", 403)
+        }
+        return next()
+      },
+      access.loginBodyLimit,
+      (context) => context.redirect("/", 303),
+    )
+  }
+  app.get("/", (context) =>
+    studioAssets
+      ? studioResponse(context, studioAssets)
+      : context.html(
+          '<!doctype html><html lang="en"><head><title>Reading Studio</title></head><body><main><h1>Reading Studio</h1><p>This library has no authentication. Anyone who can reach this server can access it.</p><a href="/sources">Open library</a></main></body></html>',
+        ),
   )
-
-  configureLoginRoute(app, access, auth.handler)
-
-  app.post("/logout", async (context) => {
-    if (context.req.header("origin") === undefined) {
-      return context.text("Forbidden", 403)
-    }
-    const request = adaptAuthRequest(context.req.raw, "/api/auth/sign-out")
-    const redirect = redirectWithCookies(await auth.handler(request), "/login")
-    redirect.headers.append("Set-Cookie", "tj_entry=; Path=/; Max-Age=0; SameSite=Strict")
-    return redirect
-  })
-
-  app.get("/", async (context) => {
-    if ((await auth.ownerId(context.req.raw.headers)) === null) {
-      return context.redirect("/login", 303)
-    }
-    return studioAssets ? studioResponse(context, studioAssets) : context.html(ownerPage())
-  })
-
-  app.use("/api/auth/sign-out", async (context, next) => {
-    await next()
-    if (context.res.ok)
-      deleteCookie(context, "tj_study", { path: "/", httpOnly: true, sameSite: "Strict" })
-  })
-  app.on(["GET", "POST"], "/api/auth/*", (context) => auth.handler(context.req.raw))
-  app.use("/api/*", access.requireOwner(auth.ownerId, upload !== undefined))
+  app.all("/api/auth/*", access.loginBodyLimit, (context) =>
+    context.json({ error: "Authentication has been removed" }, 410),
+  )
+  app.use("/api/*", access.libraryScope(libraryOwnerId, upload !== undefined))
   if (sources)
     configureLibraryContext(
       app,
       sources,
       security.trustedOrigins.some((origin) => new URL(origin).protocol === "https:"),
     )
-  configureRoomOwnerGuards(app, access.requireOwner(auth.ownerId), studioAssets !== undefined)
-  app.use("/publication-artifacts/*", access.requireOwner(auth.ownerId))
-  if (studioAssets) configureStudioAssets(app, studioAssets, auth.ownerId)
+  configureRoomOwnerGuards(app, access.libraryScope(libraryOwnerId), studioAssets !== undefined)
+  app.use("/publication-artifacts/*", access.libraryScope(libraryOwnerId))
+  if (studioAssets) configureStudioAssets(app, studioAssets)
   if (reviewStorage)
     configurePublication(app, reviewStorage, {
       ...(renderOutputsInWorker === undefined ? {} : { renderInWorker: renderOutputsInWorker }),

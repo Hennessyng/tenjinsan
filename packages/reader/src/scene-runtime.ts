@@ -60,15 +60,18 @@ function mountSceneRuntime() {
       figure.dataset["playback"] = running ? "playing" : "paused"
       const stateLabel = ` · ${index + 1} / ${buttons.length}`
       const message = !canAnimate()
-        ? "Static mode / 静止表示"
+        ? (status.dataset["staticLabel"] ?? "")
         : running
-          ? "Playing / 再生中"
-          : "Paused / 一時停止"
+          ? (status.dataset["playingLabel"] ?? "")
+          : (status.dataset["pausedLabel"] ?? "")
       const text = message + stateLabel
       if (status.textContent !== text) status.textContent = text
       seek.setAttribute(
         "aria-valuetext",
-        `${Math.round(time)} ms · ${index + 1} / ${buttons.length}`,
+        (seek.dataset["valueTextTemplate"] ?? "")
+          .replaceAll("{time}", String(Math.round(time)))
+          .replaceAll("{index}", String(index + 1))
+          .replaceAll("{count}", String(buttons.length)),
       )
     }
     const stop = () => {

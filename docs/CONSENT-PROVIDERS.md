@@ -77,3 +77,10 @@ supplied for this implementation. Protocol fixtures establish plumbing only.
 4. Keep books, lenses, rubric, screenshots and provider receipts private. Share only
    F4 PASS/FAIL/BLOCKED. Record PASS only after both genuine studies agree with their
    sources; missing access, unavailable route or incomplete review stays BLOCKED.
+# Multi-format source coverage (TEN-18)
+
+See [document import and coverage](MULTIFORMAT-IMPORT.md) for whole-document scope,
+exact range receipts, source-window gaps, and separate extraction/transmission/
+processing status. Original EPUB/DOCX attachments are unavailable: exact provider /
+model support is unverified. Text-only grants authorize no original. Explicit
+original requests reject without a grant; importing alone sends nothing.

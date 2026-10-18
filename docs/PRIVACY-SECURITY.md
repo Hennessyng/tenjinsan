@@ -1,7 +1,11 @@
 # Privacy and security boundary
 
-There is one provisioned owner, no public signup, no automatic sync and no
-public source library. Locally, the launcher binds to loopback. In Compose,
+There is one persisted internal library owner, **no application authentication**,
+and no automatic sync. Anyone who can reach the server can read and change its
+library, locally or hosted; there is no owner password or session gate. Restrict
+network reachability externally if this exposure is unacceptable. Existing owner,
+user, credential and session rows are retained without content reassignment; old
+sessions do not control access. Locally, the launcher binds to loopback. In Compose,
 Caddy is the only published service; the API and worker share a private data
 volume, while the proxy has no private-book mount. Protect host, Docker daemon,
 `.env`, database, blob root, backups, logs and exported files with host access

@@ -1,7 +1,6 @@
 import type { Context, MiddlewareHandler } from "hono"
 import { bodyLimit } from "hono/body-limit"
 import { z } from "zod"
-import { loginRejectionPage } from "../auth/login-page.ts"
 import { accessCategories, createSecurityRecorder, type SecurityLogger } from "./security-events.ts"
 
 export type { SecurityEvent, SecurityLogger } from "./security-events.ts"
@@ -88,7 +87,16 @@ function acceptsContentType(pathname: string, contentType: string): boolean {
     return mediaType === "application/x-www-form-urlencoded"
   }
   if (pathname.endsWith("/upload")) {
-    return mediaType === "application/epub+zip" || mediaType === "multipart/form-data"
+    return (
+      mediaType !== undefined &&
+      [
+        "application/epub+zip",
+        "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
+        "text/plain",
+        "application/pdf",
+        "multipart/form-data",
+      ].includes(mediaType)
+    )
   }
   return mediaType === "application/json"
 }
@@ -143,20 +151,6 @@ export function createAccessMiddleware(config: SecurityConfig) {
       level: "warn",
       status,
     })
-    if (
-      context.req.method === "POST" &&
-      context.req.path === "/login" &&
-      (event === "access.origin" || event === "access.rate_limit" || event === "access.body_limit")
-    ) {
-      return new Response(loginRejectionPage(context.get("requestId")), {
-        status,
-        headers: {
-          "content-type": "text/html; charset=utf-8",
-          "X-Request-ID": context.get("requestId"),
-          "X-Trace-ID": context.get("requestId"),
-        },
-      })
-    }
     return new Response(status === 401 ? "Unauthorized" : "Request rejected", {
       status,
       headers: { "X-Request-ID": context.get("requestId"), "X-Trace-ID": context.get("requestId") },
@@ -192,13 +186,12 @@ export function createAccessMiddleware(config: SecurityConfig) {
     return context.res
   }
 
-  const requireOwner = (
-    ownerId: (headers: Headers) => Promise<string | null>,
+  const libraryScope = (
+    ownerId: string | undefined,
     streamingUpload = false,
   ): MiddlewareHandler<AppEnvironment> => {
     return async (context, next) => {
-      const authenticatedOwnerId = await ownerId(context.req.raw.headers)
-      if (authenticatedOwnerId === null) return reject(context, "access.session", 401)
+      if (ownerId === undefined) return context.text("Library ownership is unavailable", 503)
       const pathname = new URL(context.req.url).pathname
       if (isMutation(context.req.method) && context.req.header("origin") === undefined) {
         return reject(context, "access.origin", 403)
@@ -213,13 +206,10 @@ export function createAccessMiddleware(config: SecurityConfig) {
       }
       const resource = requestedResource(pathname)
       if (resource === "invalid") return reject(context, "access.resource", 400)
-      if (
-        resource !== null &&
-        !(await config.resourceAccess?.canAccess(authenticatedOwnerId, resource))
-      ) {
+      if (resource !== null && !(await config.resourceAccess?.canAccess(ownerId, resource))) {
         return reject(context, "access.resource", 404)
       }
-      context.set("ownerId", authenticatedOwnerId)
+      context.set("ownerId", ownerId)
       // Intake enforces its own streaming byte limit; bodyLimit buffers chunked requests.
       if (streamingUpload && pathname === "/api/imports/upload") return next()
       const maxSize = pathname.endsWith("/upload") ? config.uploadBodyBytes : config.apiBodyBytes
@@ -236,5 +226,5 @@ export function createAccessMiddleware(config: SecurityConfig) {
       onError: (limitedContext) => reject(limitedContext, "access.body_limit", 413),
     })(context, next)
 
-  return { loginBodyLimit, loginRateLimit, requestBoundary, requireOwner, record } as const
+  return { loginBodyLimit, loginRateLimit, requestBoundary, libraryScope, record } as const
 }

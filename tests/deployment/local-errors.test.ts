@@ -34,22 +34,22 @@ describe("local launcher preflight failures", () => {
   it("reports invalid configuration before starting children", async () => {
     const fixture = await makeLocalFixture(true)
     fixtures.push(fixture)
-    const environment = { ...fixture.environment, AUTH_SECRET: "" }
+    const environment = { ...fixture.environment, SERVER_PORT: "invalid-port" }
 
     const output = await runToFailure(environment)
 
     expect(output).toContain("ServerConfigError")
-    expect(output).toContain("AUTH_SECRET")
+    expect(output).toContain("SERVER_PORT")
   })
 
-  it("guides owner setup before starting children", async () => {
+  it("initializes a fresh owner namespace before reporting an occupied port", async () => {
     const fixture = await makeLocalFixture(false)
     fixtures.push(fixture)
 
+    occupiedPorts.push(await occupyPort(fixture.apiPort))
     const output = await runToFailure(fixture.environment)
-
-    expect(output).toContain("OwnerNotProvisionedError")
-    expect(output).toContain("bun run owner")
+    expect(output).toContain("LocalPortUnavailableError")
+    expect(output).not.toContain("OwnerNotProvisionedError")
   })
 
   it("reports an occupied API port before starting children", async () => {

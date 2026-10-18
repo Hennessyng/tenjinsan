@@ -2,6 +2,8 @@ import { createHash, randomUUID } from "node:crypto"
 import {
   ApprovedArtifact,
   Artifact,
+  DEFAULT_EXPORT_UI,
+  ExportUi,
   JobId,
   PUBLICATION_RENDERER,
   PublicationOutput,
@@ -63,8 +65,12 @@ export class PublicationOutputs {
     )
   }
 
-  approve(input: unknown): PublicationSnapshot {
-    const snapshot = PublicationSnapshot.parse(input)
+  approve(input: unknown, exportUi: unknown = DEFAULT_EXPORT_UI): PublicationSnapshot {
+    const parsed = PublicationSnapshot.parse(input)
+    const choice = ExportUi.parse(exportUi)
+    if (parsed.exportUi !== undefined && parsed.exportUi !== choice)
+      throw new ContractBoundaryError("publication output request mismatch")
+    const snapshot: PublicationSnapshot = Object.freeze({ ...parsed, exportUi: choice })
     return this.context.sqlite
       .transaction(() => {
         if (!this.current(snapshot)) throw new ContractBoundaryError("stale publication approval")
@@ -91,6 +97,7 @@ export class PublicationOutputs {
             id: randomUUID(),
             publicationId: snapshot.publication.id,
             format,
+            exportUi: choice,
             state: "queued",
             expiresAt: null,
             error: null,
@@ -144,7 +151,13 @@ export class PublicationOutputs {
       .transaction(() => {
         const output = this.output(input)
         const snapshot = output ? this.get(output.publicationId) : null
-        if (output?.state !== "queued" || !snapshot || !this.current(snapshot))
+        if (
+          output?.state !== "queued" ||
+          !snapshot ||
+          !this.current(snapshot) ||
+          snapshot.exportUi === undefined ||
+          output.exportUi !== snapshot.exportUi
+        )
           throw new ContractBoundaryError("current publication required before rendering")
         const running = PublicationOutput.parse({
           ...output,
@@ -169,6 +182,8 @@ export class PublicationOutputs {
           !this.current(snapshot) ||
           output.publicationId !== artifact.publicationRevisionId ||
           output.format !== artifact.format ||
+          snapshot.exportUi === undefined ||
+          output.exportUi !== snapshot.exportUi ||
           createHash("sha256").update(bytes).digest("hex") !== artifact.contentHash
         )
           throw new ContractBoundaryError("current publication required before release")

@@ -102,12 +102,12 @@ describe("HTTP EPUB upload", () => {
   })
 
   it.each([
-    ["anonymous", { "content-type": "application/epub+zip" }, 401],
+    ["missing-origin", { "content-type": "application/epub+zip" }, 403],
     ["cross-origin", { origin: "https://attacker.example" }, 403],
     ["multipart", { "content-type": "multipart/form-data; boundary=x" }, 415],
   ])("rejects %s upload before intake", async (label, overrides, status) => {
     // Given
-    const headers = label === "anonymous" ? overrides : { ...harness.headers, ...overrides }
+    const headers = label === "missing-origin" ? overrides : { ...harness.headers, ...overrides }
     // When
     const response = await fetch(`${harness.origin}/api/imports/upload`, {
       method: "POST",

@@ -1,7 +1,9 @@
 import type { ReactElement } from "react"
+import { useLanguage } from "../i18n/LanguageProvider.tsx"
 import type { Outline } from "./client.ts"
 
 export function OutlineContent({ value }: { readonly value: Outline }): ReactElement | null {
+  const { t } = useLanguage()
   const { view, brief, scope } = value
   const content = view?.draft.content
   if (!content) return null
@@ -10,14 +12,10 @@ export function OutlineContent({ value }: { readonly value: Outline }): ReactEle
     <>
       <h2>{content.title.en}</h2>
       <p lang="ja">{content.title.ja}</p>
-      <h2>
-        Theme / <span lang="ja">主題</span>
-      </h2>
+      <h2>{t("outline.theme")}</h2>
       <p>{content.theme.en}</p>
       <p lang="ja">{content.theme.ja}</p>
-      <h2>
-        Section order / <span lang="ja">学ぶ順序</span>
-      </h2>
+      <h2>{t("outline.order")}</h2>
       <ol>
         {content.sections.map((section) => (
           <li key={section.id}>
@@ -25,12 +23,10 @@ export function OutlineContent({ value }: { readonly value: Outline }): ReactEle
               <h3>{section.title.en}</h3>
               <p lang="ja">{section.title.ja}</p>
               <p>
-                Approved question {section.questionIndex + 1}:{" "}
-                {questions[section.questionIndex]?.en ?? "Not in current brief"}
+                {t("outline.question", { n: section.questionIndex + 1 })}{" "}
+                {questions[section.questionIndex]?.en ?? t("outline.questionMissing")}
               </p>
-              <h4>
-                Learning goals / <span lang="ja">学習目標</span>
-              </h4>
+              <h4>{t("outline.goals")}</h4>
               <ul>
                 {section.learningGoals.map((goal) => (
                   <li key={`${goal.en}:${goal.ja}`}>
@@ -39,9 +35,7 @@ export function OutlineContent({ value }: { readonly value: Outline }): ReactEle
                   </li>
                 ))}
               </ul>
-              <h4>
-                Evidence / <span lang="ja">根拠</span>
-              </h4>
+              <h4>{t("outline.evidence")}</h4>
               <ul>
                 {section.sources.map((source) => (
                   <li key={`${source.resourcePath}-${source.blockId}-${source.start}`}>
@@ -49,13 +43,11 @@ export function OutlineContent({ value }: { readonly value: Outline }): ReactEle
                   </li>
                 ))}
               </ul>
-              <h4>
-                Visual intentions / <span lang="ja">図解の意図</span>
-              </h4>
+              <h4>{t("outline.visuals")}</h4>
               <p>
                 {section.visualKind === "illustrative-model"
-                  ? "Illustrative model — not an author claim"
-                  : "Source-grounded visual claim"}
+                  ? t("outline.illustrative")
+                  : t("outline.grounded")}
               </p>
               {section.visualIntents.map((visual) => (
                 <div key={`${visual.en}:${visual.ja}`}>
@@ -65,16 +57,14 @@ export function OutlineContent({ value }: { readonly value: Outline }): ReactEle
               ))}
               {section.flags.map((flag) => (
                 <p role="alert" key={flag}>
-                  Review required: {flag}
+                  {t("outline.reviewFlag", { flag })}
                 </p>
               ))}
             </article>
           </li>
         ))}
       </ol>
-      <h2>
-        Retained qualifications / <span lang="ja">保持する留保</span>
-      </h2>
+      <h2>{t("outline.qualifications")}</h2>
       {content.qualifications.length ? (
         <ul>
           {content.qualifications.map((item) => (
@@ -89,13 +79,9 @@ export function OutlineContent({ value }: { readonly value: Outline }): ReactEle
           ))}
         </ul>
       ) : (
-        <p className="workspace-empty">
-          No qualifications recorded in this analysis; this is not a claim that none exist.
-        </p>
+        <p className="workspace-empty">{t("outline.noQualifications")}</p>
       )}
-      <h2>
-        Excluded areas / <span lang="ja">扱わない範囲</span>
-      </h2>
+      <h2>{t("outline.excluded")}</h2>
       <ul>
         {content.excludedAreas.map((item) => (
           <li key={item}>{item}</li>
@@ -107,7 +93,7 @@ export function OutlineContent({ value }: { readonly value: Outline }): ReactEle
         ))}
       </ul>
       {view?.draft.feedback?.kind === "custom" && (
-        <p>Saved custom request (original language): {view.draft.feedback.text}</p>
+        <p>{t("outline.savedCustom", { text: view.draft.feedback.text })}</p>
       )}
     </>
   )

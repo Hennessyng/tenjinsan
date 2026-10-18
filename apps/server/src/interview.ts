@@ -1,4 +1,5 @@
 import { StudyId } from "@reading-studio/contracts"
+import { translate } from "@reading-studio/contracts/i18n"
 import type { InterviewRepository } from "@reading-studio/storage"
 import { interviewPage } from "@reading-studio/studio/interview"
 import { sourcePage } from "@reading-studio/studio/source-viewer"
@@ -20,17 +21,19 @@ export function configureInterview(app: Hono<AppEnvironment>, interviews: Interv
     await next()
   })
   app.on(["GET", "POST"], "/interviews/:study", async (context) => {
+    const language = context.req.query("lang") === "ja" ? "ja" : "en"
+    const t = (key: Parameters<typeof translate>[1]) => translate(language, key)
     const id = StudyId.safeParse(context.req.param("study"))
     const definition = id.success ? interviews.owned(id.data, context.get("ownerId")) : null
     if (!definition)
       return context.html(
         sourcePage(
-          "Interview unavailable",
-          html`<h1>Interview unavailable / 質問は未準備です</h1><p>No saved question bank is available for this study.</p><a href="/sources">Return to sources</a>`,
+          t("interview.unavailable.title"),
+          html`<h1>${t("interview.unavailable.title")}</h1><p>${t("interview.unavailable.body")}</p><a href="/sources?lang=${language}">${t("interview.unavailable.back")}</a>`,
+          language,
         ),
         404,
       )
-    const language = context.req.query("lang") === "ja" ? "ja" : "en"
     const stepId = context.req.query("step")
     const render = (state: "view" | "saved" | "error") =>
       interviewPage({
@@ -52,12 +55,15 @@ export function configureInterview(app: Hono<AppEnvironment>, interviews: Interv
     )
   })
   app.get("/interviews", (context) => {
+    const language = context.req.query("lang") === "ja" ? "ja" : "en"
+    const t = (key: Parameters<typeof translate>[1]) => translate(language, key)
     const definitions = interviews.listOwned(context.get("ownerId"))
     return context.html(
       sourcePage(
-        "Reading interviews",
-        html`<h1>Reading interviews / 読書の質問</h1>
-      ${definitions.length === 0 ? html`<p>No question bank is ready yet. / 質問はまだ準備されていません。</p>` : html`<ul>${definitions.map((definition) => html`<li><a href="/interviews/${definition.studyId}">${definition.steps[0]?.question.prompt.en} / ${definition.steps[0]?.question.prompt.ja}</a></li>`)}</ul>`}`,
+        t("interview.list.title"),
+        html`<h1>${t("interview.list.title")}</h1>
+       ${definitions.length === 0 ? html`<p>${t("interview.list.empty")}</p>` : html`<ul>${definitions.map((definition) => html`<li><a href="/interviews/${definition.studyId}?lang=${language}">${definition.steps[0]?.question.prompt[language]}</a></li>`)}</ul>`}`,
+        language,
       ),
     )
   })

@@ -37,13 +37,9 @@ export class LocalDataPathError extends Error {
 }
 
 function assertLoopback(server: ServerConfig, studioPort: number): void {
-  const authBaseUrl = new URL(server.authBaseURL)
   const expectedApiOrigin = `http://${loopbackHost}:${server.port}`
   if (server.host !== loopbackHost) {
     throw new LocalConfigError(`SERVER_HOST must be ${loopbackHost} for local startup`)
-  }
-  if (authBaseUrl.origin !== expectedApiOrigin) {
-    throw new LocalConfigError(`AUTH_BASE_URL must be ${expectedApiOrigin} for local startup`)
   }
   if (server.trustProxy) {
     throw new LocalConfigError("TRUST_PROXY must be 0 for local startup")

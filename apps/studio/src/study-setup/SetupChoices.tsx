@@ -1,6 +1,7 @@
 import type { FormEvent, ReactElement } from "react"
 import { useState } from "react"
 import { z } from "zod"
+import { useLanguage } from "../i18n/LanguageProvider.tsx"
 import { SourceRequestError, sourceCommand } from "../source-viewer/client.ts"
 import type { SetupChoices as ChoicesSchema, SetupSelection } from "./client.ts"
 
@@ -15,6 +16,7 @@ export function SetupChoices({
   readonly onSubmit: (selection: SetupSelection) => void
   readonly busy: boolean
 }): ReactElement {
+  const { t } = useLanguage()
   const { normalization, choices } = value
   const main = normalization.resources.filter((resource) => resource.role === "main-chapter")
   const complete = main.length > 0 && main.every((resource) => resource.status === "included")
@@ -41,9 +43,7 @@ export function SetupChoices({
       setConnectionBusy(false)
     }
   }
-  const [scope, setScope] = useState<SetupSelection["scope"]>(
-    complete ? "all-main-chapters" : "partial",
-  )
+  const [scope, setScope] = useState<SetupSelection["scope"]>("whole-document")
   const [chapters, setChapters] = useState<readonly string[]>([])
   function submit(event: FormEvent<HTMLFormElement>): void {
     event.preventDefault()
@@ -52,19 +52,17 @@ export function SetupChoices({
   }
   return (
     <section className="setup">
-      <p className="eyebrow">STUDY / PRIVATE BY DEFAULT</p>
-      <h1>Set up a study</h1>
+      <p className="eyebrow">{t("setup.eyebrow")}</p>
+      <h1>{t("setup.title")}</h1>
+      <p>{t("setup.intro")}</p>
       <p>
-        Choose what leaves this device. Nothing is sent until you review and approve transmission.
-      </p>
-      <p>
-        <a href={`/sources/${normalization.id}`}>Back to source preview</a>
+        <a href={`/sources/${normalization.id}`}>{t("setup.sourcePreview")}</a>
       </p>
       <form onSubmit={submit}>
         <section className="setup-provider-paper" aria-labelledby="provider-paper-title">
-          <span id="provider-paper-title" title="Provider and model" />
+          <span id="provider-paper-title" title={t("revision.provider.label")} />
           <label id="provider-label" htmlFor="provider">
-            Provider and model
+            {t("revision.provider.label")}
           </label>
           <select
             id="provider"
@@ -79,7 +77,17 @@ export function SetupChoices({
           </select>
         </section>
         <fieldset>
-          <legend>Source scope</legend>
+          <legend>{t("setup.scope")}</legend>
+          <label>
+            <input
+              type="radio"
+              name="scope"
+              value="whole-document"
+              checked={scope === "whole-document"}
+              onChange={() => setScope("whole-document")}
+            />{" "}
+            {t("setup.scope.whole")}
+          </label>
           <label>
             <input
               type="radio"
@@ -89,7 +97,7 @@ export function SetupChoices({
               disabled={!complete}
               onChange={() => setScope("all-main-chapters")}
             />{" "}
-            All main chapters
+            {t("setup.scope.main")}
           </label>
           <label>
             <input
@@ -99,11 +107,9 @@ export function SetupChoices({
               checked={scope === "partial"}
               onChange={() => setScope("partial")}
             />{" "}
-            Choose specific chapters
+            {t("setup.scope.partial")}
           </label>
-          {!complete && (
-            <p>Some main chapters are unavailable. Only explicit partial scope is possible.</p>
-          )}
+          {!complete && <p>{t("setup.scope.incomplete")}</p>}
           {normalization.resources.map((resource) =>
             resource.status === "included" ? (
               <label key={resource.path}>
@@ -122,65 +128,52 @@ export function SetupChoices({
               </label>
             ) : (
               <p key={resource.path}>
-                Unavailable: {resource.path} ({resource.reason})
+                {t("setup.resourceUnavailable", { path: resource.path, reason: resource.reason })}
               </p>
             ),
           )}
         </fieldset>
-        <p>
-          Studio caps: 64 calls, 32,000 request bytes, 6,000 output tokens. Codex output is checked
-          after receipt.
-        </p>
+        <p>{t("setup.caps")}</p>
         <button type="submit" disabled={busy || !choices[Number(selection)]}>
-          Review transmission
+          {t("setup.review")}
         </button>
       </form>
       <section className="setup-connection-slip" aria-labelledby="connection-heading">
-        <p className="eyebrow">LENDING DESK / PROVIDER ACCESS</p>
-        <h2 id="connection-heading">Connection methods</h2>
+        <p className="eyebrow">{t("setup.connection.eyebrow")}</p>
+        <h2 id="connection-heading">{t("setup.connection.title")}</h2>
         <section className="setup-key-provider-note" aria-labelledby="key-provider-heading">
-          <h3 id="key-provider-heading">Key-based providers</h3>
-          <p>
-            OpenRouter and Anthropic use server-owned API keys. Those keys stay separate from the
-            official Codex connection below.
-          </p>
+          <h3 id="key-provider-heading">{t("setup.connection.keys")}</h3>
+          <p>{t("setup.connection.keyNote")}</p>
         </section>
         <section className="setup-codex-ticket" aria-labelledby="codex-connection-heading">
           <div className="setup-codex-ticket-heading">
             <div>
-              <p className="setup-ticket-number">OFFICIAL CONNECTION / CODEX</p>
-              <h3 id="codex-connection-heading">Borrow with your Codex subscription</h3>
+              <p className="setup-ticket-number">{t("setup.connection.official")}</p>
+              <h3 id="codex-connection-heading">{t("setup.connection.subscription")}</h3>
             </div>
             <p className="setup-connection-stamp" role="status">
-              {codexAvailable ? "Connected" : "Unavailable"}
+              {codexAvailable ? t("setup.connection.connected") : t("setup.connection.unavailable")}
             </p>
           </div>
-          <p>
-            Sign in through the official Codex route for this private reading workspace. Connecting
-            or disconnecting here does not change any provider API key.
-          </p>
+          <p>{t("setup.connection.note")}</p>
           <dl className="setup-connection-details">
-            <dt>Desk</dt>
-            <dd>Reading Studio lending desk</dd>
-            <dt>Access</dt>
-            <dd>Official Codex subscription sign-in</dd>
+            <dt>{t("setup.connection.desk")}</dt>
+            <dd>{t("setup.connection.deskName")}</dd>
+            <dt>{t("setup.connection.access")}</dt>
+            <dd>{t("setup.connection.method")}</dd>
           </dl>
           <p
             className={
               codexAvailable ? "setup-connection-state" : "setup-connection-state workspace-empty"
             }
           >
-            {codexAvailable
-              ? "Codex models are available to this workspace."
-              : "No Codex models are available to this workspace. Connect, then refresh after completing sign-in."}
+            {codexAvailable ? t("setup.connection.models") : t("setup.connection.noModels")}
           </p>
-          {connectionError && (
-            <p role="alert">Official Codex route unavailable. No study was sent.</p>
-          )}
+          {connectionError && <p role="alert">{t("setup.connection.error")}</p>}
           {authUrl && (
             <p>
               <a href={authUrl} target="_blank" rel="noreferrer">
-                Continue official Codex sign-in
+                {t("setup.connection.continue")}
               </a>
             </p>
           )}
@@ -190,17 +183,17 @@ export function SetupChoices({
               disabled={connectionBusy}
               onClick={() => void connection("connect")}
             >
-              Connect Codex
+              {t("setup.connection.connect")}
             </button>
             <button type="button" onClick={() => window.location.reload()}>
-              Refresh connection and models
+              {t("setup.connection.refresh")}
             </button>
             <button
               type="button"
               disabled={connectionBusy}
               onClick={() => void connection("disconnect")}
             >
-              Disconnect Codex
+              {t("setup.connection.disconnect")}
             </button>
           </div>
         </section>

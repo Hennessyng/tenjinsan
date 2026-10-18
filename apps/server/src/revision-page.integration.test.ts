@@ -70,7 +70,7 @@ test("creates a revision without consent when a native provider form is submitte
   })
   // Then
   expect(response.status).toBe(303)
-  expect(response.headers.get("location")).toBe("/revisions/study-fixture")
+  expect(response.headers.get("location")).toBe("/revisions/study-fixture?lang=en")
   expect(fixture.storage.sources.getLatestSetup("study-fixture")?.analysis.provider).toBe(
     "anthropic",
   )
@@ -104,7 +104,7 @@ test("requires a session, owned study and origin for revision forms", async () =
     body: new URLSearchParams({ action: "fork", expectedSetupRevisionId: "setup-ui" }),
   })
   // Then
-  expect(anonymous.status).toBe(401)
+  expect(anonymous.status).toBe(200)
   expect(missing.status).toBe(404)
   expect(withoutOrigin.status).toBe(403)
   expect(fixture.storage.counts().studies).toBe(1)

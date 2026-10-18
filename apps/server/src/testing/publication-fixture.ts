@@ -1,8 +1,8 @@
 import { changeEvidenceReview, openEvidenceReview } from "@reading-studio/generation/review"
 import { evidenceFixture } from "./evidence-fixture.ts"
 
-export async function publicationFixture() {
-  const fixture = await evidenceFixture()
+export async function publicationFixture(options?: Parameters<typeof evidenceFixture>[0]) {
+  const fixture = await evidenceFixture(options)
   const { storage, lesson } = fixture
   let view = openEvidenceReview(storage, lesson.id)
   view = changeEvidenceReview(storage, lesson.id, {

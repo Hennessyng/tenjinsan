@@ -8,18 +8,23 @@ import {
   archiveLimitsSchema,
   DEFAULT_ARCHIVE_LIMITS,
 } from "./archive-policy.ts"
+import { DOCUMENT_LIMITS, DocumentFormat, inputByteLimit } from "./document-policy.ts"
 import { inspectZip } from "./zip-inspection.ts"
 
 export { ArchiveError, type ArchiveLimits, DEFAULT_ARCHIVE_LIMITS } from "./archive-policy.ts"
+export { DOCUMENT_MEDIA, DocumentFormat, formatForMedia } from "./document-policy.ts"
 
 export type UploadOptions = {
   readonly root: string
   readonly ownerId: string
   readonly limits?: ArchiveLimits
+  readonly format?: DocumentFormat
 }
 
 export async function acceptUpload(body: ReadableStream<Uint8Array>, options: UploadOptions) {
   const limits = archiveLimitsSchema.parse(options.limits ?? DEFAULT_ARCHIVE_LIMITS)
+  const format = DocumentFormat.parse(options.format ?? "epub")
+  const byteLimit = Math.min(limits.compressedBytes, inputByteLimit(format))
   const ownerId = z.string().min(1).parse(options.ownerId)
   if (!isAbsolute(options.root)) throw new ArchiveError("unsafe-root")
   await mkdir(options.root, { recursive: true, mode: 0o700 })
@@ -28,7 +33,7 @@ export async function acceptUpload(body: ReadableStream<Uint8Array>, options: Up
   const directory = await mkdtemp(join(options.root, "import-"))
   let accepted = false
   try {
-    await using original = await open(join(directory, "original.epub"), "wx+", 0o600)
+    await using original = await open(join(directory, `original.${format}`), "wx+", 0o600)
     const hash = createHash("sha256")
     const reader = body.getReader()
     let bytes = 0
@@ -41,7 +46,7 @@ export async function acceptUpload(body: ReadableStream<Uint8Array>, options: Up
           break
         }
         bytes += result.value.byteLength
-        if (bytes > limits.compressedBytes) throw new ArchiveError("limit-exceeded")
+        if (bytes > byteLimit) throw new ArchiveError("limit-exceeded")
         hash.update(result.value)
         await original.writeFile(result.value)
       }
@@ -53,12 +58,28 @@ export async function acceptUpload(body: ReadableStream<Uint8Array>, options: Up
       }
     }
     await original.sync()
-    const inspected = await inspectZip(original, { bytes, limits })
+    const archiveLimits =
+      format === "docx"
+        ? {
+            compressedBytes: byteLimit,
+            decompressedBytes: Math.min(
+              limits.decompressedBytes,
+              DOCUMENT_LIMITS.docx.decompressedBytes,
+            ),
+            entries: Math.min(limits.entries, DOCUMENT_LIMITS.docx.entries),
+            entryBytes: Math.min(limits.entryBytes, DOCUMENT_LIMITS.docx.entryBytes),
+          }
+        : limits
+    const inspected =
+      format === "epub" || format === "docx"
+        ? await inspectZip(original, { bytes, limits: archiveLimits, format })
+        : { entries: 0, decompressedBytes: bytes }
     const receipt = {
       id: basename(directory),
       state: "queued" as const,
       sha256: hash.digest("hex"),
       bytes,
+      format,
       ...inspected,
     }
     await using queued = await open(join(directory, ".queued.json"), "wx", 0o600)

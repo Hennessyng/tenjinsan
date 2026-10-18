@@ -1,16 +1,19 @@
 import type { ReactElement } from "react"
 import { useEffect, useRef, useState } from "react"
+import { useLanguage } from "../i18n/LanguageProvider.tsx"
 import { captureEditSave } from "../library/useUnsavedEdits.ts"
 import { SourceRequestError, sourceCommand, sourceRequest } from "../source-viewer/client.ts"
 import { SourceFrame } from "../source-viewer/SourceRoutes.tsx"
 import type { Evidence, EvidenceAction } from "./client.ts"
 import { EvidenceState, LatestLesson } from "./client.ts"
+import { evidenceStatus } from "./copy.ts"
 import { EvidenceReviewControls } from "./EvidenceReviewControls.tsx"
 import { EvidenceSources } from "./EvidenceSources.tsx"
 import { EvidenceValues } from "./EvidenceValues.tsx"
 import "./review-room.css"
 
 export function EvidenceRoutes(): ReactElement {
+  const { t } = useLanguage()
   const [, , study, lesson] = window.location.pathname.split("/")
   const endpoint = `/api/evidence/${encodeURIComponent(study ?? "")}/${encodeURIComponent(lesson ?? "")}`
   const [state, setState] = useState<Evidence | null>(null)
@@ -76,12 +79,10 @@ export function EvidenceRoutes(): ReactElement {
     return (
       <SourceFrame>
         {error ? (
-          <p role="alert">
-            This lesson is outdated or unavailable. Review the current approved outline and lesson.
-          </p>
+          <p role="alert">{t("evidence.unavailable")}</p>
         ) : (
           <p className="workspace-loading" role="status">
-            Loading evidence review
+            {t("evidence.loading")}
           </p>
         )}
       </SourceFrame>
@@ -91,66 +92,43 @@ export function EvidenceRoutes(): ReactElement {
   return (
     <SourceFrame>
       <section className="setup evidence evidence-review">
-        <p className="eyebrow">REVIEW / BEFORE PUBLICATION</p>
-        <h1>
-          Evidence and privacy / <span lang="ja">根拠とプライバシー</span>
-        </h1>
+        <p className="eyebrow">{t("evidence.eyebrow")}</p>
+        <h1>{t("evidence.title")}</h1>
         <nav>
-          <a href={`/outlines/${draft.studyId}`}>
-            Study outline / <span lang="ja">学習の構成</span>
-          </a>
+          <a href={`/outlines/${draft.studyId}`}>{t("outline.title")}</a>
         </nav>
         {error && (
           <p ref={alert} role="alert" tabIndex={-1}>
-            Unable to proceed: stale review, invalid correction or unresolved privacy flag. /
-            確認が古いか、修正が無効か、プライバシーの指摘が残っています。
+            {t("evidence.error")}
           </p>
         )}
         <p className="review-stamp" role="status">
           {draft.keepPrivate
-            ? "Kept private; publication blocked."
+            ? t("evidence.state.private")
             : view.ready
-              ? "Ready for later publication approval; not published."
-              : "Review required; publication blocked."}
+              ? t("evidence.state.ready")
+              : t("evidence.state.review")}
         </p>
         <p className="metadata">
-          Lesson: {draft.lessonRevisionId}
+          {t("evidence.lesson")} {draft.lessonRevisionId}
           <br />
-          Projection: {draft.projectionHash}
+          {t("evidence.projection")} {draft.projectionHash}
           <br />
-          Report: {view.reportHash}
+          {t("evidence.report")} {view.reportHash}
         </p>
-        <section className="review-paper" aria-label="Source integrity review">
+        <section className="review-paper" aria-label={t("evidence.sourceAria")}>
           <EvidenceSources value={state} />
         </section>
         <section className="review-paper" aria-labelledby="meaning-review-title">
-          <h2 id="meaning-review-title">
-            2. Meaning review / <span lang="ja">意味の確認</span>
-          </h2>
+          <h2 id="meaning-review-title">{t("evidence.meaning")}</h2>
           <div className="meaning-review">
-            <p className="review-caution">
-              Compare claims with source passages, retained caveats, both languages and visual
-              assumptions. Correct or remove content below, or explicitly acknowledge uncertainty.
-              Acknowledged does not mean verified. /{" "}
-              <span lang="ja">
-                主張・留保・両言語・図解の仮定を確認してください。不確実性の認識は、正しさの証明ではありません。
-              </span>
-            </p>
+            <p className="review-caution">{t("evidence.meaningNote")}</p>
             <EvidenceReviewControls semantic={draft.semantic} busy={busy} onAction={act} />
           </div>
         </section>
         <section className="review-paper" aria-labelledby="privacy-review-title">
-          <h2 id="privacy-review-title">
-            3. Privacy / <span lang="ja">プライバシー</span>
-          </h2>
-          <p>
-            Screened {privacy.reviewedPaths.length} projected values. Screening assists review; it
-            cannot guarantee anonymization. Inspect names, identifying situations and private source
-            details in both languages. Privacy flags cannot be waived. /{" "}
-            <span lang="ja">
-              自動確認は匿名化を保証しません。個人を特定する情報を両言語で確認してください。指摘は免除できません。
-            </span>
-          </p>
+          <h2 id="privacy-review-title">{t("evidence.privacy")}</h2>
+          <p>{t("evidence.privacyNote", { count: privacy.reviewedPaths.length })}</p>
           <ul>
             {privacy.findings.map((finding) => (
               <li role="alert" key={`${finding.path}-${finding.category}`}>
@@ -158,7 +136,7 @@ export function EvidenceRoutes(): ReactElement {
                 <a href="#projected-content">
                   <code>{finding.path}</code>
                 </a>{" "}
-                — remove or generalize / 削除または一般化
+                — {t("evidence.removeGeneralize")}
               </li>
             ))}
           </ul>
@@ -168,9 +146,7 @@ export function EvidenceRoutes(): ReactElement {
               void act({ action: "private-detail", text: detail })
             }}
           >
-            <label htmlFor="private-detail">
-              Known private detail or translated alias / 非公開情報・別言語での表記
-            </label>
+            <label htmlFor="private-detail">{t("evidence.privateDetail")}</label>
             <input
               id="private-detail"
               required
@@ -178,7 +154,7 @@ export function EvidenceRoutes(): ReactElement {
               onChange={(event) => setDetail(event.target.value)}
             />
             <button type="submit" disabled={busy}>
-              Add to screening
+              {t("evidence.screen")}
             </button>
           </form>
           <div className="setup-actions">
@@ -189,7 +165,7 @@ export function EvidenceRoutes(): ReactElement {
                 void act({ action: "privacy-reviewed" })
               }}
             >
-              Confirm privacy review of all projected content
+              {t("evidence.confirmPrivacy")}
             </button>
             <button
               type="button"
@@ -198,13 +174,10 @@ export function EvidenceRoutes(): ReactElement {
                 void act({ action: "keep-private" })
               }}
             >
-              Keep private / 非公開のままにする
+              {t("evidence.keepPrivate")}
             </button>
           </div>
-          <p>
-            Privacy review: {privacy.status}. Every content change requires a new review. /{" "}
-            <span lang="ja">内容の変更後は再確認が必要です。</span>
-          </p>
+          <p>{t("evidence.privacyStatus", { status: evidenceStatus(privacy.status, t) })}</p>
         </section>
         <EvidenceValues
           value={state}

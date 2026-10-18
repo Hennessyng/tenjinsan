@@ -15,7 +15,7 @@ if (process.env["HOSTED_ROLE"] === "worker") {
     "http://127.0.0.1:8787/health",
     {
       timeout: 3_000,
-      headers: { host: new URL(process.env["AUTH_BASE_URL"] ?? "").host },
+      headers: { host: new URL(process.env["TRUSTED_ORIGINS"]?.split(",")[0] ?? "").host },
     },
     (response) => {
       response.resume()

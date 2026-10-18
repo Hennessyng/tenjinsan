@@ -1,7 +1,13 @@
-import { assertNever, requiredTeachingStates, type SceneSpec } from "@reading-studio/contracts"
+import {
+  assertNever,
+  type ExportUi,
+  requiredTeachingStates,
+  type SceneSpec,
+} from "@reading-studio/contracts"
 import { html } from "hono/html"
-import { pairedLabel, pairedText } from "./primitives.ts"
+import { pairedLabel } from "./primitives.ts"
 import { spatialFigure } from "./spatial-figure.ts"
+import { fixedUi, fixedUiBlock, fixedUiText } from "./ui.ts"
 
 // Drawing coordinates follow the diagram grid in DESIGN.md, independent of viewport pixels.
 function drawing(scene: SceneSpec, count: number) {
@@ -54,9 +60,9 @@ function drawing(scene: SceneSpec, count: number) {
   }
 }
 
-export function sceneFigure(scene: SceneSpec, staticOnly = false) {
+export function sceneFigure(scene: SceneSpec, staticOnly = false, ui: ExportUi = "en+ja") {
   if (scene.kind === "perspective-3d" || scene.kind === "spatial-layers-3d")
-    return spatialFigure(scene, staticOnly)
+    return spatialFigure(scene, staticOnly, ui)
   const states = requiredTeachingStates({ ...scene, practice: [] })
   const image = drawing(scene, states.length)
   if (!image) return html``
@@ -66,22 +72,22 @@ export function sceneFigure(scene: SceneSpec, staticOnly = false) {
       ${image.marks}
     </svg>
     <figcaption id="diagram-caption-${scene.id}">
-      ${pairedText({ en: "Illustrative model. Numbers refer to the explanations below.", ja: "説明のためのモデルです。番号は下の解説に対応します。" })}
-      ${scene.kind === "annotated-process" && scene.loop ? html`<div data-loop-caption>${pairedText({ en: "The return arrow connects the last step to the first: the process can repeat.", ja: "戻り矢印は最後の段階と最初の段階を結び、このプロセスを繰り返せることを示します。" })}</div>` : html``}
+       <p>${fixedUiBlock("reader.scene.note", ui)}</p>
+       ${scene.kind === "annotated-process" && scene.loop ? html`<div data-loop-caption><p>${fixedUiBlock("reader.scene.loop", ui)}</p></div>` : html``}
       <ol class="scene-legend">${states.map((state) => html`<li><a class="pair-label" href="#state-${state.id}">${pairedLabel(state.label)}</a></li>`)}</ol>
     </figcaption>
     ${
       staticOnly
         ? html``
-        : html`<fieldset data-scene-controls hidden><legend><span lang="en">Explore the scene</span> / <span lang="ja">図解を操作</span></legend>
+        : html`<fieldset data-scene-controls hidden><legend>${fixedUi("reader.scene.explore", ui)}</legend>
       <div class="scene-actions">
-        <button type="button" data-play><span lang="en">Play</span> / <span lang="ja">再生</span></button>
-        <button type="button" data-pause><span lang="en">Pause</span> / <span lang="ja">一時停止</span></button>
-        <button type="button" data-replay><span lang="en">Replay</span> / <span lang="ja">最初から再生</span></button>
+         <button type="button" data-play>${fixedUi("reader.scene.play", ui)}</button>
+         <button type="button" data-pause>${fixedUi("reader.scene.pause", ui)}</button>
+         <button type="button" data-replay>${fixedUi("reader.scene.replay", ui)}</button>
       </div>
-      <label class="scene-seek"><span lang="en">Scene time (milliseconds)</span> / <span lang="ja">図解の時間（ミリ秒）</span>
-        <input type="range" min="0" max="${states.length * 1200}" step="1" value="0" data-seek></label>
-      <p data-playback-status role="status"></p>
+       <label class="scene-seek">${fixedUi("reader.scene.time", ui)}
+         <input type="range" min="0" max="${states.length * 1200}" step="1" value="0" data-seek data-value-text-template="${fixedUiText("reader.scene.valueText", ui)}"></label>
+       <p data-playback-status role="status" data-static-label="${fixedUiText("reader.scene.static", ui)}" data-playing-label="${fixedUiText("reader.scene.playing", ui)}" data-paused-label="${fixedUiText("reader.scene.paused", ui)}"></p>
       <div class="scene-actions">${states.map((state, index) => html`<button type="button" data-select-state="${state.id}" aria-pressed="false">${index + 1}. <span class="pair-label">${pairedLabel(state.label)}</span></button>`)}</div>
     </fieldset>`
     }

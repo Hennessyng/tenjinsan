@@ -1,18 +1,14 @@
 import type { ReactElement } from "react"
+import { useLanguage } from "../i18n/LanguageProvider.tsx"
 import type { Evidence } from "./client.ts"
 
 export function EvidenceSources({ value }: { readonly value: Evidence }): ReactElement {
+  const { t } = useLanguage()
   const { mechanical } = value.view
   return (
     <>
-      <h2>
-        1. Source integrity / <span lang="ja">出典の整合性</span>
-      </h2>
-      <p>
-        {mechanical.length
-          ? "Broken locators or unsupported quotations cannot be acknowledged away."
-          : "Locators and quotations match stored text. This does not establish semantic support."}
-      </p>
+      <h2>{t("evidence.sourceTitle")}</h2>
+      <p>{mechanical.length ? t("evidence.sourceBroken") : t("evidence.sourceMatched")}</p>
       <ul>
         {mechanical.map((flag) => (
           <li role="alert" key={`${flag.category}-${flag.path}`}>
@@ -21,7 +17,7 @@ export function EvidenceSources({ value }: { readonly value: Evidence }): ReactE
         ))}
       </ul>
       <details>
-        <summary>Compare original source passages / 原文と比較</summary>
+        <summary>{t("evidence.compare")}</summary>
         {value.references.map((reference) => (
           <div key={reference.href}>
             <p>

@@ -14,7 +14,8 @@ import { ContractBoundaryError, type Storage } from "@reading-studio/storage"
 import {
   evidencePage,
   evidencePreview,
-  readerDocument,
+  privateReaderDocument,
+  privateReaderRuntime,
   sceneRuntime,
   spatialRuntime,
 } from "@reading-studio/studio/evidence"
@@ -53,6 +54,7 @@ export function configureEvidence(app: Hono<AppEnvironment>, storage: Storage) {
       : context.text("No generated lesson to review / 確認する本文がありません", 404)
   })
   const handle = async (context: Context<AppEnvironment>) => {
+    const locale = context.req.query("lang") === "ja" ? "ja" : "en"
     const json = context.req.path.startsWith("/api/")
     if (json) {
       context.header("Cache-Control", "private, no-store")
@@ -105,17 +107,20 @@ export function configureEvidence(app: Hono<AppEnvironment>, storage: Storage) {
       if (context.req.method === "GET" && page === "read") {
         const hash = createHash("sha256").update(sceneRuntime).digest("base64")
         const spatialHash = createHash("sha256").update(spatialRuntime).digest("base64")
+        const languageHash = createHash("sha256").update(privateReaderRuntime).digest("base64")
         context.header(
           "Content-Security-Policy",
-          `default-src 'none'; script-src 'sha256-${hash}' 'sha256-${spatialHash}'; style-src 'unsafe-inline'; base-uri 'none'; form-action 'self'; frame-ancestors 'none'`,
+          `default-src 'none'; script-src 'sha256-${hash}' 'sha256-${spatialHash}' 'sha256-${languageHash}'; style-src 'unsafe-inline'; base-uri 'none'; form-action 'self'; frame-ancestors 'none'`,
         )
-        return context.html(readerDocument(view.draft.projection))
+        return context.html(privateReaderDocument(view.draft.projection, locale))
       }
       if (context.req.method === "GET")
         return json && page === undefined
           ? context.json(state(view))
           : context.html(
-              page === "preview" ? evidencePreview(view) : evidencePage(view, false, references),
+              page === "preview"
+                ? evidencePreview(view, locale)
+                : evidencePage(view, false, { references, locale }),
             )
       if (page !== undefined)
         return json
@@ -127,7 +132,7 @@ export function configureEvidence(app: Hono<AppEnvironment>, storage: Storage) {
       if (!action.success || action.data.action === "correct")
         return json
           ? context.json({ error: "Invalid review action" }, 422)
-          : context.html(evidencePage(view, true, references), 422)
+          : context.html(evidencePage(view, true, { references, locale }), 422)
       try {
         changeEvidenceReview(storage, lesson.id, action.data)
       } catch (error) {
@@ -135,14 +140,14 @@ export function configureEvidence(app: Hono<AppEnvironment>, storage: Storage) {
           return json
             ? context.json({ error: "Stale review or unresolved finding" }, 409)
             : context.html(
-                evidencePage(openEvidenceReview(storage, lesson.id), true, references),
+                evidencePage(openEvidenceReview(storage, lesson.id), true, { references, locale }),
                 409,
               )
         throw error
       }
       return json
         ? context.json(state(openEvidenceReview(storage, lesson.id)))
-        : context.redirect(`/evidence/${study.data}/${lesson.id}`, 303)
+        : context.redirect(`/evidence/${study.data}/${lesson.id}?lang=${locale}`, 303)
     } catch (error) {
       if (error instanceof ContractBoundaryError)
         return json

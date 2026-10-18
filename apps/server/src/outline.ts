@@ -87,6 +87,7 @@ export function configureOutline(
     await next()
   })
   const handle = async (context: Context<AppEnvironment>) => {
+    const locale = context.req.query("lang") === "ja" ? "ja" : "en"
     const json = context.req.path.startsWith("/api/")
     if (json) context.header("Cache-Control", "private, no-store")
     const id = StudyId.safeParse(context.req.param("study"))
@@ -107,6 +108,7 @@ export function configureOutline(
         fixture: provider !== undefined,
         providerReady: onGenerate !== undefined,
         error,
+        locale,
       })
     const state = () => ({
       view: outlines.current(studyId),
@@ -225,7 +227,9 @@ export function configureOutline(
       if (error instanceof ContractBoundaryError || error instanceof z.ZodError) return conflict()
       throw error
     }
-    return json ? context.json(state()) : context.redirect(`/outlines/${studyId}`, 303)
+    return json
+      ? context.json(state())
+      : context.redirect(`/outlines/${studyId}?lang=${locale}`, 303)
   }
   app.on(["GET", "POST"], "/outlines/:study", handle)
   app.on(["GET", "POST"], "/api/outlines/:study", handle)

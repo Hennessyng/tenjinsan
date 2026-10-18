@@ -69,10 +69,15 @@ async function makeTemporaryWorkspace(provisionOwner = true, port = 8787): Promi
     .replace("DATABASE_PATH=data/studio.sqlite", `DATABASE_PATH=${databasePath}`)
     .replace("SERVER_PORT=8787", `SERVER_PORT=${port}`)
   await writeFile(join(temporaryRoot, ".env"), environmentFile)
-  await cp(join(workspaceRoot, "apps/server"), join(temporaryRoot, "apps/server"), {
+  await mkdir(join(temporaryRoot, "apps/server"), { recursive: true })
+  await cp(join(workspaceRoot, "apps/server/src"), join(temporaryRoot, "apps/server/src"), {
     recursive: true,
-    filter: (source) => !source.endsWith("node_modules") && !source.endsWith(".tsbuildinfo"),
+    filter: (source) => !source.endsWith(".tsbuildinfo"),
   })
+  await cp(
+    join(workspaceRoot, "apps/server/package.json"),
+    join(temporaryRoot, "apps/server/package.json"),
+  )
   await symlink(
     join(workspaceRoot, "apps/server/node_modules"),
     join(temporaryRoot, "apps/server/node_modules"),
@@ -191,21 +196,27 @@ async function runDocumentedServer(
 }
 
 async function runUnprovisionedServer(): Promise<string> {
-  const temporaryRoot = await makeTemporaryWorkspace(false, await getAvailablePort())
-  const child = spawn("bun", ["run", "--cwd", "apps/server", "start"], {
-    cwd: temporaryRoot,
-    env: process.env,
-    stdio: ["ignore", "pipe", "pipe"] as const,
-  })
-  let output = ""
-  child.stdout.on("data", (chunk: Buffer) => {
-    output += chunk.toString("utf8")
-  })
-  child.stderr.on("data", (chunk: Buffer) => {
-    output += chunk.toString("utf8")
-  })
-  await once(child, "exit", { signal: AbortSignal.timeout(10_000) })
-  return output
+  const port = await getAvailablePort()
+  const temporaryRoot = await makeTemporaryWorkspace(false, port)
+  const child = spawn(
+    process.execPath,
+    ["--env-file-if-exists=.env", "--experimental-transform-types", "apps/server/src/index.ts"],
+    {
+      cwd: temporaryRoot,
+      detached: true,
+      env: process.env,
+      stdio: ["ignore", "pipe", "pipe"] as const,
+    },
+  )
+  try {
+    await waitForReadiness(child)
+    const response = await fetch(`http://127.0.0.1:${port}/`)
+    expect(response.status).toBe(200)
+    expect(response.headers.get("set-cookie")).toBeNull()
+    return await response.text()
+  } finally {
+    await stopServer(child)
+  }
 }
 
 describe("documented server startup", () => {
@@ -235,10 +246,10 @@ describe("documented server startup", () => {
     expect(result.body).toEqual({ status: "ok" })
   }, 15_000)
 
-  it("exits before listening when the owner has not been provisioned", async () => {
+  it("opens a fresh unprovisioned library without a password or session", async () => {
     const output = await runUnprovisionedServer()
 
-    expect(output).toContain("OwnerNotProvisionedError")
-    expect(output).not.toContain("Reading studio API listening")
+    expect(output).toContain('id="root"')
+    expect(output).not.toContain('name="password"')
   })
 })

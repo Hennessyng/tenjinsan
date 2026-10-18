@@ -2,6 +2,7 @@ import type Database from "better-sqlite3"
 import { and, eq } from "drizzle-orm"
 import type { StorageDatabase } from "./database.ts"
 import { openDatabase } from "./database.ts"
+import { ensureLibraryOwner } from "./library-owner.ts"
 import {
   holdMaintenanceProcess,
   registerMaintenanceInstance,
@@ -53,6 +54,10 @@ export class AuthStorage {
 
   ownerCount(): number {
     return this.countRows("owners")
+  }
+
+  ensureLibraryOwner(): string {
+    return ensureLibraryOwner(this.sqlite)
   }
 
   authUserCount(): number {

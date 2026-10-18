@@ -1,10 +1,19 @@
-import { createContext, type ReactElement, useEffect, useMemo, useRef, useState } from "react"
-import { AuthRequired, useAuthenticationRequired } from "./AuthRequired.tsx"
+import {
+  createContext,
+  Fragment,
+  type ReactElement,
+  useEffect,
+  useMemo,
+  useRef,
+  useState,
+} from "react"
+import { useLanguage } from "../i18n/LanguageProvider.tsx"
+import { LanguageSwitch } from "../i18n/LanguageSwitch.tsx"
 import { SelectedLibraryStudy, useLibraryContext } from "./client.ts"
 import { LibraryDesk, LibraryRoute } from "./LibraryDesk.tsx"
 import { LibraryHall } from "./LibraryHall.tsx"
 import { navigateRoom } from "./navigation.ts"
-import { type RoomId, roomAt } from "./room-map.ts"
+import { type RoomId, roomAt, roomText } from "./room-map.ts"
 import { requestDeparture, UnsavedDepartureDialog, useUnsavedEdits } from "./useUnsavedEdits.ts"
 
 export const LibraryFrameContext = createContext(false)
@@ -14,11 +23,11 @@ export function LibraryShell({
 }: {
   readonly children: () => ReactElement
 }): ReactElement {
+  const { locale, t, resetNonce } = useLanguage()
   useUnsavedEdits()
-  const authenticationRequired = useAuthenticationRequired()
   const [url, setUrl] = useState(() => new URL(location.href))
   const [choice, setChoice] = useState("")
-  const [error, setError] = useState("")
+  const [selectionFailed, setSelectionFailed] = useState(false)
   const [refresh, setRefresh] = useState(0)
   const [busy, setBusy] = useState(false)
   const {
@@ -26,7 +35,20 @@ export function LibraryShell({
     ready,
     selectStudy,
     error: loadError,
-  } = useLibraryContext(`${url.href}:${refresh}`, !authenticationRequired)
+  } = useLibraryContext(`${url.href}:${refresh}`)
+  const loadMessage = (() => {
+    if (loadError === null) return ""
+    switch (loadError.kind) {
+      case "status":
+        return t("library.unavailable.status", { status: loadError.status })
+      case "retry":
+        return t("library.unavailable.retry")
+      default: {
+        const unreachable: never = loadError
+        throw new TypeError(`Unexpected library load error: ${String(unreachable)}`)
+      }
+    }
+  })()
   const opener = useRef<HTMLElement | null>(null)
   const route = useRef<HTMLElement>(null)
   useEffect(() => {
@@ -38,7 +60,7 @@ export function LibraryShell({
   useEffect(() => {
     if (persistedSelectedStudyId === undefined) return
     setChoice(persistedSelectedStudyId ?? "")
-    setError("")
+    setSelectionFailed(false)
   }, [persistedSelectedStudyId])
   const room = roomAt(url)
   const selected = context?.studies.find((study) => study.id === context.selectedStudyId) ?? null
@@ -59,18 +81,18 @@ export function LibraryShell({
   )
   const onOpen = (id: RoomId) => {
     opener.current = document.activeElement instanceof HTMLElement ? document.activeElement : null
-    navigateRoom(id, study)
+    navigateRoom(id, study, locale)
   }
   const onHall = () => {
-    navigateRoom(null, study)
+    navigateRoom(null, study, locale)
     requestAnimationFrame(() => {
       if (opener.current?.isConnected) opener.current.focus()
       else route.current?.querySelector<HTMLButtonElement>("button")?.focus()
     })
   }
-  if (authenticationRequired) return <AuthRequired />
   const Container = room ? "div" : "main"
   const Identity = room ? "p" : "h1"
+  const failure = selectionFailed ? t("shell.studySelect.failed") : loadMessage
   const selection = (
     <div className="study-selection">
       <form
@@ -79,27 +101,27 @@ export function LibraryShell({
           if (!choice) return
           requestDeparture(async () => {
             setBusy(true)
-            setError("")
+            setSelectionFailed(false)
             try {
               await selectStudy(choice)
               setRefresh((value) => value + 1)
-            } catch (failure) {
-              if (!(failure instanceof Error)) throw failure
-              setError("Study selection failed. Please retry. / 読書を選択できませんでした。")
+            } catch (failureCause) {
+              if (!(failureCause instanceof Error)) throw failureCause
+              setSelectionFailed(true)
             } finally {
               setBusy(false)
             }
           })
         }}
       >
-        <label htmlFor="selected-study">Selected study / 選択した読書</label>
+        <label htmlFor="selected-study">{t("shell.studySelect.label")}</label>
         <select
           id="selected-study"
           value={choice}
           onChange={(event) => setChoice(event.currentTarget.value)}
           disabled={busy}
         >
-          <option value="">Choose a study / 読書を選んでください</option>
+          <option value="">{t("shell.studySelect.placeholder")}</option>
           {context?.studies.map((item) => (
             <option key={item.id} value={item.id}>
               {item.title} · {item.id}
@@ -107,22 +129,22 @@ export function LibraryShell({
           ))}
         </select>
         <button className="btn" type="submit" disabled={busy || !choice}>
-          Select study / 読書を選ぶ
+          {t("shell.studySelect.submit")}
         </button>
       </form>
       <Identity className="identity">
         {selected
           ? `${selected.title} · ${selected.id}`
           : direct
-            ? `Inspecting linked study: ${direct.title} · ${direct.id}`
-            : "No selected study / 読書は未選択です"}
+            ? t("shell.studySelect.linked", { title: direct.title, id: direct.id })
+            : t("shell.studySelect.none")}
       </Identity>
-      {context?.studies.length === 0 && <a href="/imports">Bring a book in / 本を受け入れる</a>}
-      {(error || loadError) && (
+      {context?.studies.length === 0 && <a href="/imports">{t("shell.studySelect.bringIn")}</a>}
+      {failure && (
         <p role="alert">
-          {error || loadError}{" "}
+          {failure}{" "}
           <button type="button" onClick={() => setRefresh((value) => value + 1)}>
-            Retry / 再試行
+            {t("shell.retry")}
           </button>
         </p>
       )}
@@ -130,9 +152,16 @@ export function LibraryShell({
   )
   return (
     <Container id="library" className="library" data-mode={room ? "desk" : "hall"} tabIndex={-1}>
-      <UnsavedDepartureDialog />
+      <UnsavedDepartureDialog
+        text={{
+          title: t("departure.title"),
+          body: t("departure.body"),
+          stay: t("departure.stay"),
+          leave: t("departure.leave"),
+        }}
+      />
       <a className="skip-link" href={room ? "#desk-title" : "#library"}>
-        Skip to the reading route / 読書ルートへ
+        {t("shell.skipLink")}
       </a>
       <header className="hud-top">
         <a
@@ -142,7 +171,7 @@ export function LibraryShell({
             event.preventDefault()
             onHall()
           }}
-          aria-label="Back to the hall / ホールへ戻る"
+          aria-label={t("shell.backToHall")}
         >
           <svg className="brand-mark" aria-hidden="true" viewBox="-50 -50 100 100">
             {[0, 72, 144, 216, 288].map((angle) => (
@@ -151,52 +180,18 @@ export function LibraryShell({
             <circle r="4" />
           </svg>
           <span>
-            TENJINSAN <small lang="ja">問いからひらく読書</small>
+            TENJINSAN <small>{t("shell.tagline")}</small>
           </span>
         </a>
-        <p className="where">{room ? room.en : "Library hall / 図書室の広間"}</p>
-        <div className="hud-actions">
-          <button
-            className="btn btn-quiet"
-            type="button"
-            disabled={busy}
-            onClick={async () => {
-              setBusy(true)
-              setError("")
-              try {
-                const response = await fetch("/api/auth/sign-out", {
-                  method: "POST",
-                  credentials: "same-origin",
-                  headers: { "Content-Type": "application/json" },
-                  body: "{}",
-                })
-                if (!response.ok) {
-                  setError("Log out failed. Please try again. / ログアウトに失敗しました。")
-                  return
-                }
-                document.cookie = `tj_entry=; Path=/; Max-Age=0; SameSite=Strict${location.protocol === "https:" ? "; Secure" : ""}`
-                location.assign("/login")
-              } catch (failure) {
-                if (!(failure instanceof TypeError)) throw failure
-                setError("Could not connect. Please retry. / 接続できませんでした。")
-              } finally {
-                setBusy(false)
-              }
-            }}
-          >
-            Log out
-          </button>
-        </div>
+        <p className="where">{room ? t(roomText[room.id].name) : t("shell.where.hall")}</p>
+        <LanguageSwitch />
       </header>
       <LibraryRoute room={room} onOpen={onOpen} routeRef={route} />
       <LibraryHall room={room} onOpen={onOpen} />
       {!room && selection}
       {!room && (
         <div className="hud-bottom">
-          <p className="hint">
-            Move the pointer to look around. Choose a desk to sit down.
-            <span lang="ja">ポインタで見回し、机を選んで席に着きます。</span>
-          </p>
+          <p className="hint">{t("shell.hint")}</p>
         </div>
       )}
       {room && (
@@ -211,29 +206,25 @@ export function LibraryShell({
         >
           {conflict ? (
             <div className="paper">
-              <p>
-                The link and selected study differ. Choose the linked study explicitly before
-                continuing. / リンクと選択した読書が異なります。
-              </p>
+              <p>{t("shell.conflict.body")}</p>
               <button className="btn" type="button" onClick={() => setChoice(direct?.id ?? "")}>
-                Choose linked study / リンク先の読書を選ぶ
+                {t("shell.conflict.choose")}
               </button>
             </div>
           ) : url.pathname === "/" ? (
             <div className="paper">
-              <p>
-                Select a study to continue in this room. /
-                この部屋で進めるには読書を選んでください。
-              </p>
+              <p>{t("shell.selectPrompt")}</p>
             </div>
           ) : ready ? (
             <LibraryFrameContext value={true}>
-              <SelectedLibraryStudy value={study}>{children()}</SelectedLibraryStudy>
+              <SelectedLibraryStudy value={study}>
+                <Fragment key={resetNonce}>{children()}</Fragment>
+              </SelectedLibraryStudy>
             </LibraryFrameContext>
           ) : loadError ? (
-            <p role="alert">{loadError}</p>
+            <p role="alert">{loadMessage}</p>
           ) : (
-            <p role="status">Checking the current room context / 現在の読書を確認しています</p>
+            <p role="status">{t("shell.checking")}</p>
           )}
         </LibraryDesk>
       )}

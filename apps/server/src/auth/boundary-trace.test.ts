@@ -37,20 +37,15 @@ describe("safe early boundary traces", () => {
     expect(logger.mock.calls.length).toBe(1)
   })
 
-  it("preserves non-Error throw propagation while recording only a safe category", async () => {
+  it("does not execute obsolete auth handlers that would throw private values", async () => {
     // Given
     const thrown = { private: canary }
     const { app, events } = harness(async () => {
       throw thrown
     })
     // When / Then: no response is fabricated for a throwable Hono itself does not handle.
-    await expect(app.request(formRequest())).rejects.toBe(thrown)
-    expect(events).toHaveLength(1)
-    expect(events[0]).toMatchObject({
-      event: "auth.login.exception",
-      category: "internal",
-      status: null,
-    })
+    expect((await app.request(formRequest())).status).toBe(303)
+    expect(events).toHaveLength(0)
     expect(JSON.stringify(events)).not.toContain(canary)
   })
 
@@ -61,7 +56,7 @@ describe("safe early boundary traces", () => {
       throw thrown
     })
     // When / Then
-    await expect(app.request(`${origin}/api/auth/get-session`)).rejects.toBe(thrown)
+    expect((await app.request(`${origin}/api/auth/get-session`)).status).toBe(410)
     expect(events).toHaveLength(0)
   })
 })

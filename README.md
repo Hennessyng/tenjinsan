@@ -1,7 +1,7 @@
 # Question-led Reading Studio
 
-A single-owner, private reading workspace for EPUB study. The owner imports a supported
-EPUB, chooses reading questions and source scope, reviews a brief and outline, approves
+A single-library reading workspace for document study. The reader imports a supported
+EPUB, DOCX, UTF-8 TXT or selectable-text PDF, chooses reading questions and source scope, reviews a brief and outline, approves
 privacy and publication, then downloads bilingual HTML and PDF. Local operation and
 private Compose hosting are supported. A synthetic-fixture journey is reproducible
 without an AI account; that does **not** establish live provider success or authorize
@@ -23,11 +23,14 @@ local: Vite on loopback       hosted: Caddy HTTPS -> internal API
   and persistent volumes. A local-CA Compose verification needs no public domain;
   it is not proof of public certificate issuance.
 
-Both modes start with exactly one owner, provisioned from a real interactive terminal.
-There is no public signup. Before first use, protect the local `.env` or hosted
-`deploy/.env` and provide a random `AUTH_SECRET` of at least 32 characters. Never
-pass a password, passphrase, or API key as a command argument. Any non-empty
-owner password is accepted, up to 128 characters.
+**There is no application authentication, locally or when hosted. Anyone who can
+reach the server can access and change the library, including requesting permitted
+provider work using configured server credentials.** Host/origin checks are not
+user authentication. Restrict network reachability externally if that exposure is
+not acceptable. Existing library ownership and all content remain intact; fresh
+setup creates an internal owner namespace automatically, without email/password.
+Existing user, credential and session tables are retained, but sessions no longer
+grant or restrict access. Never pass provider keys or backup passphrases in argv.
 
 ## Local quick start
 
@@ -37,13 +40,11 @@ From the repository root, with pinned Node and Bun on PATH:
 bun install --frozen-lockfile
 cp .env.example .env
 chmod 600 .env
-# Edit .env privately: set AUTH_SECRET; keep the loopback origins and ports aligned.
-bun run owner
+# Keep loopback trusted origins and ports aligned; provider keys remain private.
 bun run start:local
 ```
 
-At the owner prompt choose `p`, then type email, name, password and confirmation.
-Open `http://127.0.0.1:8787/login` and sign in. API health is
+Open `http://127.0.0.1:8787/` directly. No owner provisioning is required. API health is
 `http://127.0.0.1:8787/health`; the separate Vite studio is
 `http://127.0.0.1:4173`. Wait for the `local-ready` event before using either
 surface. `Ctrl-C` stops the launcher and its children; the SQLite database and
@@ -71,6 +72,13 @@ offline replacement for live AI. For the exact browser command see
 [local setup](docs/LOCAL.md). Screenshot and receipt trees under `.omo/evidence`
 are local QA output, not part of this repository.
 
+Authentication-removal verification is recorded separately: anonymous local/hosted
+origin access, password-free setup, preserved data and retained safety boundaries.
+Historical login/session browser and deployment cases describe the withdrawn access
+model; their old receipts are not proof of this change. Updated anonymous browser
+and hosted-container QA remain required before deployment; do not run credential
+recovery workflows as part of the new access journey.
+
 The normal-deployment failure matrix is `tests/e2e/task-31-normal-matrix.spec.ts`.
 It drives the actual API, worker, Chromium owner UI and loopback AI SDK wire in
 both modes without `STUDIO_SYNTHETIC_TEST_MODE`. Run it with
@@ -88,6 +96,8 @@ both modes without `STUDIO_SYNTHETIC_TEST_MODE`. Run it with
   session migration.
 - [EPUB and output limits](docs/OUTPUT-LIMITS.md): selective coverage, edition
   anchors, file:// HTML, static fallback and PDF limits.
+- [Document import and transmission coverage](docs/MULTIFORMAT-IMPORT.md): format
+  limits, omissions, original-file unavailability and reviewed range receipts.
 - [Bundled licenses](docs/LICENSES.md) and [developer checks](docs/DEVELOPMENT.md).
 
 There is no automatic sync, public account service, forensic erasure guarantee,

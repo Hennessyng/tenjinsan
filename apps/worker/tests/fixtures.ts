@@ -1,7 +1,13 @@
 import { mkdtempSync } from "node:fs"
 import { tmpdir } from "node:os"
 import { join } from "node:path"
-import { AnalysisCacheInput, analysisCacheKey, Digest, Job } from "@reading-studio/contracts"
+import {
+  AnalysisCacheInput,
+  analysisCacheKey,
+  Digest,
+  Job,
+  type NormalizationRevision,
+} from "@reading-studio/contracts"
 import { openStorage, type Storage } from "@reading-studio/storage"
 import { completeGraphFixtures } from "@reading-studio/storage/test-support"
 
@@ -25,6 +31,7 @@ export function seedQueuedJob(input?: {
   readonly provider?: "openai" | "anthropic" | "openrouter"
   readonly maxSchemaRepairs?: number
   readonly maxTransientRetries?: number
+  readonly document?: NormalizationRevision
 }): JobStorageFixture {
   const directory = mkdtempSync(join(tmpdir(), "reading-studio-jobs-"))
   const databasePath = join(directory, "studio.sqlite")
@@ -39,7 +46,10 @@ export function seedQueuedJob(input?: {
   storage.sources.createInstallation({ id: "installation-1", ownerId: "owner-1" })
   storage.sources.appendEdition(fixture.edition)
   storage.sources.createStudy({ id: "study-1", ownerId: "owner-1", editionId: "edition-1" })
-  storage.sources.appendNormalization({ record: fixture.normalization, parentRevisionId: null })
+  storage.sources.appendNormalization({
+    record: input?.document ?? fixture.normalization,
+    parentRevisionId: null,
+  })
   storage.sources.appendSetup({
     record: {
       ...fixture.setup,
@@ -47,27 +57,50 @@ export function seedQueuedJob(input?: {
         ...fixture.setup.analysis,
         provider: input?.provider ?? fixture.setup.analysis.provider,
         model: input?.model ?? fixture.setup.analysis.model,
+        ...(input?.document
+          ? {
+              scope: {
+                kind: "partial",
+                selected: input.document.resources.flatMap((resource) =>
+                  resource.status === "included"
+                    ? [
+                        {
+                          resourcePath: resource.path,
+                          blockIds: resource.blocks.map((block) => block.id),
+                        },
+                      ]
+                    : [],
+                ),
+                exclusions: [],
+              },
+            }
+          : {}),
       },
     },
     parentRevisionId: null,
   })
   storage.sources.appendGrant(fixture.grant)
-  storage.workflow.appendAnalysis({ record: analysis, parentRevisionId: null })
-  storage.workflow.appendQuestion({ record: fixture.question, parentRevisionId: null })
-  storage.workflow.appendAnswer({
-    id: "input-1",
-    studyId: "study-1",
-    parentRevisionId: null,
-    submission: fixture.submission,
-  })
-  storage.workflow.appendBrief({ record: fixture.brief, parentRevisionId: null })
-  storage.workflow.appendOutline({ record: fixture.outline, parentRevisionId: null })
-  storage.workflow.appendLesson({ record: fixture.lesson, parentRevisionId: null })
-  storage.workflow.appendEvidenceReport(fixture.evidenceReport)
-  storage.workflow.appendPrivacyReview({ record: fixture.privacyReview, parentRevisionId: null })
-  storage.workflow.appendPublication({ record: fixture.publication, parentRevisionId: null })
+  if (!input?.document) {
+    storage.workflow.appendAnalysis({ record: analysis, parentRevisionId: null })
+    storage.workflow.appendQuestion({ record: fixture.question, parentRevisionId: null })
+    storage.workflow.appendAnswer({
+      id: "input-1",
+      studyId: "study-1",
+      parentRevisionId: null,
+      submission: fixture.submission,
+    })
+    storage.workflow.appendBrief({ record: fixture.brief, parentRevisionId: null })
+    storage.workflow.appendOutline({ record: fixture.outline, parentRevisionId: null })
+    storage.workflow.appendLesson({ record: fixture.lesson, parentRevisionId: null })
+    storage.workflow.appendEvidenceReport(fixture.evidenceReport)
+    storage.workflow.appendPrivacyReview({ record: fixture.privacyReview, parentRevisionId: null })
+    storage.workflow.appendPublication({ record: fixture.publication, parentRevisionId: null })
+  }
   const run = {
     ...fixture.run,
+    ...(input?.document
+      ? { inputRevisionId: storage.workflow.ensureAnalysisInput(fixture.setup.id) }
+      : {}),
     budget: {
       ...fixture.run.budget,
       maxCalls: input?.maxCalls ?? 2,
@@ -79,6 +112,7 @@ export function seedQueuedJob(input?: {
   }
   const job = Job.parse({
     ...fixture.job,
+    inputRevisionId: run.inputRevisionId,
     model: input?.model ?? fixture.job.model,
     provider: input?.provider ?? fixture.job.provider,
     stage: input?.stage ?? "analysis",

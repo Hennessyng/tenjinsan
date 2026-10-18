@@ -1,8 +1,12 @@
 import type { ReactElement } from "react"
 import { useContext, useEffect, useState } from "react"
 import type { z } from "zod"
+import { useLanguage } from "../i18n/LanguageProvider.tsx"
 import { LibraryFrameContext } from "../library/LibraryShell.tsx"
 import { Library, Reader, SourceRequestError, sourceRequest } from "./client.ts"
+import { SourceDetails, sourceLocation } from "./SourceDetails.tsx"
+
+const headingTags = ["p", "h1", "h2", "h3", "h4", "h5", "h6"] as const
 
 type Load<T> =
   | { readonly kind: "loading" }
@@ -29,13 +33,8 @@ function useSource<T>(path: string, schema: z.ZodType<T>): Load<T> {
   return state
 }
 
-export function SourceFrame({
-  children,
-  language = "en",
-}: {
-  readonly children: ReactElement
-  readonly language?: "en" | "ja"
-}): ReactElement {
+export function SourceFrame({ children }: { readonly children: ReactElement }): ReactElement {
+  const { t } = useLanguage()
   const libraryFrame = useContext(LibraryFrameContext)
   if (libraryFrame)
     return (
@@ -49,67 +48,62 @@ export function SourceFrame({
     <div className="source-app">
       <header>
         <a href="/">READING STUDIO</a>
-        <a href="/sources">{language === "en" ? "Your sources" : "資料一覧"}</a>
-        <a href="/imports">{language === "en" ? "Import a book" : "本を追加"}</a>
-        <a href="/interviews">{language === "en" ? "Reading interviews" : "読書の質問"}</a>
-        <a href="/jobs">
-          Study progress / <span lang="ja">学習の進行状況</span>
-        </a>
-        <a href="#reading">{language === "en" ? "Skip to reading" : "本文へ移動"}</a>
+        <a href="/sources">{t("source.frame.sources")}</a>
+        <a href="/imports">{t("source.frame.import")}</a>
+        <a href="/interviews">{t("source.frame.interviews")}</a>
+        <a href="/jobs">{t("source.frame.progress")}</a>
+        <a href="#reading">{t("source.frame.skip")}</a>
       </header>
       <main id="reading" tabIndex={-1}>
         {children}
       </main>
-      <footer>
-        {language === "en"
-          ? "Private source reader · Text only · No external resources"
-          : "非公開の資料 · テキストのみ · 外部への接続なし"}
-      </footer>
+      <footer>{t("source.frame.footer")}</footer>
     </div>
   )
 }
 
 function MissingSource(): ReactElement {
+  const { t } = useLanguage()
   return (
     <hgroup className="workspace-error">
-      <h1>Missing reference</h1>
-      <p>This source, chapter or citation is unavailable in this edition and normalization.</p>
+      <h1>{t("source.missing.title")}</h1>
+      <p>{t("source.missing.body")}</p>
       <p>
-        <a href="/sources">Return to your sources</a>
+        <a href="/sources">{t("source.missing.back")}</a>
       </p>
     </hgroup>
   )
 }
 
 function SourceLibrary(): ReactElement {
+  const { t } = useLanguage()
   const state = useSource("/api/source-library", Library)
   if (state.kind === "loading")
     return (
       <p className="workspace-loading" role="status">
-        Loading sources
+        {t("source.library.loading")}
       </p>
     )
-  if (state.kind === "error") return <p role="alert">Sources unavailable. Please try again.</p>
+  if (state.kind === "error") return <p role="alert">{t("source.library.error")}</p>
   const { documents, pending } = state.value
   return (
     <>
-      <p className="eyebrow">PRIVATE LIBRARY</p>
-      <h1>Your sources</h1>
-      <p>
-        Normalized imports available to your studies. Uploads awaiting normalization are not ready
-        to read.
-      </p>
+      <p className="eyebrow">{t("source.library.eyebrow")}</p>
+      <h1>{t("source.library.title")}</h1>
+      <p>{t("source.library.intro")}</p>
       {pending.length > 0 && (
         <section className="intake-status-paper" aria-labelledby="pending-imports-title">
-          <h2 id="pending-imports-title">Awaiting normalization</h2>
+          <h2 id="pending-imports-title">{t("source.library.pending.title")}</h2>
           <ul className="pending-imports">
             {pending.map((receipt) => (
               <li key={receipt.id}>
                 <code>{receipt.id}</code>
-                <p>{receipt.bytes} bytes</p>
+                <p>{t("source.library.pending.bytes", { bytes: receipt.bytes })}</p>
                 <div className="pending-import-status">
-                  <strong className="intake-stamp">Queued</strong>
-                  <strong className="intake-stamp intake-stamp-waiting">Not yet readable</strong>
+                  <strong className="intake-stamp">{t("source.library.pending.queued")}</strong>
+                  <strong className="intake-stamp intake-stamp-waiting">
+                    {t("source.library.pending.notReadable")}
+                  </strong>
                 </div>
               </li>
             ))}
@@ -117,14 +111,22 @@ function SourceLibrary(): ReactElement {
         </section>
       )}
       {documents.length === 0 ? (
-        <p className="workspace-empty">No normalized sources available.</p>
+        <p className="workspace-empty">{t("source.library.empty")}</p>
       ) : (
         <ul>
           {documents.map(({ edition, normalization }) => (
             <li key={normalization.id}>
               <a href={`/sources/${normalization.id}`}>{edition.title}</a>
-              <p>Normalized · {normalization.coverage} coverage</p>
-              <small>Revision: {normalization.id}</small>
+              <p>
+                {t("source.library.coverage", {
+                  coverage: t(
+                    normalization.coverage === "complete"
+                      ? "source.coverage.complete"
+                      : "source.coverage.partial",
+                  ),
+                })}
+              </p>
+              <small>{t("source.library.revision", { id: normalization.id })}</small>
             </li>
           ))}
         </ul>
@@ -134,6 +136,7 @@ function SourceLibrary(): ReactElement {
 }
 
 function SourceReader({ revision }: { readonly revision: string }): ReactElement {
+  const { t } = useLanguage()
   const state = useSource(
     `/api/source-reader/${encodeURIComponent(revision)}${window.location.search}`,
     Reader,
@@ -146,53 +149,40 @@ function SourceReader({ revision }: { readonly revision: string }): ReactElement
   if (state.kind === "loading")
     return (
       <p className="workspace-loading" role="status">
-        Loading source
+        {t("source.reader.loading")}
       </p>
     )
   if (state.kind === "error") {
-    if (state.status === 401) return <p role="alert">Sign in to read your sources.</p>
+    if (state.status === 401) return <p role="alert">{t("source.reader.retry")}</p>
     if (state.status === 404) return <MissingSource />
-    return <p role="alert">Source unavailable. Please try again.</p>
+    return <p role="alert">{t("source.reader.error")}</p>
   }
   const { edition, normalization, chapter, span } = state.value
   const resource = normalization.resources[chapter]
   const included = normalization.resources.filter((item) => item.status === "included")
-  const exclusions = normalization.resources.filter((item) => item.status === "excluded")
   const base = `/sources/${normalization.id}`
   return (
     <>
-      <p className="eyebrow">SOURCE / NORMALIZED TEXT</p>
+      <p className="eyebrow">{t("source.reader.eyebrow")}</p>
       <h1>{edition.title}</h1>
       <p>
-        <a href={`${base}/setup`}>Set up a study</a>
+        <a href={`${base}/setup`}>{t("source.reader.setup")}</a>
       </p>
       <p>
-        Import status: normalized ·{" "}
-        <strong>
-          {normalization.coverage === "complete" ? "Complete coverage" : "Partial coverage"}
-        </strong>{" "}
-        · {included.length} of {normalization.resources.length} resources included
+        {t("source.reader.status", {
+          coverage: t(
+            normalization.coverage === "complete"
+              ? "source.coverage.complete"
+              : "source.coverage.partial",
+          ),
+          included: included.length,
+          total: normalization.resources.length,
+        })}
       </p>
-      <details>
-        <summary>Coverage and edition details</summary>
-        <p>
-          Original SHA-256: <code>{edition.originalHash}</code>
-        </p>
-        <p>
-          Revision: <code>{normalization.id}</code>
-          <br />
-          Parser: {normalization.parserVersion} · Normalizer: {normalization.normalizerVersion}
-        </p>
-        <p>Publisher page labels belong to this edition, not other editions or screen pages.</p>
-        {exclusions.map((item) => (
-          <p key={item.path}>
-            Excluded: {item.path} — {item.reason}
-          </p>
-        ))}
-      </details>
+      <SourceDetails edition={edition} normalization={normalization} />
       <div className="reader">
-        <nav aria-label="Chapters">
-          <h2>Contents</h2>
+        <nav aria-label={t("source.reader.chapters")}>
+          <h2>{t("source.reader.contents")}</h2>
           <ol>
             {normalization.resources.map((item, index) => (
               <li key={item.path}>
@@ -200,11 +190,11 @@ function SourceReader({ revision }: { readonly revision: string }): ReactElement
                   href={`${base}?chapter=${index}`}
                   aria-current={index === chapter ? "page" : undefined}
                 >
-                  Chapter {index + 1}
+                  {t("source.reader.chapter", { n: index + 1 })}
                 </a>
                 <small>
                   {item.path} · {item.role}
-                  {item.status === "excluded" ? " · excluded" : ""}
+                  {item.status === "excluded" ? ` · ${t("source.reader.excludedSuffix")}` : ""}
                 </small>
               </li>
             ))}
@@ -212,33 +202,40 @@ function SourceReader({ revision }: { readonly revision: string }): ReactElement
         </nav>
         <article aria-labelledby="chapter-title">
           <h2 id="chapter-title" tabIndex={-1}>
-            Chapter {chapter + 1}
+            {t("source.reader.chapter", { n: chapter + 1 })}
           </h2>
           <p className="metadata">{resource?.path}</p>
           {resource?.status === "included" ? (
-            resource.blocks.map((block) => (
-              <p id={block.id} key={block.id} tabIndex={-1}>
-                {span?.blockId === block.id ? (
-                  <>
-                    {block.text.slice(0, span.start)}
-                    <mark>{block.text.slice(span.start, span.end)}</mark>
-                    {block.text.slice(span.end)}
-                  </>
-                ) : (
-                  block.text
-                )}
-                <small>
-                  {block.pageLabel === undefined
-                    ? "Page label unavailable"
-                    : `Page ${block.pageLabel}`}
-                </small>
-              </p>
-            ))
+            resource.blocks.map((block) => {
+              const Passage = headingTags.at(block.heading ?? 0) ?? "p"
+              return (
+                <Passage
+                  id={block.id}
+                  key={block.id}
+                  tabIndex={-1}
+                  style={{ whiteSpace: "pre-wrap" }}
+                >
+                  {span?.blockId === block.id ? (
+                    <>
+                      {block.text.slice(0, span.start)}
+                      <mark>{block.text.slice(span.start, span.end)}</mark>
+                      {block.text.slice(span.end)}
+                    </>
+                  ) : (
+                    block.text
+                  )}
+                  <small>{sourceLocation(block, t)}</small>
+                </Passage>
+              )
+            })
           ) : (
             <p className="workspace-empty">
-              This resource was excluded:{" "}
-              {resource?.status === "excluded" ? resource.reason : "unavailable"}. No source text is
-              available.
+              {t("source.reader.resourceExcluded", {
+                reason:
+                  resource?.status === "excluded"
+                    ? resource.reason
+                    : t("source.reader.reasonUnavailable"),
+              })}
             </p>
           )}
         </article>

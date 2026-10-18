@@ -1,7 +1,6 @@
 import { readdirSync, readFileSync } from "node:fs"
 import { join } from "node:path"
 import type { Context, Hono, MiddlewareHandler } from "hono"
-import { loginPage } from "./auth/login-page.ts"
 import type { AppEnvironment } from "./middleware/access.ts"
 
 type Asset = { readonly body: string; readonly contentType: string }
@@ -17,24 +16,8 @@ const legacyOutputPath = /^\/publications\/[^/]+\/outputs\/[^/]+$/u
 export function configureRoomOwnerGuards(
   app: Hono<AppEnvironment>,
   guard: MiddlewareHandler<AppEnvironment>,
-  built: boolean,
+  _built: boolean,
 ): void {
-  const roomOwner: MiddlewareHandler<AppEnvironment> = async (context, next) => {
-    const response = await guard(context, next)
-    if (
-      built &&
-      context.req.method === "GET" &&
-      studioPath.test(context.req.path) &&
-      response instanceof Response &&
-      response.status === 401
-    ) {
-      context.header("Cache-Control", "private, no-store")
-      context.header("X-Content-Type-Options", "nosniff")
-      context.header("Referrer-Policy", "no-referrer")
-      return context.html(loginPage(false, "authentication-required"), 401)
-    }
-    return response
-  }
   for (const room of [
     "sources",
     "interviews",
@@ -44,7 +27,7 @@ export function configureRoomOwnerGuards(
     "publications",
     "revisions",
   ])
-    app.use(`/${room}/*`, roomOwner)
+    app.use(`/${room}/*`, guard)
 }
 
 export function loadStudioAssets(directory: string): StudioAssets {
@@ -66,11 +49,7 @@ export function loadStudioAssets(directory: string): StudioAssets {
   return { index, files }
 }
 
-export function configureStudioAssets(
-  app: Hono<AppEnvironment>,
-  assets: StudioAssets,
-  ownerId: (headers: Headers) => Promise<string | null>,
-): void {
+export function configureStudioAssets(app: Hono<AppEnvironment>, assets: StudioAssets): void {
   app.get("/assets/:asset", (context) => {
     const file = assets.files.get(context.req.param("asset"))
     if (!file) return context.notFound()
@@ -89,14 +68,8 @@ export function configureStudioAssets(
       context.req.method === "POST" &&
       (studioPath.test(context.req.path) || legacyOutputPath.test(context.req.path))
     )
-      return context.text("Use the authenticated JSON API", 405)
+      return context.text("Use the JSON API", 405)
     if (context.req.method !== "GET" || !studioPath.test(context.req.path)) return next()
-    if ((await ownerId(context.req.raw.headers)) === null) {
-      context.header("Cache-Control", "private, no-store")
-      context.header("X-Content-Type-Options", "nosniff")
-      context.header("Referrer-Policy", "no-referrer")
-      return context.html(loginPage(false, "authentication-required"), 401)
-    }
     return studioResponse(context, assets)
   })
 }

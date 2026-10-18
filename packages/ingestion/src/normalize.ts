@@ -14,10 +14,10 @@ export async function normalizeEpub(file: FileHandle) {
   if (bytes > DEFAULT_ARCHIVE_LIMITS.compressedBytes) throw new ArchiveError("limit-exceeded")
   const files = new Map<string, Uint8Array>()
   await inspectZip(file, { bytes, limits: DEFAULT_ARCHIVE_LIMITS, capture: files })
-  const document = (path: string) => {
+  const document = (path: string, context: "metadata" | "xhtml" = "metadata") => {
     const data = files.get(path)
     if (!data) throw new NormalizationError("invalid-package")
-    return xml(data)
+    return xml(data, context)
   }
   const container = document("META-INF/container.xml")
   if (
@@ -77,7 +77,7 @@ export async function normalizeEpub(file: FileHandle) {
       })
       continue
     }
-    const content = chapterContent(document(item.path))
+    const content = chapterContent(document(item.path, "xhtml"))
     chapters.push({ path: item.path, role, blocks: content.blocks })
     for (const name of new Set(content.omitted))
       skipped.push({ path: item.path, role, reason: `removed:${name}` })
@@ -88,7 +88,12 @@ export async function normalizeEpub(file: FileHandle) {
   }
   const nav =
     [...items.values()].find((item) => item.nav) ?? items.get(spine.attributes.get("toc") ?? "")
-  const links = nav ? navigation(document(nav.path), nav.path) : { navigation: [], pages: [] }
+  const links = nav
+    ? navigation(
+        document(nav.path, nav.media === "application/xhtml+xml" ? "xhtml" : "metadata"),
+        nav.path,
+      )
+    : { navigation: [], pages: [] }
   for (const item of items.values()) {
     if (!used.has(item.path) && item !== nav) {
       skipped.push({

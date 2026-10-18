@@ -16,6 +16,7 @@ export const BookEdition = z
     originalHash: Digest,
     originalBlobHash: Digest,
     title: Text,
+    format: z.enum(["epub", "docx", "txt", "pdf"]).optional(),
   })
   .refine(
     (edition) => edition.originalHash === edition.originalBlobHash,
@@ -24,12 +25,31 @@ export const BookEdition = z
   .readonly()
 export type BookEdition = z.infer<typeof BookEdition>
 
+export const FormatLocator = z
+  .discriminatedUnion("kind", [
+    z.strictObject({
+      kind: z.literal("txt"),
+      startLine: z.number().int().positive(),
+      start: Natural,
+    }),
+    z.strictObject({ kind: z.literal("pdf"), page: z.number().int().positive() }),
+    z.strictObject({
+      kind: z.literal("docx"),
+      part: ResourcePath,
+      paragraph: z.number().int().positive(),
+    }),
+  ])
+  .readonly()
+
 export const SourceBlock = z
   .strictObject({
     id: BlockId,
     text: z.string().max(100_000),
     originalFragment: Text.optional(),
     pageLabel: Text.optional(),
+    heading: z.number().int().min(1).max(6).optional(),
+    structure: z.enum(["paragraph", "list-item", "table-cell"]).optional(),
+    locator: FormatLocator.optional(),
   })
   .readonly()
 const Resource = z
@@ -57,6 +77,10 @@ export const NormalizationRevision = z
     normalizerVersion: Text,
     coverage: z.enum(["complete", "partial"]),
     resources: z.array(Resource).min(1).readonly(),
+    omissions: z
+      .array(z.strictObject({ path: ResourcePath, reason: Text }).readonly())
+      .readonly()
+      .optional(),
   })
   .superRefine((value, ctx) => {
     const paths = value.resources.map((resource) => resource.path)
@@ -67,12 +91,58 @@ export const NormalizationRevision = z
       ctx.addIssue({ code: "custom", message: "duplicate source identity" })
     if (
       value.coverage === "complete" &&
-      value.resources.some((resource) => resource.status === "excluded")
+      (value.resources.some((resource) => resource.status === "excluded") ||
+        (value.omissions?.length ?? 0) > 0)
     )
       ctx.addIssue({ code: "custom", message: "excluded resources require partial coverage" })
   })
   .readonly()
 export type NormalizationRevision = z.infer<typeof NormalizationRevision>
+
+const InputRange = z
+  .strictObject({ resourcePath: ResourcePath, blockId: BlockId, start: Natural, end: Natural })
+  .readonly()
+export const SourcePreparationFailure = z
+  .strictObject({
+    error: z.literal("scope-limit"),
+    coverage: z
+      .strictObject({
+        transmission: z.literal("not-sent"),
+        reason: z.enum(["analysis-window-limit", "empty-text-scope", "request-byte-limit"]),
+        requiredWindows: Natural,
+        maxWindows: z.literal(128),
+        unsentRanges: z
+          .array(
+            z
+              .strictObject({
+                resourcePath: ResourcePath,
+                blockId: BlockId,
+                start: Natural,
+                end: Natural,
+                locator: FormatLocator.optional(),
+                pageLabel: Text.optional(),
+                originalFragment: Text.optional(),
+              })
+              .readonly(),
+          )
+          .readonly(),
+      })
+      .readonly(),
+  })
+  .readonly()
+export type SourcePreparationFailure = z.infer<typeof SourcePreparationFailure>
+export const InputCoverage = z
+  .strictObject({
+    extraction: z.enum(["complete", "partial"]),
+    transmission: z.enum(["reviewed-scope", "window-only"]),
+    processing: z.literal("not-established"),
+    requestHash: Digest,
+    ranges: z.array(InputRange).readonly(),
+    reviewedRanges: z.array(InputRange).readonly(),
+    untransmittedRanges: z.array(InputRange).readonly().optional(),
+    omissions: z.array(z.strictObject({ path: ResourcePath, reason: Text }).readonly()).readonly(),
+  })
+  .readonly()
 
 export const SourceSpan = z
   .strictObject({

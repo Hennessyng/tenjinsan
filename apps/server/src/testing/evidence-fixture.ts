@@ -2,8 +2,8 @@ import { LessonRevision } from "@reading-studio/contracts"
 import { fixtureOutlineProvider } from "@reading-studio/generation/outline"
 import { interviewFixture } from "./interview-fixture.ts"
 
-export async function evidenceFixture() {
-  const fixture = await interviewFixture()
+export async function evidenceFixture(options?: Parameters<typeof interviewFixture>[0]) {
+  const fixture = await interviewFixture(options)
   const { storage } = fixture
   const initialAnalysis = storage.workflow.getAnalysis(fixture.definition.analysisRevisionId)
   if (!initialAnalysis) throw new TypeError("Missing fixture analysis")

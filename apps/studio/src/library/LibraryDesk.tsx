@@ -1,6 +1,7 @@
 import { type ReactElement, type ReactNode, type RefObject, useLayoutEffect, useRef } from "react"
+import { useLanguage } from "../i18n/LanguageProvider.tsx"
 import { type LibraryStudy, useRoomPrerequisite } from "./client.ts"
-import { type LibraryRoom, libraryRooms, type RoomId, roomHref } from "./room-map.ts"
+import { type LibraryRoom, libraryRooms, type RoomId, roomHref, roomText } from "./room-map.ts"
 
 export function LibraryDesk({
   room,
@@ -21,6 +22,7 @@ export function LibraryDesk({
   readonly contextReady: boolean
   readonly nativeContent: boolean
 }): ReactElement {
+  const { t } = useLanguage()
   const title = useRef<HTMLHeadingElement>(null)
   const pane = useRef<HTMLDivElement>(null)
   const prerequisite = useRoomPrerequisite(room.id, study)
@@ -41,15 +43,14 @@ export function LibraryDesk({
       case "ready":
         return children
       case "loading":
-        return <p role="status">Checking room prerequisites / 部屋の準備を確認しています</p>
+        return <p role="status">{t("desk.checkingPrereq")}</p>
       case "missing": {
         const destination = libraryRooms.find((item) => item.id === prerequisite.next)
         return (
           <section className="paper">
-            <p>{prerequisite.en}</p>
-            <p lang="ja">{prerequisite.ja}</p>
+            <p>{t(prerequisite.message)}</p>
             <a href={roomHref(prerequisite.next, study)}>
-              {destination?.en} / {destination?.ja}
+              {destination ? t(roomText[destination.id].name) : null}
             </a>
           </section>
         )
@@ -57,12 +58,9 @@ export function LibraryDesk({
       case "unavailable":
         return (
           <section className="paper" role="alert">
-            <p>
-              Room unavailable ({prerequisite.status}). Please return to the hall and try again.
-            </p>
-            <p lang="ja">広間に戻り、もう一度お試しください。</p>
+            <p>{t("desk.unavailable", { status: prerequisite.status })}</p>
             <button type="button" onClick={onHall}>
-              Return to hall / 広間に戻る
+              {t("desk.returnHall")}
             </button>
           </section>
         )
@@ -83,40 +81,37 @@ export function LibraryDesk({
         <header className="desk-head">
           <p className="room-plate">
             <span className="rn">{room.n}</span>
-            <span>{room.en}</span>
-            <span lang="ja">{room.ja}</span>
+            <span>{t(roomText[room.id].name)}</span>
           </p>
           <h2 id="desk-title" ref={title} tabIndex={-1}>
-            {room.doEn}
-            <span lang="ja">{room.doJa}</span>
+            {t(roomText[room.id].action)}
           </h2>
           {selection}
         </header>
         <div className="desk-main" ref={pane}>
           <div className="sheet">{content()}</div>
-          <aside className="note" aria-label="Margin note / 余白のメモ">
-            <h3>Explicit decisions</h3>
-            <p>Opening a room does not save, send, approve or generate anything.</p>
-            <p lang="ja">部屋を開いても、保存・送信・承認・生成は行われません。</p>
+          <aside className="note" aria-label={t("desk.marginNote")}>
+            <h3>{t("desk.explicitDecisions")}</h3>
+            <p>{t("desk.noSideEffects")}</p>
           </aside>
         </div>
         <footer className="desk-foot">
           <p className="status route-ref">
-            {study ? `${study.title} · ${study.id}` : "Select a study / 読書を選んでください"}
+            {study ? `${study.title} · ${study.id}` : t("desk.selectStudy")}
           </p>
           <div className="pager">
             {previous && (
               <button className="btn btn-quiet" type="button" onClick={() => onOpen(previous.id)}>
-                Previous <span lang="ja">前へ</span>
+                {t("desk.previous")}
               </button>
             )}
             {next && (
               <button className="btn btn-primary" type="button" onClick={() => onOpen(next.id)}>
-                Next room <span lang="ja">次の部屋へ</span>
+                {t("desk.nextRoom")}
               </button>
             )}
             <button className="btn btn-quiet" type="button" onClick={onHall}>
-              Return to hall / 広間に戻る
+              {t("desk.returnHall")}
             </button>
           </div>
         </footer>
@@ -134,25 +129,23 @@ export function LibraryRoute({
   readonly onOpen: (id: RoomId) => void
   readonly routeRef: RefObject<HTMLElement | null>
 }): ReactElement {
+  const { t } = useLanguage()
   return (
-    <nav id="route" className="route" ref={routeRef} aria-label="Reading route / 読書ルート">
-      <p className="route-title">
-        Reading route <span lang="ja">読書ルート</span>
-      </p>
+    <nav id="route" className="route" ref={routeRef} aria-label={t("route.title")}>
+      <p className="route-title">{t("route.title")}</p>
       <ol>
         {libraryRooms.map((item) => (
           <li key={item.id}>
             <button
               type="button"
-              aria-label={`${item.n}. ${item.en} / ${item.ja}`}
+              aria-label={`${item.n}. ${t(roomText[item.id].name)}`}
               aria-current={room?.id === item.id ? "step" : undefined}
               onClick={() => onOpen(item.id)}
             >
               <span className="rn">{item.n}</span>
               <span className="rt">
-                <b>{item.en}</b>
-                <small lang="ja">{item.ja}</small>
-                <em>{item.doEn}</em>
+                <b>{t(roomText[item.id].name)}</b>
+                <em>{t(roomText[item.id].action)}</em>
               </span>
             </button>
           </li>

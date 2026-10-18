@@ -16,6 +16,16 @@ server-rendered safe projection, not a client-side authoring app. Neither the
 offline HTML nor PDF needs React or owner APIs after download. No public sharing
 URL is created.
 
+Publish also fixes an independent file-interface choice (`en`, `ja`, or `en+ja`) on the
+immutable publication snapshot and both jobs, defaulting to English regardless of app language.
+Claim and release reject a job copy that disagrees with its captured snapshot. Failure preserves
+that choice; reloading the panel displays the approved choice rather than a fresh form default.
+Changing app language cannot modify an existing job. Legacy records may lack the field and
+remain readable without retroactive defaulting; the renderer-version fence prevents obsolete
+queued approvals from being reinterpreted. Previously released bytes remain downloadable.
+Every current or past edition displays its captured interface language. Records without captured
+language metadata say it was not recorded rather than inventing an English default.
+
 ```
 current reviewed content -> immutable approval -> HTML/PDF jobs
                                   |                   |

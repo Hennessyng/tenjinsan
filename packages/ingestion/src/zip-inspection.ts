@@ -72,6 +72,7 @@ export async function inspectZip(
     readonly bytes: number
     readonly limits: ArchiveLimits
     readonly capture?: Map<string, Uint8Array>
+    readonly format?: "epub" | "docx"
   },
 ) {
   const reader = new FileReader(file, options.bytes)
@@ -148,8 +149,16 @@ export async function inspectZip(
         encryption = new TextDecoder("utf-8", { fatal: true }).decode(Buffer.concat(chunks))
       }
     }
-    if (mimetype !== "application/epub+zip" || !files.has("META-INF/container.xml"))
+    if (
+      options.format !== "docx" &&
+      (mimetype !== "application/epub+zip" || !files.has("META-INF/container.xml"))
+    )
       throw new ArchiveError("invalid-epub")
+    if (
+      options.format === "docx" &&
+      (!files.has("[Content_Types].xml") || !files.has("_rels/.rels"))
+    )
+      throw new ArchiveError("invalid-archive")
     if (encryption !== undefined) inspectEncryption(encryption, files)
     return { entries, decompressedBytes: expanded }
   } catch (error) {

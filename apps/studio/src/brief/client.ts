@@ -2,7 +2,7 @@ import { z } from "zod"
 
 const Pair = z.object({ en: z.string(), ja: z.string() })
 const Scope = z.object({
-  kind: z.enum(["partial", "all-main-chapters"]),
+  kind: z.enum(["partial", "all-main-chapters", "whole-document"]),
   selected: z.array(z.object({ resourcePath: z.string(), blockIds: z.array(z.string()) })),
   exclusions: z.array(z.object({ resourcePath: z.string(), blockIds: z.array(z.string()) })),
 })

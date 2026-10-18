@@ -1,4 +1,5 @@
 import type { ReactElement } from "react"
+import { useLanguage } from "../i18n/LanguageProvider.tsx"
 import type { Brief } from "./client.ts"
 
 export function BriefReview({
@@ -10,6 +11,7 @@ export function BriefReview({
   readonly onDecision: (action: "approve" | "revise" | "defer") => void
   readonly busy: boolean
 }): ReactElement {
+  const { t } = useLanguage()
   const { content } = view.draft
   const guiding =
     content.questionChoice === "refined" && content.refinedQuestion
@@ -18,10 +20,10 @@ export function BriefReview({
   return (
     <>
       <article>
-        <h2>Guiding question / 主となる問い</h2>
+        <h2>{t("brief.guiding")}</h2>
         <p lang="en">{guiding.en}</p>
         <p lang="ja">{guiding.ja}</p>
-        <h2>Supporting questions / 補助の問い</h2>
+        <h2>{t("brief.supporting")}</h2>
         {content.supportingQuestions.length ? (
           <ol>
             {content.supportingQuestions.map((question) => (
@@ -32,78 +34,85 @@ export function BriefReview({
             ))}
           </ol>
         ) : (
-          <p className="workspace-empty">None / なし</p>
+          <p className="workspace-empty">{t("brief.none")}</p>
         )}
       </article>
-      <h2>Original vs refined / 元の問いと別案の比較</h2>
+      <h2>{t("brief.compare")}</h2>
       <dl>
-        <dt>Original / 元の問い</dt>
+        <dt>{t("brief.original")}</dt>
         <dd lang="en">{content.originalQuestion.en}</dd>
         <dd lang="ja">{content.originalQuestion.ja}</dd>
-        <dt>Refined alternative / 別案</dt>
+        <dt>{t("brief.refined")}</dt>
         <dd className={content.refinedQuestion ? undefined : "workspace-empty"} lang="en">
-          {content.refinedQuestion?.en ?? "No alternative supplied"}
+          {content.refinedQuestion?.en ?? t("brief.noAlternative")}
         </dd>
         <dd className={content.refinedQuestion ? undefined : "workspace-empty"} lang="ja">
-          {content.refinedQuestion?.ja ?? "別案なし"}
+          {content.refinedQuestion?.ja ?? t("brief.noAlternative")}
         </dd>
       </dl>
       <p>
-        English:{" "}
+        {t("brief.english")}:{" "}
         {content.refinedQuestion && content.originalQuestion.en !== content.refinedQuestion.en
-          ? "Changed"
-          : "Unchanged"}{" "}
+          ? t("brief.changed")
+          : t("brief.unchanged")}{" "}
         ·{" "}
-        <span lang="ja">
-          日本語:{" "}
+        <span>
+          {t("brief.japanese")}:{" "}
           {content.refinedQuestion && content.originalQuestion.ja !== content.refinedQuestion.ja
-            ? "変更あり"
-            : "変更なし"}
+            ? t("brief.changed")
+            : t("brief.unchanged")}
         </span>
       </p>
       <p>
-        Selected: {content.questionChoice === "original" ? "Original / 元の問い" : "Refined / 別案"}
-        . Alternatives never replace your question automatically.
+        {t("brief.selected", {
+          choice: content.questionChoice === "original" ? t("brief.original") : t("brief.refined"),
+        })}
       </p>
       <dl>
-        <dt>Purpose / 目的</dt>
+        <dt>{t("brief.purpose")}</dt>
         <dd>{content.purpose}</dd>
-        <dt>Personal context / 個人的な背景</dt>
+        <dt>{t("brief.context")}</dt>
         <dd>{content.context}</dd>
-        <dt>Depth / 深さ</dt>
+        <dt>{t("brief.depth")}</dt>
         <dd>
           {
             {
-              overview: "Overview / 概観",
-              focused: "Focused / 焦点を絞る",
-              deep: "Deep / 深く読む",
+              overview: t("brief.depth.overview"),
+              focused: t("brief.depth.focused"),
+              deep: t("brief.depth.deep"),
             }[content.depth]
           }
         </dd>
-        <dt>Languages / 言語</dt>
-        <dd>{{ en: "English", ja: "日本語", paired: "English + 日本語" }[content.language]}</dd>
-        <dt>Spoilers / ネタバレ</dt>
+        <dt>{t("brief.languages")}</dt>
+        <dd>
+          {
+            { en: t("brief.english"), ja: t("brief.japanese"), paired: t("brief.paired") }[
+              content.language
+            ]
+          }
+        </dd>
+        <dt>{t("brief.spoilers")}</dt>
         <dd>
           {content.spoilerPolicy === "avoid"
-            ? "Avoid spoilers / ネタバレを避ける"
-            : "Allow spoilers / ネタバレを許可"}
+            ? t("brief.spoilers.avoid")
+            : t("brief.spoilers.allow")}
         </dd>
-        <dt>Topic exclusions / 除外する話題</dt>
+        <dt>{t("brief.exclusions")}</dt>
         <dd className={content.exclusions.length ? undefined : "workspace-empty"}>
-          {content.exclusions.join("\n") || "None / なし"}
+          {content.exclusions.join("\n") || t("brief.none")}
         </dd>
       </dl>
       <div className="setup-actions">
         {view.status !== "approved" && view.status !== "outdated" && view.status !== "revise" && (
           <button type="button" disabled={busy} onClick={() => onDecision("approve")}>
-            Approve brief / 読書方針を承認
+            {t("brief.approve")}
           </button>
         )}
         <button type="button" disabled={busy} onClick={() => onDecision("revise")}>
-          Revise / 修正する
+          {t("brief.revise")}
         </button>
         <button type="button" disabled={busy} onClick={() => onDecision("defer")}>
-          Defer / 保留する
+          {t("brief.defer")}
         </button>
       </div>
     </>

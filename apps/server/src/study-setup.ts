@@ -4,6 +4,7 @@ import {
   SetupRevisionId,
   StudySetupRevision,
 } from "@reading-studio/contracts"
+import { translate, type UiLocale } from "@reading-studio/contracts/i18n"
 import { configuredCredential, defaultSettings } from "@reading-studio/providers"
 import type { SourceRepository, Storage } from "@reading-studio/storage"
 import { setupResult, setupReview } from "@reading-studio/studio/study-setup"
@@ -11,15 +12,14 @@ import type { Context, Hono } from "hono"
 import { z } from "zod"
 import type { AppEnvironment } from "./middleware/access.ts"
 import { offeredModels } from "./provider-connections.ts"
+import { preflightStudyDecision } from "./study-preparation.ts"
+import { Draft, selectSourceScope } from "./study-setup-input.ts"
 import { configureSetupReadApi } from "./study-setup-read-api.ts"
 
-const Draft = z.strictObject({
-  provider: z.enum(["openrouter", "codex", "anthropic"]),
-  model: z.string().min(1).optional(),
-  scope: z.enum(["all-main-chapters", "partial"]),
-  chapters: z.union([z.string(), z.array(z.string())]).optional(),
+const Decision = z.strictObject({
+  decision: z.enum(["send", "revise", "cancel"]),
+  includeOriginal: z.boolean().optional(),
 })
-const Decision = z.strictObject({ decision: z.enum(["send", "revise", "cancel"]) })
 type Options = {
   readonly sources: SourceRepository
   readonly storage?: Storage
@@ -64,15 +64,16 @@ export function configureStudySetup(app: Hono<AppEnvironment>, options: Options)
       .find((study) => study.ownerId === ownerId)
     return study ? { normalization, study } : null
   }
-  const unavailable = (revision: string) =>
+  const unavailable = (revision: string, locale: UiLocale = "en") =>
     setupResult({
-      title: "Setup unavailable",
-      message:
-        "This draft is missing, cancelled, or superseded. Review a fresh setup before sending.",
+      title: translate(locale, "setup.unavailable"),
+      message: translate(locale, "setup.stale"),
       revision,
+      locale,
     })
   configureSetupReadApi(app, sources, owned, available, unavailable, choices)
   async function createDraft(context: Context<AppEnvironment>) {
+    const locale = context.req.query("lang") === "ja" ? "ja" : "en"
     const json = context.req.path.startsWith("/api/")
     if (!context.req.header("origin")) return context.text("Forbidden", 403)
     const revision = context.req.param("revision") ?? ""
@@ -80,7 +81,7 @@ export function configureStudySetup(app: Hono<AppEnvironment>, options: Options)
     if (!source)
       return json
         ? context.json({ error: "Setup unavailable" }, 404)
-        : context.html(unavailable(revision), 404)
+        : context.html(unavailable(revision, locale), 404)
     const parsed = Draft.safeParse(
       json ? await context.req.json() : await context.req.parseBody({ all: true }),
     )
@@ -88,34 +89,18 @@ export function configureStudySetup(app: Hono<AppEnvironment>, options: Options)
       return json
         ? context.json({ error: "Invalid setup choices" }, 400)
         : context.text("Invalid setup choices", 400)
-    const { provider, scope, chapters } = parsed.data
-    const paths = chapters === undefined ? [] : typeof chapters === "string" ? [chapters] : chapters
-    const resources = source.normalization.resources.filter(
-      (resource) => resource.status === "included",
-    )
-    if (
-      paths.some((path) => !resources.some((resource) => resource.path === path)) ||
-      new Set(paths).size !== paths.length
-    )
-      return json
-        ? context.json({ error: "Invalid source scope" }, 400)
-        : context.text("Invalid source scope", 400)
-    const selected = resources.filter((resource) =>
-      scope === "all-main-chapters"
-        ? resource.role === "main-chapter"
-        : paths.includes(resource.path),
-    )
-    const exclusions = resources.filter((resource) => !selected.includes(resource))
-    if (
-      selected.length === 0 ||
-      (scope === "all-main-chapters" &&
-        source.normalization.resources.some(
-          (resource) => resource.role === "main-chapter" && resource.status === "excluded",
-        ))
-    )
-      return json
-        ? context.json({ error: "Select available chapters explicitly" }, 400)
-        : context.text("Select available chapters explicitly", 400)
+    const { provider } = parsed.data
+    const selection = selectSourceScope(source.normalization, parsed.data)
+    switch (selection.kind) {
+      case "error":
+        return json
+          ? context.json({ error: selection.message }, 400)
+          : context.text(selection.message, 400)
+      case "ready":
+        break
+      default:
+        return assertNever(selection)
+    }
     const choice = (await choices(context.get("ownerId"))).find(
       (choice) =>
         choice.provider === provider &&
@@ -134,20 +119,7 @@ export function configureStudySetup(app: Hono<AppEnvironment>, options: Options)
       analysis: {
         editionHash: source.normalization.editionHash,
         normalizationRevisionId: source.normalization.id,
-        scope: {
-          kind: scope,
-          selected: selected.map((resource) => ({
-            resourcePath: resource.path,
-            blockIds: resource.blocks.map((block) => block.id),
-          })),
-          exclusions:
-            scope === "all-main-chapters"
-              ? []
-              : exclusions.map((resource) => ({
-                  resourcePath: resource.path,
-                  blockIds: resource.blocks.map((block) => block.id),
-                })),
-        },
+        scope: selection.scope,
         provider,
         model: choice.model,
         analysisPromptVersion: "analysis-1",
@@ -166,11 +138,12 @@ export function configureStudySetup(app: Hono<AppEnvironment>, options: Options)
     })
     return json
       ? context.json({ setupId: setup.id }, 201)
-      : context.redirect(`/sources/${revision}/setup/${setup.id}`, 303)
+      : context.redirect(`/sources/${revision}/setup/${setup.id}?lang=${locale}`, 303)
   }
   app.post("/sources/:revision/setup", createDraft)
   app.post("/api/study-setup/:revision", createDraft)
   async function decideDraft(context: Context<AppEnvironment>) {
+    const locale = context.req.query("lang") === "ja" ? "ja" : "en"
     const json = context.req.path.startsWith("/api/")
     if (!context.req.header("origin")) return context.text("Forbidden", 403)
     const revision = context.req.param("revision") ?? ""
@@ -180,6 +153,8 @@ export function configureStudySetup(app: Hono<AppEnvironment>, options: Options)
       json ? await context.req.json() : await context.req.parseBody({ all: true }),
     )
     const setup = id.success ? sources.getSetup(id.data) : null
+    if (decision.success && decision.data.includeOriginal)
+      return context.json({ error: "original-file-unavailable" }, 415)
     if (
       !source ||
       !setup ||
@@ -191,7 +166,13 @@ export function configureStudySetup(app: Hono<AppEnvironment>, options: Options)
     )
       return json
         ? context.json({ error: "Setup unavailable" }, 409)
-        : context.html(unavailable(revision), 409)
+        : context.html(unavailable(revision, locale), 409)
+    const refusal = await preflightStudyDecision(context, {
+      setup,
+      normalization: source.normalization,
+      decision: decision.data.decision,
+    })
+    if (refusal) return refusal
     if (
       decision.data.decision === "send" &&
       !(await available(setup.analysis.provider, setup.analysis.model, context.get("ownerId")))
@@ -199,7 +180,7 @@ export function configureStudySetup(app: Hono<AppEnvironment>, options: Options)
       return json
         ? context.json({ error: "Selected provider unavailable" }, 503)
         : context.html(
-            setupReview({ setup, normalization: source.normalization, available: false }),
+            setupReview({ setup, normalization: source.normalization, available: false, locale }),
             503,
           )
     const installationId =
@@ -227,15 +208,16 @@ export function configureStudySetup(app: Hono<AppEnvironment>, options: Options)
       case "revise":
         return json
           ? context.json({ decision: "revise" as const })
-          : context.redirect(`/sources/${revision}/setup`, 303)
+          : context.redirect(`/sources/${revision}/setup?lang=${locale}`, 303)
       case "cancel":
         return json
           ? context.json({ decision: "cancel" as const })
           : context.html(
               setupResult({
-                title: "Transmission cancelled",
-                message: "No cloud work was queued. This draft cannot authorize transmission.",
+                title: translate(locale, "setup.cancelled"),
+                message: translate(locale, "setup.cancelledNote"),
                 revision,
+                locale,
               }),
             )
       case "send":
@@ -243,10 +225,10 @@ export function configureStudySetup(app: Hono<AppEnvironment>, options: Options)
           ? context.json({ decision: "send" as const, grantId: grant.id })
           : context.html(
               setupResult({
-                title: "Transmission approved",
-                message:
-                  "Your provider and source scope are saved. Analysis is not queued until its stage is available.",
+                title: translate(locale, "setup.approved"),
+                message: translate(locale, "setup.approvedNote"),
                 revision,
+                locale,
                 grantId: grant.id,
               }),
             )

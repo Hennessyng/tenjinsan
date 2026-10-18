@@ -7,6 +7,7 @@ import { tmpdir } from "node:os"
 import { join, resolve } from "node:path"
 import type { Readable } from "node:stream"
 import { z } from "zod"
+import { copyLocalWorkspace } from "./local-workspace.ts"
 
 type LauncherChild = ChildProcessByStdio<null, Readable, Readable>
 
@@ -119,11 +120,11 @@ export async function makeLocalFixture(provisionOwner: boolean): Promise<LocalFi
   const databasePath = join(dataRoot, "studio.sqlite")
   const privateDataRoot = join(dataRoot, "library files")
   await mkdir(privateDataRoot, { mode: 0o700, recursive: true })
+  const fixtureRoot = await copyLocalWorkspace(workspaceRoot, directory)
 
   const environment = {
     ...process.env,
-    AUTH_BASE_URL: `http://127.0.0.1:${apiPort}`,
-    AUTH_SECRET: authSecret,
+    STUDIO_FIXTURE_ROOT: fixtureRoot,
     DATABASE_PATH: databasePath,
     PRIVATE_DATA_ROOT: privateDataRoot,
     SERVER_HOST: "127.0.0.1",
@@ -132,7 +133,12 @@ export async function makeLocalFixture(provisionOwner: boolean): Promise<LocalFi
     TRUSTED_ORIGINS: `http://127.0.0.1:${apiPort}`,
     TRUST_PROXY: "0",
   }
-  if (provisionOwner) await provisionFixtureOwner(environment)
+  if (provisionOwner)
+    await provisionFixtureOwner({
+      ...environment,
+      AUTH_BASE_URL: `http://127.0.0.1:${apiPort}`,
+      AUTH_SECRET: authSecret,
+    })
 
   return {
     directory,
@@ -151,7 +157,10 @@ export class LocalLauncher {
   readonly #outputEvents = new EventEmitter()
   #output = ""
 
-  constructor(environment: NodeJS.ProcessEnv, root = workspaceRoot) {
+  constructor(
+    environment: NodeJS.ProcessEnv,
+    root = environment["STUDIO_FIXTURE_ROOT"] ?? workspaceRoot,
+  ) {
     this.child = spawn("bun", ["run", "start:local"], {
       cwd: root,
       detached: true,

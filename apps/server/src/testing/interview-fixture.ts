@@ -5,8 +5,8 @@ import {
 } from "@reading-studio/contracts"
 import { sourceViewerFixture } from "./source-viewer-fixture.ts"
 
-export async function interviewFixture() {
-  const fixture = await sourceViewerFixture()
+export async function interviewFixture(options?: Parameters<typeof sourceViewerFixture>[0]) {
+  const fixture = await sourceViewerFixture(options)
   const cacheInput = AnalysisCacheInput.parse({
     editionHash: "a".repeat(64),
     normalizationRevisionId: "revision-fixture",

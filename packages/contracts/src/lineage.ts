@@ -39,6 +39,11 @@ const ScopeResource = z
 export const SourceScope = z
   .discriminatedUnion("kind", [
     z.strictObject({
+      kind: z.literal("whole-document"),
+      selected: z.array(ScopeResource).min(1).readonly(),
+      exclusions: z.tuple([]).readonly(),
+    }),
+    z.strictObject({
       kind: z.literal("all-main-chapters"),
       selected: z.array(ScopeResource).min(1).readonly(),
       exclusions: z.tuple([]).readonly(),
