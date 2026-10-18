@@ -67,7 +67,14 @@ export class BookMapPipeline {
       case "limited":
         throw new BookMapError("scope-limit")
       case "ready":
-        return { setup, key, identity, template, windows: scope.windows }
+        return {
+          setup,
+          key,
+          identity,
+          template,
+          windows: scope.windows,
+          uncovered: scope.uncovered,
+        }
       default:
         return assertNever(scope)
     }
@@ -76,7 +83,8 @@ export class BookMapPipeline {
   prepare(setupId: string, grantId: string): AnalysisRevision {
     const context = this.context(setupId, grantId)
     const { workflow, execution } = this.authority.storage
-    const cached = workflow.findSuccessfulAnalysis(context.key)
+    const cached =
+      context.uncovered.length === 0 ? workflow.findSuccessfulAnalysis(context.key) : null
     if (cached) return cached
     const inputRevisionId = workflow.ensureAnalysisInput(setupId)
     const base = AnalysisRevision.parse({
@@ -135,19 +143,30 @@ export class BookMapPipeline {
     }
     // Deterministic, lossless synthesis preserves qualifications rather than asking
     // another provider call to compress away a counterweight or approved chapter.
+    const chapters: AnalysisRevision["chapters"] = base.chapters.map((chapter) => {
+      const uncoveredBlockIds = context.uncovered
+        .filter((block) => block.resourcePath === chapter.resourcePath)
+        .map((block) => block.blockId)
+      return {
+        ...chapter,
+        ...(uncoveredBlockIds.length ? { uncoveredBlockIds } : {}),
+        status: uncoveredBlockIds.length
+          ? "uncovered"
+          : context.windows.some((window) => window.resourcePath === chapter.resourcePath) &&
+              context.windows.every(
+                (window, index) =>
+                  window.resourcePath !== chapter.resourcePath || completed.has(index),
+              )
+            ? "complete"
+            : "pending",
+      }
+    })
     const record = AnalysisRevision.parse({
       ...base,
       ...findings,
-      id: `map-${contentDigest(JSON.stringify([context.key, [...completed], findings]))}`,
-      status: completed.size === context.windows.length ? "successful" : "partial",
-      chapters: base.chapters.map((chapter) => ({
-        ...chapter,
-        status: context.windows.every(
-          (window, index) => window.resourcePath !== chapter.resourcePath || completed.has(index),
-        )
-          ? "complete"
-          : "pending",
-      })),
+      id: `map-${contentDigest(JSON.stringify([context.key, [...completed], findings, ...(context.uncovered.length ? [context.uncovered] : [])]))}`,
+      status: chapters.every((chapter) => chapter.status === "complete") ? "successful" : "partial",
+      chapters,
     })
     return (
       workflow.getAnalysis(record.id) ?? workflow.appendAnalysis({ record, parentRevisionId: null })

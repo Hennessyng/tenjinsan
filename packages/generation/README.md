@@ -21,7 +21,12 @@ Local sizing uses a synthetic credential and never dispatches a provider call.
 The planner returns a safe
 not-sent reason and full unsent ranges to review. Textless locator/anchor blocks
 remain stored but do not become analysis windows; a wholly textless selection
-still fails. Retry after a preparation refusal does not encounter a saved grant.
+still fails. In a mixed selection, chapters containing those blocks are explicitly
+`uncovered`, with their exact `uncoveredBlockIds`, and the map remains partial even
+after every text window succeeds. Locators/fragments remain in the pinned source
+normalization. Such a scope never reuses an older successful cache entry that
+counted empty anchors as analyzed; old immutable records are not rewritten.
+Retry after a preparation refusal does not encounter a saved grant.
 Absolute source offsets are validated against the dispatched window; stored spans
 are resolved against the exact normalization. Chapter status remains pending until
 all its windows succeed. The synthesis is a deterministic union of source-linked

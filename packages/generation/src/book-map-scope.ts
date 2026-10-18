@@ -1,4 +1,5 @@
 import {
+  type BlockId,
   type NormalizationRevision,
   NormalizedStudySetup,
   SourcePreparationFailure,
@@ -14,7 +15,14 @@ export function prepareBookMapScope(
   setup: StudySetupRevision,
   normalization: NormalizationRevision,
 ):
-  | { readonly kind: "ready"; readonly windows: readonly SourceWindow[] }
+  | {
+      readonly kind: "ready"
+      readonly windows: readonly SourceWindow[]
+      readonly uncovered: readonly {
+        readonly resourcePath: NormalizationRevision["resources"][number]["path"]
+        readonly blockId: BlockId
+      }[]
+    }
   | { readonly kind: "limited"; readonly failure: SourcePreparationFailure } {
   const linked = NormalizedStudySetup.safeParse({ setup, normalization })
   if (!linked.success) throw new ProviderError("unauthorized")
@@ -67,5 +75,11 @@ export function prepareBookMapScope(
         ...(block.pageLabel ? { pageLabel: block.pageLabel } : {}),
       })
     }
-  return { kind: "ready", windows }
+  return {
+    kind: "ready",
+    windows,
+    uncovered: blocks
+      .filter((block) => block.text.length === 0)
+      .map((block) => ({ resourcePath: block.resourcePath, blockId: block.id })),
+  }
 }

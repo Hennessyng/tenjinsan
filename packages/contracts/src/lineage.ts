@@ -168,8 +168,15 @@ export const AnalysisRevision = z
           .strictObject({
             resourcePath: ResourcePath,
             blockIds: uniqueValues(BlockId),
-            status: z.enum(["pending", "complete"]),
+            status: z.enum(["pending", "complete", "uncovered"]),
+            uncoveredBlockIds: uniqueValues(BlockId).optional(),
           })
+          .refine(
+            (chapter) =>
+              (chapter.status === "uncovered") === (chapter.uncoveredBlockIds?.length ?? 0) > 0 &&
+              (chapter.uncoveredBlockIds ?? []).every((id) => chapter.blockIds.includes(id)),
+            "uncovered blocks must belong to an uncovered chapter",
+          )
           .readonly(),
       )
       .readonly(),
