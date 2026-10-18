@@ -40,13 +40,11 @@ test("cancelled back navigation keeps draft, URL and language; confirmed back ap
   try {
     const page = await context.newPage()
     await englishImportsWithJapaneseHistory(page, fixture.origin)
-    await page
-      .locator('input[type="file"]')
-      .setInputFiles({
-        name: "history-draft.txt",
-        mimeType: "text/plain",
-        buffer: Buffer.from("Synthetic draft"),
-      })
+    await page.locator('input[type="file"]').setInputFiles({
+      name: "history-draft.txt",
+      mimeType: "text/plain",
+      buffer: Buffer.from("Synthetic draft"),
+    })
     await page.evaluate(() => history.back())
     await expect(page.getByRole("dialog")).toBeVisible()
     await expect(page).toHaveURL(/\/imports\?lang=en$/)
