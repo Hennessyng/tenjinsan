@@ -2,7 +2,10 @@ import type { BookEdition, NormalizationRevision, SourceSpan } from "@reading-st
 import { translate, type UiLocale } from "@reading-studio/contracts/i18n"
 import { html, raw } from "hono/html"
 import type { HtmlEscapedString } from "hono/utils/html"
+import { sourceLocation } from "./source-location.ts"
 import { sourceViewerStyles } from "./styles.ts"
+
+export { sourceLocation } from "./source-location.ts"
 
 type Content = HtmlEscapedString | Promise<HtmlEscapedString>
 export function sourcePage(title: string, content: Content, language: UiLocale = "en") {
@@ -49,7 +52,7 @@ export function sourceReader(input: {
        <p>${t("source.details.hash")} <code>${edition.originalHash}</code></p>
        <p>${t("source.details.revision")} <code>${normalization.id}</code><br>${t("source.details.parser", { parser: normalization.parserVersion, normalizer: normalization.normalizerVersion })}</p>
        <p>${t("source.details.note")}</p>
-       ${exclusions.map((item) => html`<p>${t("source.details.omitted", { path: item.path, reason: item.reason })}</p>`)}
+        ${(normalization.omissions ?? exclusions).map((item) => html`<p>${t("source.details.omitted", { path: item.path, reason: item.reason })}</p>`)}
     </details>
      <div class="reader"><nav aria-label="${t("source.reader.chapters")}"><h2>${t("source.reader.contents")}</h2><ol>
        ${normalization.resources.map((item, index) => html`<li><a href="${base}?chapter=${index}&lang=${locale}" aria-current="${index === chapter ? "page" : "false"}">${t("source.reader.chapter", { n: index + 1 })}</a><small>${item.path} · ${item.role}${item.status === "excluded" ? ` · ${t("source.reader.excludedSuffix")}` : ""}</small></li>`)}
@@ -64,7 +67,7 @@ export function sourceReader(input: {
           span?.blockId === block.id
             ? html`${block.text.slice(0, span.start)}<mark>${block.text.slice(span.start, span.end)}</mark>${block.text.slice(span.end)}`
             : block.text
-        }<small>${block.pageLabel === undefined ? t("source.location.noPage") : t("source.location.page", { label: block.pageLabel })}</small></p>`,
+        }<small>${sourceLocation(block, t)}</small></p>`,
             )
           : html`<p>${t("source.reader.resourceExcluded", { reason: resource?.status === "excluded" ? resource.reason : t("source.reader.reasonUnavailable") })}</p>`
       }

@@ -1,7 +1,7 @@
 import type { NormalizationRevision, StudySetupRevision } from "@reading-studio/contracts"
 import { translate, type UiLocale } from "@reading-studio/contracts/i18n"
 import { html } from "hono/html"
-import { sourcePage } from "../source-viewer/page.ts"
+import { sourceLocation, sourcePage } from "../source-viewer/page.ts"
 
 export function setupChoices(input: {
   readonly normalization: NormalizationRevision
@@ -54,7 +54,18 @@ export function setupReview(input: {
      <section class="setup"><p class="eyebrow">${t("setup.review.eyebrow")}</p><h1>${t("setup.review")}</h1>
     <h2>${setup.analysis.provider} / ${setup.analysis.model}</h2>
      <p>${t("setup.review.scope", { scope: t(setup.analysis.scope.kind === "whole-document" ? "brief.scope.whole" : setup.analysis.scope.kind === "partial" ? "brief.scope.partial" : "brief.scope.main") })}</p>
-     <h2>${t("setup.review.selected")}</h2><ul data-selected>${setup.analysis.scope.selected.map((resource) => html`<li>${t("revision.blocks", { path: resource.resourcePath, count: resource.blockIds.length })}</li>`)}</ul>
+      <h2>${t("setup.review.extraction")}</h2>
+      <p>${t("setup.review.coverage", { coverage: t(input.normalization.coverage === "complete" ? "source.coverage.complete" : "source.coverage.partial") })}</p>
+      <ul>${input.normalization.omissions?.map((item) => html`<li>${item.path} · ${item.reason}</li>`)}</ul>
+      <p>${t("setup.review.original")}</p><p>${t("setup.review.windows")}</p>
+      <h2>${t("setup.review.selected")}</h2><ul data-selected>${setup.analysis.scope.selected.map(
+        (selection) => {
+          const resource = input.normalization.resources.find(
+            (resource) => resource.path === selection.resourcePath,
+          )
+          return html`<li>${t("revision.blocks", { path: selection.resourcePath, count: selection.blockIds.length })}<ul>${resource?.status === "included" ? resource.blocks.filter((block) => selection.blockIds.includes(block.id)).map((block) => html`<li>${block.id} · ${sourceLocation(block, t)} · UTF-16 [0, ${block.text.length})</li>`) : html``}</ul></li>`
+        },
+      )}</ul>
      <h2>${t("setup.review.excluded")}</h2><ul data-excluded>${input.normalization.resources.filter((resource) => !setup.analysis.scope.selected.some((selection) => selection.resourcePath === resource.path)).map((resource) => html`<li>${resource.path}${resource.status === "excluded" ? ` · ${t("setup.review.unavailable", { reason: resource.reason })}` : ""}</li>`)}</ul>
      <p>${t("setup.review.limits")}</p>
      <p>${t("setup.review.timeouts")}</p>

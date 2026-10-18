@@ -6,7 +6,7 @@ import {
 import { translate } from "@reading-studio/contracts/i18n"
 import { bookMapRequestsFit, prepareBookMapScope } from "@reading-studio/generation"
 import { reviewedSourceBlocks } from "@reading-studio/providers"
-import { sourcePage } from "@reading-studio/studio/source-viewer"
+import { sourceLocation, sourcePage } from "@reading-studio/studio/source-viewer"
 import type { Context } from "hono"
 import { html } from "hono/html"
 import type { AppEnvironment } from "./middleware/access.ts"
@@ -71,7 +71,7 @@ export async function preflightStudyDecision(
       return context.html(
         sourcePage(
           title,
-          html`<h1>${title}</h1><p>${translate(locale, "setup.refusal.reason", { reason, required: coverage.requiredWindows, max: coverage.maxWindows })} <code>${coverage.reason}</code></p><p>${translate(locale, "setup.refusal.body")}</p><h2>${translate(locale, "setup.refusal.unsent")}</h2><ul>${coverage.unsentRanges.map((range) => html`<li>${range.resourcePath} · ${range.blockId} · UTF-16 [${range.start}, ${range.end})</li>`)}</ul><a href="/sources/${input.normalization.id}/setup?lang=${locale}">${translate(locale, "setup.scope")}</a>`,
+          html`<h1>${title}</h1><p>${translate(locale, "setup.refusal.reason", { reason, required: coverage.requiredWindows, max: coverage.maxWindows })} <code>${coverage.reason}</code></p><p>${translate(locale, "setup.refusal.body")}</p><h2>${translate(locale, "setup.refusal.unsent")}</h2><ul>${coverage.unsentRanges.map((range) => html`<li>${range.resourcePath} · ${range.blockId} · UTF-16 [${range.start}, ${range.end}) · ${sourceLocation(range, (key, params) => translate(locale, key, params))}${range.originalFragment ? html` · ${range.originalFragment}` : html``}</li>`)}</ul><a href="/sources/${input.normalization.id}/setup?lang=${locale}">${translate(locale, "setup.scope")}</a>`,
           locale,
         ),
         422,
