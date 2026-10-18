@@ -22,6 +22,7 @@ import {
 import { prepareBookMapScope, WINDOW_CHARACTERS } from "./book-map-scope.ts"
 
 export { type BookMapDefinition, bookMapDefinition } from "./book-map-output.ts"
+export { bookMapRequest, bookMapRequestsFit } from "./book-map-request.ts"
 export { prepareBookMapScope } from "./book-map-scope.ts"
 
 export class BookMapPipeline {

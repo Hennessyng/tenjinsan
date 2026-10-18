@@ -20,9 +20,11 @@ export function PreparationRefusal({
       <p>
         {t("setup.refusal.reason", {
           reason: t(
-            coverage.reason === "analysis-window-limit"
-              ? "setup.refusal.windowLimit"
-              : "setup.refusal.emptyScope",
+            coverage.reason === "request-byte-limit"
+              ? "setup.refusal.requestLimit"
+              : coverage.reason === "analysis-window-limit"
+                ? "setup.refusal.windowLimit"
+                : "setup.refusal.emptyScope",
           ),
           required: coverage.requiredWindows,
           max: coverage.maxWindows,

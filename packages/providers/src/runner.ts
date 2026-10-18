@@ -15,6 +15,7 @@ import {
   RecordedProviderReceipt as ProviderReceipt,
   sourceInput,
 } from "./source-input.ts"
+import { structuredRequest } from "./structured-request.ts"
 
 type RunningJob = Extract<Job, { readonly state: "running" }>
 type Options = ProviderAuthority & {
@@ -118,13 +119,14 @@ export class ProviderRunner {
             .maxOutputTokens > run.budget.maxOutputTokens
         )
           throw new ProviderError("input-limit")
-        const request: StructuredRequest = {
+        const request: StructuredRequest = structuredRequest({
           model: job.model,
           settings: job.stage === "analysis" ? setup.analysis.settings : setup.generation.settings,
-          prompt: `${stage.instruction}\n${JSON.stringify(blocks)}`,
+          instruction: stage.instruction,
+          blocks,
           schema,
           signal: stage.signal ?? new AbortController().signal,
-        }
+        })
         const bytes = await measureRequest(request, adapter)
         if (bytes > MAX_PROVIDER_REQUEST_BYTES) throw new ProviderError("input-limit")
         const attempts = execution.listAttempts(job.runId)

@@ -193,6 +193,7 @@
   "import.readSource": "取り込んだ資料を読む",
   "import.yourSources": "資料一覧",
   "setup.refusal.title": "資料の準備を中止しました",
+  "setup.refusal.requestLimit": "プロバイダーへの送信データが32,000バイトの上限を超えています",
   "setup.refusal.reason": "{reason} · 必要な分析範囲：{required} 件（上限 {max} 件）。",
   "setup.refusal.body": "許可は保存されていません。テキストは送信されていません。送信する前に資料の範囲を見直すか、より小さな文書を取り込んでください。同じ範囲で再試行しても同じ上限が表示されます。",
   "setup.refusal.import": "より小さな文書を取り込む",

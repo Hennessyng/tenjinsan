@@ -162,6 +162,28 @@ it.each([1, 2])(
   },
 )
 
+it.each(["あ".repeat(12_000), "\\".repeat(12_000)])(
+  "refuses a single window whose serialized request cannot fit before granting",
+  async (text) => {
+    // Given
+    const { harness, setupId, send } = await draft(Buffer.from(text), "text/plain")
+    // When
+    const response = await send()
+    // Then
+    expect(response.status).toBe(422)
+    expect(await response.json()).toMatchObject({
+      error: "scope-limit",
+      coverage: {
+        transmission: "not-sent",
+        reason: "request-byte-limit",
+        unsentRanges: [expect.objectContaining({ start: 0, end: text.length })],
+      },
+    })
+    expect(harness.sourceStorage.sources.getGrant(`grant-${setupId}`)).toBeNull()
+    expect(harness.sourceStorage.counts()).toMatchObject({ grants: 0, jobs: 0, attempts: 0 })
+  },
+)
+
 it("renders Japanese non-API preparation refusal without granting or queuing", async () => {
   // Given: a real imported source exceeds the analysis window limit.
   const { harness, revision, setupId } = await draft(

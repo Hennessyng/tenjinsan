@@ -1,6 +1,11 @@
-import type { NormalizationRevision, StudySetupRevision } from "@reading-studio/contracts"
+import {
+  type NormalizationRevision,
+  SourcePreparationFailure,
+  type StudySetupRevision,
+} from "@reading-studio/contracts"
 import { translate } from "@reading-studio/contracts/i18n"
-import { prepareBookMapScope } from "@reading-studio/generation"
+import { bookMapRequestsFit, prepareBookMapScope } from "@reading-studio/generation"
+import { reviewedSourceBlocks } from "@reading-studio/providers"
 import { sourcePage } from "@reading-studio/studio/source-viewer"
 import type { Context } from "hono"
 import { html } from "hono/html"
@@ -23,7 +28,30 @@ export async function preflightStudyDecision(
     default:
       return assertNever(input.decision)
   }
-  const scope = prepareBookMapScope(input.setup, input.normalization)
+  let scope = prepareBookMapScope(input.setup, input.normalization)
+  if (scope.kind === "ready" && !(await bookMapRequestsFit({ ...input, windows: scope.windows }))) {
+    scope = {
+      kind: "limited",
+      failure: SourcePreparationFailure.parse({
+        error: "scope-limit",
+        coverage: {
+          transmission: "not-sent",
+          reason: "request-byte-limit",
+          requiredWindows: scope.windows.length,
+          maxWindows: 128,
+          unsentRanges: reviewedSourceBlocks(input.setup, input.normalization).map((block) => ({
+            resourcePath: block.resourcePath,
+            blockId: block.blockId,
+            start: block.start,
+            end: block.end,
+            ...(block.locator ? { locator: block.locator } : {}),
+            ...(block.pageLabel ? { pageLabel: block.pageLabel } : {}),
+            ...(block.originalFragment ? { originalFragment: block.originalFragment } : {}),
+          })),
+        },
+      }),
+    }
+  }
   switch (scope.kind) {
     case "ready":
       return undefined
@@ -34,9 +62,11 @@ export async function preflightStudyDecision(
       const title = translate(locale, "setup.refusal.title")
       const reason = translate(
         locale,
-        coverage.reason === "analysis-window-limit"
-          ? "setup.refusal.windowLimit"
-          : "setup.refusal.emptyScope",
+        coverage.reason === "request-byte-limit"
+          ? "setup.refusal.requestLimit"
+          : coverage.reason === "analysis-window-limit"
+            ? "setup.refusal.windowLimit"
+            : "setup.refusal.emptyScope",
       )
       return context.html(
         sourcePage(

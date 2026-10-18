@@ -1,7 +1,9 @@
 import {
   type Job,
   JobAuthorization,
+  type NormalizationRevision,
   NormalizedStudySetup,
+  type StudySetupRevision,
   TransmissionAuthorization,
 } from "@reading-studio/contracts"
 import type { Storage } from "@reading-studio/storage"
@@ -42,8 +44,16 @@ export function authorizeSource(authority: ProviderAuthority, job: Job) {
   const linked = NormalizedStudySetup.safeParse({ setup: approved, normalization })
   if (!linked.success) throw new ProviderError("unauthorized")
   validateModel(job.provider, job.model, approved.analysis.settings)
-  const blocks = approved.analysis.scope.selected.flatMap((selection) => {
-    const resource = linked.data.normalization.resources.find(
+  const blocks = reviewedSourceBlocks(approved, linked.data.normalization)
+  return { setup: approved, blocks, normalization: linked.data.normalization }
+}
+
+export function reviewedSourceBlocks(
+  setup: StudySetupRevision,
+  normalization: NormalizationRevision,
+) {
+  return setup.analysis.scope.selected.flatMap((selection) => {
+    const resource = normalization.resources.find(
       (resource) => resource.path === selection.resourcePath,
     )
     if (resource?.status !== "included") throw new ProviderError("unauthorized")
@@ -54,8 +64,8 @@ export function authorizeSource(authority: ProviderAuthority, job: Job) {
         resourcePath: resource.path,
         blockId: block.id,
         text: block.text,
-        editionId: linked.data.normalization.editionId,
-        normalizationRevisionId: linked.data.normalization.id,
+        editionId: normalization.editionId,
+        normalizationRevisionId: normalization.id,
         start: 0,
         end: block.text.length,
         ...(block.locator ? { locator: block.locator } : {}),
@@ -66,5 +76,4 @@ export function authorizeSource(authority: ProviderAuthority, job: Job) {
       }
     })
   })
-  return { setup: approved, blocks, normalization: linked.data.normalization }
 }

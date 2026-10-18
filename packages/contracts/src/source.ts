@@ -108,7 +108,7 @@ export const SourcePreparationFailure = z
     coverage: z
       .strictObject({
         transmission: z.literal("not-sent"),
-        reason: z.enum(["analysis-window-limit", "empty-text-scope"]),
+        reason: z.enum(["analysis-window-limit", "empty-text-scope", "request-byte-limit"]),
         requiredWindows: Natural,
         maxWindows: z.literal(128),
         unsentRanges: z

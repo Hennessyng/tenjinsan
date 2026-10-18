@@ -193,6 +193,7 @@
   "import.readSource": "Read imported source",
   "import.yourSources": "Your sources",
   "setup.refusal.title": "Source preparation stopped",
+  "setup.refusal.requestLimit": "A serialized provider request exceeds the 32,000-byte limit",
   "setup.refusal.reason": "{reason} · {required} analysis windows required; limit {max}.",
   "setup.refusal.body": "No grant was saved. No text was sent. Revise the source scope or import a smaller document before sending. Retrying this unchanged scope will report the same limit.",
   "setup.refusal.import": "Import a smaller document",

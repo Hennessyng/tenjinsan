@@ -67,6 +67,27 @@ test("blank DOCX paragraphs reach production queued analysis rather than a saved
   }
 })
 
+test("Japanese byte-limit refusal shows every unsent range before saving a grant", async ({
+  page,
+}) => {
+  // Given
+  await review(page, {
+    name: "japanese-limit.txt",
+    mimeType: "text/plain",
+    buffer: Buffer.from("あ".repeat(12_000)),
+  })
+  const before = harness.sourceStorage.counts()
+  // When
+  await page.getByRole("button", { name: "Send", exact: true }).click()
+  // Then
+  const alert = page.getByRole("alert")
+  await expect(alert).toContainText("request-byte-limit")
+  await expect(alert).toContainText("No grant was saved")
+  await expect(alert.locator("li")).toHaveCount(1)
+  await expect(alert.locator("li")).toContainText("UTF-16 [0, 12000)")
+  expect(harness.sourceStorage.counts()).toEqual(before)
+})
+
 test("an oversized imported scope shows located unsent ranges and stays retryable without granting", async ({
   page,
 }) => {
