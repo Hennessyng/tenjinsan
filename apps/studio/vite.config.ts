@@ -1,6 +1,7 @@
 import tailwindcss from "@tailwindcss/vite"
 import react from "@vitejs/plugin-react"
 import { defineConfig, type ProxyOptions } from "vite"
+import { startupPlugin } from "./src/i18n/startup.ts"
 
 const { SERVER_PORT, STUDIO_PORT } = process.env
 const apiOrigin = `http://127.0.0.1:${SERVER_PORT ?? "8787"}`
@@ -16,7 +17,7 @@ const ownerProxy = {
 } satisfies ProxyOptions
 
 export default defineConfig({
-  plugins: [react(), tailwindcss()],
+  plugins: [startupPlugin(), react(), tailwindcss()],
   server: {
     proxy: {
       "/publication-artifacts": { target: apiOrigin, changeOrigin: true },

@@ -1,7 +1,7 @@
 import type { ReactElement } from "react"
 import { lazy, Suspense } from "react"
+import { LanguageProvider, useLanguage } from "./i18n/LanguageProvider.tsx"
 import { ImportBook } from "./intake/ImportBook.tsx"
-import { EntryTransition } from "./library/EntryTransition.tsx"
 import { LibraryShell } from "./library/LibraryShell.tsx"
 
 const BriefRoutes = lazy(() =>
@@ -42,7 +42,20 @@ const SetupRoutes = lazy(() =>
   import("./study-setup/SetupRoutes.tsx").then(({ SetupRoutes }) => ({ default: SetupRoutes })),
 )
 
+function LoadingStudio(): ReactElement {
+  const { t } = useLanguage()
+  return (
+    <main id="reading" tabIndex={-1}>
+      <h1>{t("app.loadingStudio")}</h1>
+      <p className="workspace-loading" role="status">
+        {t("app.loadingStudio")}
+      </p>
+    </main>
+  )
+}
+
 function WorkspaceApp(): ReactElement {
+  const { t } = useLanguage()
   const path = window.location.pathname
   if (path === "/imports")
     return (
@@ -59,28 +72,19 @@ function WorkspaceApp(): ReactElement {
   if (path === "/interviews" || /^\/interviews\/[^/]+$/.test(path)) return <InterviewRoutes />
   if (/^\/sources\/[^/]+\/setup(?:\/[^/]+)?$/.test(path)) return <SetupRoutes />
   if (path === "/sources" || /^\/sources\/[^/]+$/.test(path)) return <SourceRoutes />
-  return <p>Select a room / 部屋を選んでください</p>
+  return <p>{t("app.selectRoom")}</p>
 }
 
 export function App(): ReactElement {
   return (
-    <EntryTransition>
+    <LanguageProvider>
       <LibraryShell>
         {() => (
-          <Suspense
-            fallback={
-              <main id="reading" tabIndex={-1}>
-                <h1>Loading studio</h1>
-                <p className="workspace-loading" role="status">
-                  Loading studio
-                </p>
-              </main>
-            }
-          >
+          <Suspense fallback={<LoadingStudio />}>
             <WorkspaceApp key={window.location.href} />
           </Suspense>
         )}
       </LibraryShell>
-    </EntryTransition>
+    </LanguageProvider>
   )
 }

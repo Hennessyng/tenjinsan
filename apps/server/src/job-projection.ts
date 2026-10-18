@@ -1,4 +1,5 @@
-import { contentDigest, type Job } from "@reading-studio/contracts"
+import { contentDigest, InputCoverage, type Job } from "@reading-studio/contracts"
+import { ProviderReceipt } from "@reading-studio/providers"
 import type { Storage } from "@reading-studio/storage"
 import { z } from "zod"
 
@@ -34,6 +35,7 @@ export const OwnerJob = z.strictObject({
   unknownAttemptId: z.string().nullable(),
   provider: z.string(),
   model: z.string(),
+  inputCoverage: z.array(InputCoverage).optional(),
 })
 export const OwnerJobs = z.strictObject({
   jobs: z.array(OwnerJob),
@@ -98,6 +100,19 @@ function projectOwnerJob(storage: Storage, job: Job, setupCalls: number) {
         .length,
   )
   const last = attempts.at(-1)
+  const coverage = attempts.flatMap((attempt) => {
+    const body = storage.execution.getAttemptReceipt(attempt.id)
+    if (!body) return []
+    let value: unknown
+    try {
+      value = JSON.parse(new TextDecoder().decode(body))
+    } catch (error) {
+      if (error instanceof SyntaxError) return []
+      throw error
+    }
+    const receipt = ProviderReceipt.safeParse(value)
+    return receipt.success && receipt.data.inputCoverage ? [receipt.data.inputCoverage] : []
+  })
   const outline = job.stage === "lesson" ? storage.outlines.approved(job.inputRevisionId) : null
   const base = outline
     ? `lesson-${contentDigest(JSON.stringify([outline.id, job.setupRevisionId, job.grant.id]))}`
@@ -163,5 +178,6 @@ function projectOwnerJob(storage: Storage, job: Job, setupCalls: number) {
     unknownAttemptId: job.provider === "openai" ? null : (unknown?.id ?? null),
     provider: job.provider,
     model: job.model,
+    ...(coverage.length ? { inputCoverage: coverage } : {}),
   }
 }

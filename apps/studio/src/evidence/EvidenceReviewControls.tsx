@@ -1,12 +1,7 @@
 import type { ReactElement } from "react"
+import { useLanguage } from "../i18n/LanguageProvider.tsx"
 import type { Evidence, EvidenceAction } from "./client.ts"
-
-const labels = {
-  support: "Support / 主張の裏付け",
-  qualification: "Qualifications / 留保",
-  translation: "Translation / 翻訳",
-  visual: "Visual assumptions / 図解の仮定",
-} as const
+import { evidenceCategories, evidenceStatus } from "./copy.ts"
 
 export function EvidenceReviewControls({
   semantic,
@@ -17,12 +12,13 @@ export function EvidenceReviewControls({
   readonly busy: boolean
   readonly onAction: (action: EvidenceAction) => Promise<void>
 }): ReactElement {
+  const { t } = useLanguage()
   return (
     <div className="meaning-decisions">
       {semantic.map((decision) => (
-        <section key={decision.category} aria-label={decision.category}>
-          <h3>{labels[decision.category]}</h3>
-          <p>State: {decision.status}</p>
+        <section key={decision.category} aria-label={t(evidenceCategories[decision.category])}>
+          <h3>{t(evidenceCategories[decision.category])}</h3>
+          <p>{t("evidence.state", { status: evidenceStatus(decision.status, t) })}</p>
           <div className="setup-actions">
             <button
               type="button"
@@ -35,7 +31,7 @@ export function EvidenceReviewControls({
                 })
               }}
             >
-              Mark {decision.category} reviewed
+              {t("evidence.markReviewed", { category: t(evidenceCategories[decision.category]) })}
             </button>
             <button
               type="button"
@@ -48,7 +44,7 @@ export function EvidenceReviewControls({
                 })
               }}
             >
-              Acknowledge {decision.category} uncertainty
+              {t("evidence.acknowledge", { category: t(evidenceCategories[decision.category]) })}
             </button>
           </div>
         </section>

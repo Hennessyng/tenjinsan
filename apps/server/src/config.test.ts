@@ -14,12 +14,9 @@ describe("server configuration", () => {
         TRUST_PROXY: "0",
       }),
     ).toEqual({
-      authBaseURL: "http://127.0.0.1:8787",
-      authSecret: "test-secret-with-at-least-thirty-two-characters",
       databasePath: "data/studio.sqlite",
       host: "127.0.0.1",
       port: 8787,
-      sessionExpiresIn: 604_800,
       trustedOrigins: ["http://127.0.0.1:8787"],
       trustProxy: false,
     })
@@ -28,8 +25,6 @@ describe("server configuration", () => {
   it("names missing fields without including environment values", () => {
     expect(() => parseServerConfig({})).toThrow(
       new ServerConfigError([
-        "AUTH_BASE_URL",
-        "AUTH_SECRET",
         "DATABASE_PATH",
         "SERVER_HOST",
         "SERVER_PORT",

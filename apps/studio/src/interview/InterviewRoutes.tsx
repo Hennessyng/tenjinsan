@@ -2,12 +2,12 @@ import type { Answer } from "@reading-studio/contracts/choices"
 import type { ReactElement } from "react"
 import { useEffect, useState } from "react"
 import type { z } from "zod"
+import { useLanguage } from "../i18n/LanguageProvider.tsx"
 import { captureEditSave, requestDeparture } from "../library/useUnsavedEdits.ts"
 import { SourceRequestError, sourceCommand, sourceRequest } from "../source-viewer/client.ts"
 import { SourceFrame } from "../source-viewer/SourceRoutes.tsx"
 import type { Interview } from "./client.ts"
 import { InterviewList, InterviewState, SavedAnswer } from "./client.ts"
-import type { InterviewLanguage } from "./copy.ts"
 import { interviewCopy } from "./copy.ts"
 import { InterviewGroups } from "./InterviewGroups.tsx"
 import { InterviewQuestion } from "./InterviewQuestion.tsx"
@@ -22,7 +22,7 @@ type Page =
 export function InterviewRoutes(): ReactElement {
   const [, , study] = window.location.pathname.split("/")
   const params = new URLSearchParams(window.location.search)
-  const language: InterviewLanguage = params.get("lang") === "ja" ? "ja" : "en"
+  const { locale: language, t } = useLanguage()
   const stepId = params.get("step")
   const copy = interviewCopy[language]
   const base = `/interviews/${study ?? ""}`
@@ -49,38 +49,35 @@ export function InterviewRoutes(): ReactElement {
   }, [language, study])
   if (page.kind === "loading")
     return (
-      <SourceFrame language={language}>
+      <SourceFrame>
         <p className="workspace-loading" role="status">
-          Loading interview
+          {t("interview.loading")}
         </p>
       </SourceFrame>
     )
   if (page.kind === "error")
     return (
-      <SourceFrame language={language}>
+      <SourceFrame>
         <section className="setup workspace-error">
-          <h1>Interview unavailable / 質問は未準備です</h1>
-          <p>No saved question bank is available for this study.</p>
-          <a href="/sources">Return to sources</a>
+          <h1>{t("interview.unavailable.title")}</h1>
+          <p>{t("interview.unavailable.body")}</p>
+          <a href="/sources">{t("interview.unavailable.back")}</a>
         </section>
       </SourceFrame>
     )
   if (page.kind === "list")
     return (
-      <SourceFrame language={language}>
+      <SourceFrame>
         <section className="setup">
-          <h1>Reading interviews / 読書の質問</h1>
+          <h1>{t("interview.list.title")}</h1>
           {page.definitions.length === 0 ? (
-            <p className="workspace-empty">
-              No question bank is ready yet. / 質問はまだ準備されていません。
-            </p>
+            <p className="workspace-empty">{t("interview.list.empty")}</p>
           ) : (
             <ul>
               {page.definitions.map((definition) => (
                 <li key={definition.id}>
                   <a href={`/interviews/${definition.studyId}`}>
-                    {definition.steps[0]?.question.prompt.en} /{" "}
-                    {definition.steps[0]?.question.prompt.ja}
+                    {definition.steps[0]?.question.prompt[language]}
                   </a>
                 </li>
               ))}
@@ -102,8 +99,8 @@ export function InterviewRoutes(): ReactElement {
   const step = definition.steps.find((item) => item.question.id === stepId) ?? sequence[0]
   if (!step)
     return (
-      <SourceFrame language={language}>
-        <p role="alert">Interview unavailable</p>
+      <SourceFrame>
+        <p role="alert">{t("interview.unavailable.title")}</p>
       </SourceFrame>
     )
   const review = stepId === "~review"
@@ -144,20 +141,18 @@ export function InterviewRoutes(): ReactElement {
     }
   }
   return (
-    <SourceFrame language={language}>
+    <SourceFrame>
       <section className="setup interview" lang={language}>
-        <p className="eyebrow">
-          <span lang="en">READING</span> / {language === "en" ? "YOUR PERSPECTIVE" : "あなたの視点"}
-        </p>
+        <p className="eyebrow">{t("interview.eyebrow")}</p>
         <h1>{copy.title}</h1>
         <p>{copy.intro}</p>
-        <nav aria-label={language === "en" ? "Language" : "言語"}>
+        <nav aria-label={t("interview.nav.language")}>
           <a
             href={link(review ? "~review" : step.question.id, "en")}
             lang="en"
             aria-current={language === "en" ? "true" : undefined}
           >
-            English
+            {t("language.name.en")}
           </a>{" "}
           /{" "}
           <a
@@ -165,7 +160,7 @@ export function InterviewRoutes(): ReactElement {
             lang="ja"
             aria-current={language === "ja" ? "true" : undefined}
           >
-            日本語
+            {t("language.name.ja")}
           </a>
         </nav>
         {review && (
@@ -213,10 +208,7 @@ export function InterviewRoutes(): ReactElement {
                 <p>{copy.hint}</p>
               </aside>
             </div>
-            <nav
-              className="setup-actions"
-              aria-label={language === "en" ? "Interview steps" : "質問の移動"}
-            >
+            <nav className="setup-actions" aria-label={t("interview.nav.steps")}>
               {back && <a href={link(back.question.id)}>{copy.back}</a>}
               {next && <a href={link(next.question.id)}>{copy.next}</a>}
               <a href={link("~review")}>{copy.review}</a>
@@ -225,14 +217,10 @@ export function InterviewRoutes(): ReactElement {
         )}
         <InterviewGroups definition={definition} language={language} link={link} />
         <p>
-          <a href={`/briefs/${definition.studyId}`}>
-            Reading brief / <span lang="ja">読書方針を確認</span>
-          </a>
+          <a href={`/briefs/${definition.studyId}`}>{t("interview.link.brief")}</a>
         </p>
         <p>
-          <a href={`/revisions/${definition.studyId}`}>
-            Study revisions / <span lang="ja">読書の版</span>
-          </a>
+          <a href={`/revisions/${definition.studyId}`}>{t("interview.link.revisions")}</a>
         </p>
       </section>
     </SourceFrame>

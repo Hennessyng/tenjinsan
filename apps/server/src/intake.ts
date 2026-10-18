@@ -9,11 +9,14 @@ import type { Storage } from "@reading-studio/storage"
 type Receipt = Awaited<ReturnType<typeof acceptUpload>>
 
 export function productionIntake(storage: Storage, root: string) {
-  return async (receipt: Receipt, ownerId: string): Promise<void> => {
-    const originalPath = join(root, receipt.id, "original.epub")
+  return async (receipt: Receipt, ownerId: string) => {
+    const originalPath = join(root, receipt.id, `original.${receipt.format}`)
     const original = await open(originalPath, constants.O_RDONLY | constants.O_NOFOLLOW)
     try {
-      const document = await prepareSourceDocument(original, { title: "Imported EPUB" })
+      const document = await prepareSourceDocument(original, {
+        title: `Imported ${receipt.format.toUpperCase()}`,
+        format: receipt.format,
+      })
       if (document.edition.originalHash !== receipt.sha256)
         throw new TypeError("Import digest mismatch")
       const blob = storage.blobs.pathFor(receipt.sha256)
@@ -32,6 +35,7 @@ export function productionIntake(storage: Storage, root: string) {
       await chmod(blob, 0o600)
       storage.sources.persistDocument(document)
       storage.sources.createStudy({ id: randomUUID(), ownerId, editionId: document.edition.id })
+      return { normalizationRevisionId: document.normalization.id }
     } finally {
       await original.close()
     }

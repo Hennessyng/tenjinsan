@@ -1,5 +1,7 @@
 import { crc32, deflateRawSync } from "node:zlib"
 
+export { docxEntries, docxFixture, pdfFixture } from "./document-fixtures.ts"
+
 type ZipFixtureEntry = {
   readonly name: string
   readonly text: string

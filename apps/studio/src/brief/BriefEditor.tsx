@@ -1,37 +1,38 @@
 import type { FormEvent, ReactElement } from "react"
 import type { z } from "zod"
+import { useLanguage } from "../i18n/LanguageProvider.tsx"
 import type { Brief } from "./client.ts"
 import { BriefSave } from "./client.ts"
 
 const selects = {
   questionChoice: {
-    label: "Guiding question / 主となる問い",
+    label: "brief.guiding",
     options: [
-      ["original", "Keep original / 元の問いを使う"],
-      ["refined", "Use refined / 別案を使う"],
+      ["original", "brief.editor.keep"],
+      ["refined", "brief.editor.useRefined"],
     ],
   },
   depth: {
-    label: "Depth / 深さ",
+    label: "brief.depth",
     options: [
-      ["overview", "Overview / 概観"],
-      ["focused", "Focused / 焦点を絞る"],
-      ["deep", "Deep / 深く読む"],
+      ["overview", "brief.depth.overview"],
+      ["focused", "brief.depth.focused"],
+      ["deep", "brief.depth.deep"],
     ],
   },
   language: {
-    label: "Languages / 言語",
+    label: "brief.languages",
     options: [
-      ["en", "English"],
-      ["ja", "日本語"],
-      ["paired", "English + 日本語"],
+      ["en", "brief.english"],
+      ["ja", "brief.japanese"],
+      ["paired", "brief.paired"],
     ],
   },
   spoilerPolicy: {
-    label: "Spoilers / ネタバレ",
+    label: "brief.spoilers",
     options: [
-      ["avoid", "Avoid / 避ける"],
-      ["allow", "Allow / 許可する"],
+      ["avoid", "brief.spoilers.avoid"],
+      ["allow", "brief.spoilers.allow"],
     ],
   },
 } as const
@@ -45,6 +46,7 @@ export function BriefEditor({
   readonly onSave: (value: z.infer<typeof BriefSave>) => void
   readonly busy: boolean
 }): ReactElement {
+  const { t } = useLanguage()
   const content = view?.draft.content
   function save(event: FormEvent<HTMLFormElement>): void {
     event.preventDefault()
@@ -63,11 +65,11 @@ export function BriefEditor({
   )
   const select = (name: keyof typeof selects, value: string) => (
     <label key={name}>
-      {selects[name].label}
+      {t(selects[name].label)}
       <select name={name} defaultValue={value}>
         {selects[name].options.map(([id, title]) => (
           <option key={id} value={id}>
-            {title}
+            {t(title)}
           </option>
         ))}
       </select>
@@ -77,7 +79,7 @@ export function BriefEditor({
     <form key={view?.draft.id ?? "new"} onSubmit={save}>
       <input type="hidden" name="action" value="save" />
       <input type="hidden" name="expectedRevisionId" value={view?.draft.id ?? ""} />
-      <h2>Original question / 最初の問い</h2>
+      <h2>{t("brief.editor.original")}</h2>
       {content ? (
         <>
           <p lang="en">{content.originalQuestion.en}</p>
@@ -87,51 +89,40 @@ export function BriefEditor({
         </>
       ) : (
         <>
-          {text("originalEn", "Original question (English)", "", true)}
-          {text("originalJa", "最初の問い（日本語）", "", true)}
+          {text("originalEn", t("brief.editor.originalEn"), "", true)}
+          {text("originalJa", t("brief.editor.originalJa"), "", true)}
         </>
       )}
-      <h2>Refined alternative / 練り直した問い</h2>
-      <p>
-        The original stays unchanged. Select the alternative only if it expresses your intent. /
-        元の問いは保存されます。意図に合う場合のみ別案を選んでください。
-      </p>
-      {text("refinedEn", "Refined question (English)", content?.refinedQuestion?.en ?? "")}
-      {text("refinedJa", "練り直した問い（日本語）", content?.refinedQuestion?.ja ?? "")}
+      <h2>{t("brief.refined")}</h2>
+      <p>{t("brief.editor.refinedNote")}</p>
+      {text("refinedEn", t("brief.editor.refinedEn"), content?.refinedQuestion?.en ?? "")}
+      {text("refinedJa", t("brief.editor.refinedJa"), content?.refinedQuestion?.ja ?? "")}
       {select("questionChoice", content?.questionChoice ?? "original")}
-      <h2>Supporting questions / 補助の問い</h2>
-      <p>Up to three; leave unused pairs blank. / 最大3つ。不要な組は空欄にしてください。</p>
+      <h2>{t("brief.supporting")}</h2>
+      <p>{t("brief.editor.supportNote")}</p>
       {[0, 1, 2].map((index) => (
         <div key={index}>
           {text(
             `supportEn${index}`,
-            `Supporting question ${index + 1} (English)`,
+            t("brief.editor.supportEn", { n: index + 1 }),
             content?.supportingQuestions[index]?.en ?? "",
           )}
           {text(
             `supportJa${index}`,
-            `補助の問い ${index + 1}（日本語）`,
+            t("brief.editor.supportJa", { n: index + 1 }),
             content?.supportingQuestions[index]?.ja ?? "",
           )}
         </div>
       ))}
-      {text("purpose", "Purpose / 読書の目的", content?.purpose ?? "", true)}
-      {text("context", "Personal context / 個人的な背景", content?.context ?? "", true)}
+      {text("purpose", t("brief.purpose"), content?.purpose ?? "", true)}
+      {text("context", t("brief.context"), content?.context ?? "", true)}
       {select("depth", content?.depth ?? "focused")}
       {select("language", content?.language ?? "paired")}
       {select("spoilerPolicy", content?.spoilerPolicy ?? "avoid")}
-      {text(
-        "exclusions",
-        "Topic exclusions, one per line / 除外する話題（1行に1つ）",
-        content?.exclusions.join("\n") ?? "",
-      )}
-      <p>
-        Saving creates a new revision and invalidates earlier approval and descendants. It does not
-        start generation. /
-        保存すると新しい版になり、以前の承認と派生成果は古い状態になります。生成は開始しません。
-      </p>
+      {text("exclusions", t("brief.editor.exclusions"), content?.exclusions.join("\n") ?? "")}
+      <p>{t("brief.editor.saveNote")}</p>
       <button type="submit" disabled={busy}>
-        Review brief / 内容を確認
+        {t("brief.editor.review")}
       </button>
     </form>
   )

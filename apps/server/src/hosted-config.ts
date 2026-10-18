@@ -3,11 +3,13 @@ import { parseServerConfig, ServerConfigError } from "./config.ts"
 // biome-ignore lint/complexity/useLiteralKeys: TypeScript requires bracket access for environment index signatures.
 if (process.env["HOSTED_ROLE"] === "api") {
   const config = parseServerConfig(process.env)
-  const origin = new URL(config.authBaseURL)
+  const canonicalOrigin = config.trustedOrigins[0]
+  if (canonicalOrigin === undefined) throw new ServerConfigError(["CANONICAL_ORIGIN"])
+  const origin = new URL(canonicalOrigin)
   if (
     origin.protocol !== "https:" ||
     origin.port !== "" ||
-    config.authBaseURL !== origin.origin ||
+    canonicalOrigin !== origin.origin ||
     config.trustedOrigins.length !== 1 ||
     config.trustedOrigins[0] !== origin.origin
   ) {

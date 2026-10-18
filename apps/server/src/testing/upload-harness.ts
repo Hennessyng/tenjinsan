@@ -2,15 +2,23 @@ import { once } from "node:events"
 import { mkdir, mkdtemp, rm } from "node:fs/promises"
 import { createServer } from "node:http"
 import { tmpdir } from "node:os"
-import { join } from "node:path"
+import { join, resolve } from "node:path"
 import { getRequestListener } from "@hono/node-server"
+import type { ArchiveLimits } from "@reading-studio/ingestion/archive"
 import { openAuthStorage, openStorage } from "@reading-studio/storage"
 import { createApp } from "../app.ts"
-import { createOwnerAuth, createServerAuth } from "../auth/auth.ts"
-import { createOwnerService } from "../auth/owner.ts"
 import { productionIntake } from "../intake.ts"
+import { loadStudioAssets } from "../studio-assets.ts"
+import { studySetupSend } from "../study-setup-send.ts"
+import type { UploadWithHook } from "../upload.ts"
 
-export async function uploadHarness() {
+export async function uploadHarness(options?: {
+  readonly studioAssets?: boolean
+  readonly providerAvailable?: boolean
+  readonly onAccepted?: UploadWithHook["onAccepted"]
+  readonly limits?: ArchiveLimits
+  readonly queueAnalysis?: boolean
+}) {
   const directory = await mkdtemp(join(tmpdir(), "upload-http-"))
   const root = join(directory, "private")
   await mkdir(root, { mode: 0o700 })
@@ -25,27 +33,24 @@ export async function uploadHarness() {
     databasePath: join(directory, "auth.sqlite"),
     privateDataRoot: root,
   })
-  const config = {
-    baseURL: origin,
-    secret: "upload-test-secret-with-thirty-two-characters",
-    sessionExpiresIn: 3600,
-  }
-  const credentials = { email: "owner@example.test", password: "correct horse battery staple" }
-  await createOwnerService(storage, createOwnerAuth(storage, config)).provision({
-    ...credentials,
-    name: "Owner",
-  })
-  const auth = createServerAuth(storage, config)
   const app = createApp({
+    ...(options?.queueAnalysis ? { onSetupSend: studySetupSend(sourceStorage) } : {}),
+    ...(options?.studioAssets
+      ? { studioAssets: loadStudioAssets(resolve(import.meta.dirname, "../../../studio/dist")) }
+      : {}),
+    reviewStorage: sourceStorage,
+    providerAvailable: () => options?.providerAvailable ?? false,
     sources: sourceStorage.sources,
-    auth: {
-      handler: auth.handler,
-      ownerId: async (headers) => (await auth.api.getSession({ headers }))?.user.id ?? null,
-    },
+    libraryOwnerId: storage.ensureLibraryOwner(),
     upload: {
       root,
-      limits: { compressedBytes: 8192, decompressedBytes: 4096, entries: 10, entryBytes: 2048 },
-      onAccepted: productionIntake(sourceStorage, root),
+      limits: options?.limits ?? {
+        compressedBytes: 8192,
+        decompressedBytes: 4096,
+        entries: 10,
+        entryBytes: 2048,
+      },
+      onAccepted: options?.onAccepted ?? productionIntake(sourceStorage, root),
     },
     security: {
       apiBodyBytes: 1024,
@@ -53,24 +58,17 @@ export async function uploadHarness() {
       loginRateLimit: { attempts: 10, windowMs: 60000 },
       trustedOrigins: [origin],
       trustProxy: false,
-      uploadBodyBytes: 8192,
+      uploadBodyBytes: options?.limits?.compressedBytes ?? 8192,
       logger: () => undefined,
     },
   })
   server.on("request", getRequestListener(app.fetch))
-  const login = await fetch(`${origin}/api/auth/sign-in/email`, {
-    method: "POST",
-    headers: { origin, "content-type": "application/json" },
-    body: JSON.stringify(credentials),
-  })
-  const cookie = login.headers.getSetCookie()[0]?.split(";", 1)[0]
-  if (!cookie) throw new TypeError("Login failed")
   return {
     root,
     sourceStorage,
     directory,
     origin,
-    headers: { cookie, origin, "content-type": "application/epub+zip" },
+    headers: { origin, "content-type": "application/epub+zip" },
     close: async () => {
       await new Promise<void>((resolve, reject) =>
         server.close((error) => (error ? reject(error) : resolve())),

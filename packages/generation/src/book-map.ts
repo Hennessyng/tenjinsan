@@ -18,13 +18,11 @@ import {
   BookMapError,
   bookMapDefinition,
   linkedFindings,
-  type SourceWindow,
 } from "./book-map-output.ts"
+import { prepareBookMapScope, WINDOW_CHARACTERS } from "./book-map-scope.ts"
 
 export { type BookMapDefinition, bookMapDefinition } from "./book-map-output.ts"
-
-const WINDOW_CHARACTERS = 12000
-const MAX_WINDOWS = 128
+export { prepareBookMapScope } from "./book-map-scope.ts"
 
 export class BookMapPipeline {
   constructor(
@@ -55,7 +53,7 @@ export class BookMapPipeline {
       usage: { kind: "known", inputTokens: 0, outputTokens: 0 },
       state: "queued",
     })
-    const { blocks } = authorizeSource(this.authority, template)
+    authorizeSource(this.authority, template)
     if (
       template.promptVersion !== this.definition.promptVersion ||
       template.schemaVersion !== this.definition.schemaVersion
@@ -63,29 +61,15 @@ export class BookMapPipeline {
       throw new BookMapError("unsupported-version")
     const normalization = sources.getNormalization(setup.analysis.normalizationRevisionId)
     if (!normalization) throw new ProviderError("unauthorized")
-    const windows: SourceWindow[] = []
-    for (const block of blocks) {
-      if (block.text.length === 0) throw new BookMapError("scope-limit")
-      const resource = normalization.resources.find((entry) => entry.path === block.resourcePath)
-      const source =
-        resource?.status === "included"
-          ? resource.blocks.find((entry) => entry.id === block.blockId)
-          : undefined
-      if (!source) throw new ProviderError("unauthorized")
-      for (let start = 0; start < block.text.length; start += WINDOW_CHARACTERS) {
-        windows.push({
-          resourcePath: block.resourcePath,
-          blockId: block.blockId,
-          start,
-          end: Math.min(start + WINDOW_CHARACTERS, block.text.length),
-          text: block.text.slice(start, start + WINDOW_CHARACTERS),
-          ...(source.pageLabel ? { pageLabel: source.pageLabel } : {}),
-        })
-        if (windows.length > MAX_WINDOWS) throw new BookMapError("scope-limit")
-      }
+    const scope = prepareBookMapScope(setup, normalization)
+    switch (scope.kind) {
+      case "limited":
+        throw new BookMapError("scope-limit")
+      case "ready":
+        return { setup, key, identity, template, windows: scope.windows }
+      default:
+        return assertNever(scope)
     }
-    if (windows.length === 0) throw new BookMapError("scope-limit")
-    return { setup, key, identity, template, windows }
   }
 
   prepare(setupId: string, grantId: string): AnalysisRevision {
@@ -197,4 +181,7 @@ export class BookMapPipeline {
       instruction: this.definition.instruction,
     }
   }
+}
+function assertNever(value: never): never {
+  throw new TypeError(`Unexpected scope: ${value}`)
 }

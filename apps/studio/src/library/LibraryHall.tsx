@@ -1,7 +1,8 @@
 import { type ReactElement, useLayoutEffect, useRef, useState } from "react"
 import { createPortal } from "react-dom"
+import { useLanguage } from "../i18n/LanguageProvider.tsx"
 import { buildHall, hallCamera } from "./art/hall.ts"
-import { type LibraryRoom, libraryRooms, type RoomId } from "./room-map.ts"
+import { type LibraryRoom, libraryRooms, type RoomId, roomText } from "./room-map.ts"
 
 export function LibraryHall({
   room,
@@ -10,6 +11,7 @@ export function LibraryHall({
   readonly room: LibraryRoom | null
   readonly onOpen: (id: RoomId) => void
 }): ReactElement {
+  const { t } = useLanguage()
   const stage = useRef<HTMLDivElement>(null)
   const world = useRef<HTMLDivElement>(null)
   const camera = useRef<HTMLDivElement>(null)
@@ -45,7 +47,7 @@ export function LibraryHall({
           <button
             className="pin"
             type="button"
-            aria-label={`${item.n}. ${item.en}, ${item.ja}. ${item.doEn}.`}
+            aria-label={`${item.n}. ${t(roomText[item.id].name)}. ${t(roomText[item.id].action)}.`}
             ref={(node) => {
               node?.style.setProperty("--ph", String(item.h))
             }}
@@ -53,11 +55,8 @@ export function LibraryHall({
           >
             <span className="pin-n">{item.n}</span>
             <span className="pin-t">
-              <b>{item.en}</b>
-              <small lang="ja">{item.ja}</small>
-              <em>
-                Inspect / <span lang="ja">見る</span>
-              </em>
+              <b>{t(roomText[item.id].name)}</b>
+              <em>{t("hall.inspect")}</em>
             </span>
           </button>,
           target,

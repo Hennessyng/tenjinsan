@@ -7,7 +7,7 @@ import { getRequestListener } from "@hono/node-server"
 import { fixtureOutlineProvider } from "@reading-studio/generation/outline"
 import { openAuthStorage, openStorage } from "@reading-studio/storage"
 import { createApp } from "../app.ts"
-import { createOwnerAuth, createServerAuth } from "../auth/auth.ts"
+import { createOwnerAuth } from "../auth/auth.ts"
 import { createOwnerService } from "../auth/owner.ts"
 import { loadStudioAssets } from "../studio-assets.ts"
 
@@ -125,16 +125,12 @@ export async function sourceViewerFixture(options?: {
       editionHash: "b".repeat(64),
     },
   })
-  const auth = createServerAuth(authStorage, config)
   const app = createApp({
     ...(options?.studioAssets
       ? { studioAssets: loadStudioAssets(resolve(import.meta.dirname, "../../../studio/dist")) }
       : {}),
     reviewStorage: storage,
-    auth: {
-      handler: auth.handler,
-      ownerId: async (headers) => (await auth.api.getSession({ headers }))?.user.id ?? null,
-    },
+    libraryOwnerId: owner.id,
     sources: storage.sources,
     outlines: storage.outlines,
     workflow: storage.workflow,

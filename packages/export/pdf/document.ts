@@ -1,9 +1,14 @@
 import { readFile } from "node:fs/promises"
+import { DEFAULT_EXPORT_UI, type ExportUi } from "@reading-studio/contracts"
 import type { AssetResolver } from "../html/assets.ts"
 import { exportPrint } from "../print/index.ts"
 import { PdfExportError, pdfLimits } from "./policy.ts"
 
-export async function pdfDocument(input: unknown, resolveAsset?: AssetResolver): Promise<string> {
+export async function pdfDocument(
+  input: unknown,
+  resolveAsset?: AssetResolver,
+  ui: ExportUi = DEFAULT_EXPORT_UI,
+): Promise<string> {
   const cssUrl = new URL(import.meta.resolve("@fontsource/noto-sans-jp/400.css"))
   const css = await readFile(cssUrl, "utf8")
   const urls = [...new Set([...css.matchAll(/url\(([^)]+)\)/g)].map((match) => match[1]))]
@@ -22,6 +27,7 @@ export async function pdfDocument(input: unknown, resolveAsset?: AssetResolver):
         if (bytes.byteLength > pdfLimits.assetBytes) throw new PdfExportError("limit")
         return bytes
       }),
+    ui,
   )
   return html.replace(
     "</head>",

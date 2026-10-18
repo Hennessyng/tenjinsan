@@ -95,6 +95,27 @@ export const NormalizedStudySetup = z
           })
         return
       }
+      case "whole-document": {
+        const included = normalization.resources.filter(
+          (resource) => resource.status === "included",
+        )
+        if (
+          included.length !== scope.selected.length ||
+          !included.every((resource) =>
+            scope.selected.some(
+              (selection) =>
+                selection.resourcePath === resource.path &&
+                selection.blockIds.length === resource.blocks.length &&
+                resource.blocks.every((block) => selection.blockIds.includes(block.id)),
+            ),
+          )
+        )
+          ctx.addIssue({
+            code: "custom",
+            message: "whole-document scope must select every extracted block",
+          })
+        return
+      }
       default:
         return assertNever(scope)
     }

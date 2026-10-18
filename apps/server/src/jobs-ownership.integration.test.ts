@@ -7,10 +7,7 @@ test("does not expose a valid job to another authenticated owner identity", asyn
   const { fixture } = await ownerJobsFixture()
   try {
     const foreign = createApp({
-      auth: {
-        handler: async () => new Response(null, { status: 404 }),
-        ownerId: async () => "foreign-owner",
-      },
+      libraryOwnerId: "foreign-owner",
       reviewStorage: fixture.storage,
       security: {
         apiBodyBytes: 1024,

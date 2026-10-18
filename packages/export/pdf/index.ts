@@ -1,4 +1,4 @@
-import { PublicationRevision } from "@reading-studio/contracts"
+import { DEFAULT_EXPORT_UI, ExportUi, PublicationRevision } from "@reading-studio/contracts"
 import type { AssetResolver } from "../html/assets.ts"
 import { pdfDocument } from "./document.ts"
 import { PdfExportError, pdfLimits, withPdfDeadline } from "./policy.ts"
@@ -14,16 +14,18 @@ export async function exportPdf(
     readonly timeoutMs?: number
     readonly resolveAsset?: AssetResolver
     readonly chromiumExecutablePath?: string
+    readonly ui?: ExportUi
   } = {},
 ): Promise<Uint8Array> {
   if (active) throw new PdfExportError("busy")
   if (Buffer.byteLength(JSON.stringify(input)) > pdfLimits.htmlBytes)
     throw new PdfExportError("limit")
   const revision = PublicationRevision.parse(input)
+  const ui = ExportUi.parse(options.ui ?? DEFAULT_EXPORT_UI)
   active = true
   try {
     return await withPdfDeadline(async (signal) => {
-      const html = await pdfDocument(revision, options.resolveAsset)
+      const html = await pdfDocument(revision, options.resolveAsset, ui)
       signal.throwIfAborted()
       return renderPdf(revision, html, {
         signal,

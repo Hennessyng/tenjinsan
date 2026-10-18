@@ -178,7 +178,16 @@ export function useUnsavedEdits(): void {
   }, [])
 }
 
-export function UnsavedDepartureDialog(): ReactElement {
+export function UnsavedDepartureDialog({
+  text,
+}: {
+  readonly text: {
+    readonly title: string
+    readonly body: string
+    readonly stay: string
+    readonly leave: string
+  }
+}): ReactElement {
   const dialog = useRef<HTMLDialogElement>(null)
   const [pending, setPending] = useState<(() => void) | null>(null)
   useEffect(() => {
@@ -206,20 +215,28 @@ export function UnsavedDepartureDialog(): ReactElement {
     "dialog",
     {
       ref: dialog,
-      className: "paper departure-dialog",
+      className: "departure-dialog",
       "aria-labelledby": "departure-title",
       onCancel: (event: SyntheticEvent<HTMLDialogElement>) => {
         event.preventDefault()
         stay()
       },
     },
-    createElement("h2", { id: "departure-title" }, "Unsaved changes / 未保存の変更"),
+    createElement("h2", { id: "departure-title" }, text.title),
+    createElement("p", null, text.body),
     createElement(
-      "p",
-      null,
-      "Stay to keep editing, or leave and discard only unsaved edits. / 編集を続けるか、未保存の変更だけを破棄します。",
+      "div",
+      { className: "departure-actions" },
+      createElement(
+        "button",
+        { type: "button", className: "btn btn-quiet", onClick: stay, autoFocus: true },
+        text.stay,
+      ),
+      createElement(
+        "button",
+        { type: "button", className: "btn btn-primary", onClick: leave },
+        text.leave,
+      ),
     ),
-    createElement("button", { type: "button", onClick: stay, autoFocus: true }, "Stay / とどまる"),
-    createElement("button", { type: "button", onClick: leave }, "Leave and discard / 破棄して移動"),
   )
 }

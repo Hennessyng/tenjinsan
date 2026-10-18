@@ -1,7 +1,7 @@
 import { describe, expect, it } from "vitest"
 import { assertInteractiveInvocation, OwnerCliUsageError } from "./owner.ts"
 
-describe("owner CLI credential boundary", () => {
+describe("optional internal owner initialization", () => {
   it("refuses command-line arguments without reflecting their contents", () => {
     const privateValue = "password-that-must-never-be-logged"
     let capturedError: unknown
@@ -21,12 +21,12 @@ describe("owner CLI credential boundary", () => {
     }
   })
 
-  it("refuses credential input when either terminal stream is not a TTY", () => {
-    expect(() => assertInteractiveInvocation(["node", "scripts/owner.ts"], false, true)).toThrow(
-      OwnerCliUsageError,
-    )
-    expect(() => assertInteractiveInvocation(["node", "scripts/owner.ts"], true, false)).toThrow(
-      OwnerCliUsageError,
-    )
+  it("does not require credential input or a TTY", () => {
+    expect(() =>
+      assertInteractiveInvocation(["node", "scripts/owner.ts"], false, true),
+    ).not.toThrow()
+    expect(() =>
+      assertInteractiveInvocation(["node", "scripts/owner.ts"], true, false),
+    ).not.toThrow()
   })
 })

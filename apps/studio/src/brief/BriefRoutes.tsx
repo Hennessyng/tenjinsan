@@ -1,6 +1,7 @@
 import type { ReactElement } from "react"
 import { useEffect, useRef, useState } from "react"
 import type { z } from "zod"
+import { useLanguage } from "../i18n/LanguageProvider.tsx"
 import { SourceRequestError, sourceCommand, sourceRequest } from "../source-viewer/client.ts"
 import { SourceFrame } from "../source-viewer/SourceRoutes.tsx"
 import { BriefEditor } from "./BriefEditor.tsx"
@@ -9,15 +10,15 @@ import type { Brief } from "./client.ts"
 import { type BriefDecision, type BriefSave, BriefState } from "./client.ts"
 
 const statuses = {
-  pending: "Awaiting approval / 承認待ち",
-  approved: "Brief approved / 読書方針を承認しました",
-  revise: "Revision requested / 修正待ち",
-  defer: "Decision deferred / 判断を保留しました",
-  outdated:
-    "Outdated: setup or answers changed. Save a new revision. / 設定または回答が変更されました。新しい版を保存してください。",
+  pending: "brief.status.pending",
+  approved: "brief.status.approved",
+  revise: "brief.status.revise",
+  defer: "brief.status.defer",
+  outdated: "brief.status.outdated",
 } as const
 
 export function BriefRoutes(): ReactElement {
+  const { t } = useLanguage()
   const study = window.location.pathname.split("/")[2] ?? ""
   const endpoint = `/api/briefs/${encodeURIComponent(study)}`
   const [state, setState] = useState<Brief | null>(null)
@@ -61,13 +62,13 @@ export function BriefRoutes(): ReactElement {
       <SourceFrame>
         {error ? (
           <section className="setup workspace-error">
-            <h1>Brief unavailable / 読書方針は未準備です</h1>
-            <p>A current setup and saved interview are required.</p>
-            <a href="/interviews">Return to interviews</a>
+            <h1>{t("brief.unavailable.title")}</h1>
+            <p>{t("brief.unavailable.body")}</p>
+            <a href="/interviews">{t("brief.unavailable.back")}</a>
           </section>
         ) : (
           <p className="workspace-loading" role="status">
-            Loading brief
+            {t("brief.loading")}
           </p>
         )}
       </SourceFrame>
@@ -78,55 +79,43 @@ export function BriefRoutes(): ReactElement {
   return (
     <SourceFrame>
       <section className="setup brief">
-        <p className="eyebrow">READING / YOUR DIRECTION</p>
-        <h1>
-          Reading brief / <span lang="ja">読書方針</span>
-        </h1>
-        <p>
-          Review the direction before approving. No outline is generated here. /{" "}
-          <span lang="ja">
-            方向性を確認してから承認してください。ここでは構成案は生成されません。
-          </span>
-        </p>
+        <p className="eyebrow">{t("brief.eyebrow")}</p>
+        <h1>{t("brief.title")}</h1>
+        <p>{t("brief.intro")}</p>
         <nav>
-          <a href={`/interviews/${study}?step=~review`}>
-            Review saved answers / <span lang="ja">保存した回答を確認</span>
-          </a>
+          <a href={`/interviews/${study}?step=~review`}>{t("brief.answers")}</a>
         </nav>
         <p>
-          <a href={`/revisions/${study}`}>
-            Study revisions / <span lang="ja">読書の版</span>
-          </a>
+          <a href={`/revisions/${study}`}>{t("brief.revisions")}</a>
         </p>
         {error && (
           <p ref={alert} role="alert" tabIndex={-1}>
-            Unable to save this decision. It may be stale or incomplete. Review the current brief
-            and try again. / 入力不足または古い版です。現在の内容を確認してください。
+            {t("brief.saveError")}
           </p>
         )}
         {view && (
           <>
-            <p role="status">{statuses[view.status]}</p>
+            <p role="status">{t(statuses[view.status])}</p>
             <p className="metadata">
-              Revision / 版: <code>{view.draft.id}</code>
+              {t("brief.revision")} <code>{view.draft.id}</code>
             </p>
           </>
         )}
         {view?.status === "approved" && (
           <p>
-            <a href={`/outlines/${study}`}>
-              Study outline / <span lang="ja">学習の構成</span>
-            </a>
+            <a href={`/outlines/${study}`}>{t("brief.outline")}</a>
           </p>
         )}
         <details open>
-          <summary>Source scope and exclusions / 対象と除外</summary>
+          <summary>{t("brief.scope")}</summary>
           <p>
             {scope.kind === "partial"
-              ? "Partial coverage / 一部のみ"
-              : "All main chapters / 本文全章"}
+              ? t("brief.scope.partial")
+              : scope.kind === "whole-document"
+                ? t("brief.scope.whole")
+                : t("brief.scope.main")}
           </p>
-          <h2>Included / 対象</h2>
+          <h2>{t("brief.included")}</h2>
           <ul>
             {scope.selected.map((item) => (
               <li key={item.resourcePath}>
@@ -135,7 +124,7 @@ export function BriefRoutes(): ReactElement {
               </li>
             ))}
           </ul>
-          <h2>Excluded sources / 除外資料</h2>
+          <h2>{t("brief.excluded")}</h2>
           {scope.exclusions.length ? (
             <ul>
               {scope.exclusions.map((item) => (
@@ -146,12 +135,9 @@ export function BriefRoutes(): ReactElement {
               ))}
             </ul>
           ) : (
-            <p className="workspace-empty">None / なし</p>
+            <p className="workspace-empty">{t("brief.none")}</p>
           )}
-          <p>
-            Source scope comes from study setup. Changing it requires reviewing a new brief. /
-            対象範囲は読書設定に従います。変更後は再確認が必要です。
-          </p>
+          <p>{t("brief.scope.note")}</p>
         </details>
         {editor ? (
           <BriefEditor
@@ -174,7 +160,7 @@ export function BriefRoutes(): ReactElement {
         )}
         {descendants.length > 0 && (
           <>
-            <h2>Descendants / 派生成果</h2>
+            <h2>{t("brief.descendants")}</h2>
             <ul>
               {descendants.map((item) => (
                 <li key={item.id}>

@@ -1,5 +1,6 @@
 import type { NormalizationRevision, StudySetupRevision } from "@reading-studio/contracts"
 import { SetupRevisionId } from "@reading-studio/contracts"
+import type { UiLocale } from "@reading-studio/contracts/i18n"
 import type { SourceRepository } from "@reading-studio/storage"
 import { setupChoices, type setupResult, setupReview } from "@reading-studio/studio/study-setup"
 import type { Hono } from "hono"
@@ -19,23 +20,26 @@ export function configureSetupReadApi(
     model: string,
     ownerId: string,
   ) => Promise<boolean>,
-  unavailable: (revision: string) => ReturnType<typeof setupResult>,
+  unavailable: (revision: string, locale?: UiLocale) => ReturnType<typeof setupResult>,
   choices: (
     ownerId: string,
   ) => Promise<readonly { provider: string; model: string; label: string }[]>,
 ): void {
   app.get("/sources/:revision/setup", async (context) => {
+    const locale = context.req.query("lang") === "ja" ? "ja" : "en"
     const source = owned(context.req.param("revision"), context.get("ownerId"))
     return source
       ? context.html(
           setupChoices({
             normalization: source.normalization,
             choices: await choices(context.get("ownerId")),
+            locale,
           }),
         )
-      : context.html(unavailable(context.req.param("revision")), 404)
+      : context.html(unavailable(context.req.param("revision"), locale), 404)
   })
   app.get("/sources/:revision/setup/:setup", async (context) => {
+    const locale = context.req.query("lang") === "ja" ? "ja" : "en"
     const revision = context.req.param("revision")
     const source = owned(revision, context.get("ownerId"))
     const id = SetupRevisionId.safeParse(context.req.param("setup"))
@@ -48,9 +52,10 @@ export function configureSetupReadApi(
       sources.getLatestSetup(source.study.id)?.id !== setup.id ||
       sources.getGrant(`grant-${setup.id}`)
     )
-      return context.html(unavailable(revision), 409)
+      return context.html(unavailable(revision, locale), 409)
     return context.html(
       setupReview({
+        locale,
         setup,
         normalization: source.normalization,
         available: await available(
@@ -88,6 +93,7 @@ export function configureSetupReadApi(
     return context.json({
       setup,
       normalization: source.normalization,
+      attachment: { status: "unavailable", reason: "exact-format-support-unverified" },
       available: await available(
         setup.analysis.provider,
         setup.analysis.model,

@@ -52,12 +52,26 @@ Spacing follows a 4px base: `--space-1` 4px, `--space-2` 8px, `--space-3` 12px, 
 
 ## 5. Components
 
-### Login protection rejection (TEN-17)
+### Interface language (TEN-19)
 
-- A script-free rejection document reuses the existing owner panel, offline typography, paper/ink/green tokens and keyboard-focus ring. A semantic alert presents generic rejection text, bilingual explanation and a wrapping validated trace reference; a native link returns to login.
-- Origin, rate and body protections retain their 403/429/413 status and never imply invalid credentials. No submitted fields are reflected. Document scrolling owns overflow at 375/768/1280px; no new motion, tokens or React tooling.
+- App chrome uses one accepted English/Japanese preference; saved questions, original passages, generated bilingual teaching content and license bodies retain their language and wording. Lesson-language radios remain independent of interface language.
+- The header language selector uses native buttons in a labelled fieldset, visible pressed states, existing paper/ink/line tokens and existing focus rings. Space-1 separates buttons; space-2/space-3 pad controls. At narrow widths it stays beside the brand without overflow. Selection uses a paper wash, not an accent edge. No new token or motion.
+- Unsaved app edits and private-reader reflection text require the existing Stay/Leave decision before language or storage changes. Storage failures use a wrapping status notice and never claim persistence.
+- Departure dialogs are centered raised-paper surfaces with space-6 padding, a neutral line rule, existing focus rings and a dimmed ink backdrop. Native actions use existing button styles, wrap with space-3 gaps, and keep at least 32px target height; no motion or new color token is introduced.
+- New files fix interface language to English, Japanese or both at Publish, defaulting to English independently of the app. Their fixed interface spans remain visible when CSS-only lesson radios change; print retains both authored lesson languages. Only the private reader includes the trusted preference bridge.
+- Paired interface paragraphs place each locale on its own block to avoid Japanese sentence-ending orphans after long English text. Compact headings and controls retain inline language separation. No hidden separator text is emitted into print/PDF readiness inventories.
+- Keyboard and CJK constraints: each choice is focusable and named; Japanese labels wrap naturally; explicit language spans identify mixed-language choice names. No content is hidden to accommodate narrow headers. Visual review remains a separate gate.
+- Accepted explicit back/forward URL language is applied only after the unsaved-navigation capture guard. Blocked/reversal history events do not change the language or remembered choice. Edition history names the captured file interface, including an explicit unrecorded legacy state; fixed reader descriptions and scene accessible time values use that reader's catalog choice, not app preference.
+
+### Open library access (authentication removal)
+
+- The existing hall and desk open without login, logout, session-expiry gates or login-triggered animation, locally and when hosted. Anyone reaching the server can access the library; “owner” now means its persisted data namespace, not an authenticated visitor.
+- Keep existing tokens, layout, keyboard navigation and all authoring/review workflows. Host/origin checks, body limits, resource integrity, private-file URL isolation and worker boundaries remain. Legacy login links return to the hall; no credential fields or authentication cookies are created.
 
 ### Accession intake (TEN-6)
+
+- TEN-18 reuses the native chooser, stamps, details and paper surfaces for EPUB, DOCX, TXT and PDF. Show persisted readiness separately from a retained queued receipt. Coverage details name extraction omissions and real format locations; no invented pages. Send review distinguishes extracted text, transmission limits and unverified original-file capability. No new tokens or motion.
+- Preparation refusal reuses the setup paper and native alert/focus behavior. Name the safe window limit, state that no grant/text was sent, list every unsent located range, and retain Revise/Send controls. Long range inventories use the existing desk scroll owner; no new token or motion.
 
 - The existing native EPUB chooser and submit action sit inside a raised-paper accession sheet and dashed intake tray. A private-import margin note sits beside the sheet when wide and follows it below at narrow widths; document scroll remains the only scroll owner.
 - Actual upload outcomes use text-bearing stamps. Accepted receipts say Queued, retain the real receipt ID and byte count, and explicitly say Not yet readable. A later refusal is the current alert while any retained receipt is labelled Earlier acceptance.
@@ -108,12 +122,13 @@ Spacing follows a 4px base: `--space-1` 4px, `--space-2` 8px, `--space-3` 12px, 
 
 ### Studio shell
 
-- **Ownership**: React/Vite renders the authenticated owner authoring routes; Hono serves the built app, owner-authenticated JSON APIs and login. Downloaded lesson HTML/PDF is a separate, server-rendered safe projection that works offline without React or owner APIs.
+- **Ownership**: React/Vite renders the open library authoring routes; Hono serves the built app and anonymous JSON APIs scoped to the persisted library namespace. Downloaded lesson HTML/PDF remains a separate, server-rendered safe projection that works offline without React or library APIs.
 - **Structure**: skip link, semantic header, `main`, introductory section, paired language copy, static editorial mark, and concise footer note.
 - **States**: the initial editorial shell is available at first paint; authoring routes have actual loading, empty and error states.
 - **Accessibility**: one descriptive `h1`, landmarks, `lang` on Japanese text, selectable text, and logical source order.
 - **Motion**: none at bootstrap.
 - **Layout**: document scroll owns the page; the shell changes from one column at 390px to an asymmetric two-column grid by 768px.
+- In the illustrated library, opening a desk compacts the desktop route rail to 60px (72px including its left gutter), matching the camera's visible-hall allowance. Scoped desk-state rules target the library scope root explicitly. The zoomed decorative world may extend beyond the viewport but is clipped/inert while the untransformed usable desk, scroll pane and controls remain bounded. Narrow screens retain the horizontal route rail.
 
 ### Owner job ledger
 
@@ -149,7 +164,7 @@ Spacing follows a 4px base: `--space-1` 4px, `--space-2` 8px, `--space-3` 12px, 
 
 - Reuse the source-reader shell, React controls with native semantics, paired text, details, metadata and wrapping action rows. No new visual tokens or motion.
 - Present only the cleaned projection before explicit Publish / Revise / Keep private choices. Keep evidence and privacy identities visible; put the complete projected-value inventory in native details.
-- Publication means owner-authenticated downloadable files, not a public URL. Show queued/running, current, old-version/stale and error states as text. Never replace a failed output with an older file labelled current. Preserve successful historical downloads.
+- Publication means versioned downloadable files, available to anyone reaching this server. Show queued/running, current, old-version/stale and error states as text. Never replace a failed output with an older file labelled current. Preserve successful historical downloads.
 - Every edit invalidates approval, including review decisions and the same lesson's captions, feedback, source notes and asset inventory. Revise clears approval eligibility and returns to review. A failed job requires Revise and fresh approval before another attempt.
 - Personas: bilingual private reader, keyboard-only reader and script-disabled reader. Verify Publish, both downloads, Revise, stale tabs, Keep private, error and old versions at 375/768/1280px; metadata and labels must wrap. No additional styling debt is accepted.
 
@@ -197,7 +212,7 @@ Spacing follows a 4px base: `--space-1` 4px, `--space-2` 8px, `--space-3` 12px, 
 
 ### Source reader
 
-- React source-reader routes share the authenticated owner's origin and fetch Hono JSON data; no EPUB markup, styles, scripts, fonts or images are embedded. This owner UI is not the standalone exported lesson HTML.
+- React source-reader routes share the library origin and fetch Hono JSON data without authentication; no EPUB markup, styles, scripts, fonts or images are embedded. This library UI is not the standalone exported lesson HTML.
 - Reading shell: paper canvas, raised-paper passage, green chapter links, green-soft citation highlight and coral keyboard focus. Reuse existing color and spacing tokens.
 - Reader tokens: `--reader-width: 75rem`, `--reading-width: 46rem`, `--chapter-width: 14rem`, `--title-size: clamp(2rem, 5vw, 3rem)`, `--heading-size: 1.5rem`, `--body-size: 1rem`, `--label-size: .75rem`, `--line-height: 1.8`, `--rule: 1px`, `--focus-width: 3px`.
 - Chapter navigation is an ordered list beside the passage above 768px and before it below that width. Document scroll owns the viewport. Text and provenance wrap, including long source locators.

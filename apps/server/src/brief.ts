@@ -1,4 +1,5 @@
 import { BriefContent, BriefDecision, BriefRevisionId, StudyId } from "@reading-studio/contracts"
+import { translate } from "@reading-studio/contracts/i18n"
 import {
   type BriefRepository,
   ContractBoundaryError,
@@ -55,6 +56,7 @@ export function configureBrief(
     await next()
   })
   const handle = async (context: Context<AppEnvironment>) => {
+    const locale = context.req.query("lang") === "ja" ? "ja" : "en"
     const json = context.req.path.startsWith("/api/")
     if (json) context.header("Cache-Control", "private, no-store")
     const id = StudyId.safeParse(context.req.param("study"))
@@ -65,8 +67,9 @@ export function configureBrief(
         ? context.json({ error: "Brief unavailable" }, 404)
         : context.html(
             sourcePage(
-              "Brief unavailable",
-              html`<h1>Brief unavailable / 読書方針は未準備です</h1><p>A current setup and saved interview are required.</p><a href="/interviews">Return to interviews</a>`,
+              translate(locale, "brief.unavailable.title"),
+              html`<h1>${translate(locale, "brief.unavailable.title")}</h1><p>${translate(locale, "brief.unavailable.body")}</p><a href="/interviews?lang=${locale}">${translate(locale, "brief.unavailable.back")}</a>`,
+              locale,
             ),
             404,
           )
@@ -76,6 +79,7 @@ export function configureBrief(
         setup,
         edit: context.req.query("edit") === "1",
         error,
+        locale,
         descendants: briefs.descendants(definition.studyId),
       })
     if (context.req.method === "GET")
@@ -152,7 +156,7 @@ export function configureBrief(
           setup,
           descendants: briefs.descendants(definition.studyId),
         })
-      : context.redirect(`/briefs/${definition.studyId}`, 303)
+      : context.redirect(`/briefs/${definition.studyId}?lang=${locale}`, 303)
   }
   app.on(["GET", "POST"], "/briefs/:study", handle)
   app.on(["GET", "POST"], "/api/briefs/:study", handle)

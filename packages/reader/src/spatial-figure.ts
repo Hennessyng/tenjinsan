@@ -1,18 +1,20 @@
-import type { SceneSpec } from "@reading-studio/contracts"
+import type { ExportUi, SceneSpec } from "@reading-studio/contracts"
+import { translate } from "@reading-studio/contracts/i18n"
 import { html } from "hono/html"
 import { pairedLabel, pairedText } from "./primitives.ts"
 import { markerPosition, projectedFaces, projectedPoint, spatialBlocks } from "./spatial-model.ts"
+import { fixedUi, fixedUiBlock, fixedUiText } from "./ui.ts"
 
 type SpatialScene = Extract<SceneSpec, { kind: "perspective-3d" | "spatial-layers-3d" }>
 
-export function spatialFigure(scene: SpatialScene, staticOnly = false) {
+export function spatialFigure(scene: SpatialScene, staticOnly = false, ui: ExportUi = "en+ja") {
   const layers = scene.kind === "spatial-layers-3d" ? scene.layers : []
   const blocks = spatialBlocks(layers.length)
   const labels = layers.length
     ? layers.map((layer) => layer.label)
     : [
-        { en: "Near form", ja: "手前の形" },
-        { en: "Far form", ja: "奥の形" },
+        { en: translate("en", "reader.spatial.near"), ja: translate("ja", "reader.spatial.near") },
+        { en: translate("en", "reader.spatial.far"), ja: translate("ja", "reader.spatial.far") },
       ]
   return html`<figure class="scene-figure spatial-figure" ${staticOnly ? html`` : html`data-three-scene="${scene.kind}" data-layer-count="${layers.length}"`}>
     ${
@@ -20,16 +22,16 @@ export function spatialFigure(scene: SpatialScene, staticOnly = false) {
         ? html``
         : html`<div class="spatial-live" hidden><canvas aria-hidden="true"></canvas>
       <svg class="spatial-leaders" viewBox="0 0 320 320" aria-hidden="true">${labels.map(() => html`<line data-leader/>`)}</svg>
-      ${labels.map((label, index) => html`<span class="spatial-marker" data-marker="${index}" title="${label.en} / ${label.ja}">${index + 1}</span>`)}
+       ${labels.map((label, index) => html`<span class="spatial-marker" data-marker="${index}" title="${layers.length ? `${label.en} / ${label.ja}` : fixedUiText(index === 0 ? "reader.spatial.near" : "reader.spatial.far", ui)}">${index + 1}</span>`)}
     </div>`
     }
-    <figcaption>${pairedText({ en: "Illustrative geometry, not measured evidence. Compare the fixed views; numbers identify forms in the legend.", ja: "測定結果ではなく説明用の図形です。固定視点を比べてください。番号は凡例の形に対応します。" })}
-      <ol class="scene-legend">${labels.map((label, index) => html`<li data-object-label="${index}"><span class="pair-label">${pairedLabel(label)}</span></li>`)}</ol>
+    <figcaption><p>${fixedUiBlock("reader.spatial.note", ui)}</p>
+      <ol class="scene-legend">${labels.map((label, index) => html`<li data-object-label="${index}">${layers.length ? html`<span class="pair-label">${pairedLabel(label)}</span>` : fixedUi(index === 0 ? "reader.spatial.near" : "reader.spatial.far", ui)}</li>`)}</ol>
     </figcaption>
     ${
       staticOnly
         ? html``
-        : html`<fieldset data-spatial-controls hidden><legend><span lang="en">Viewpoints and layers</span> / <span lang="ja">視点と層</span></legend>
+        : html`<fieldset data-spatial-controls hidden><legend>${fixedUi("reader.spatial.controls", ui)}</legend>
       <div class="scene-actions">${scene.viewpoints.map((view, index) => html`<button type="button" data-view="${scene.id}:viewpoint:${view.id}" data-view-index="${index}" aria-pressed="false"><span class="pair-label">${pairedLabel(view.label)}</span></button>`)}</div>
       <div class="scene-actions">${layers.map((layer, index) => html`<button type="button" data-layer="${scene.id}:layer:${layer.id}" data-layer-index="${index}" aria-pressed="false">${index + 1}. <span class="pair-label">${pairedLabel(layer.label)}</span></button>`)}</div>
       <p class="pair-label" data-spatial-status role="status"><span lang="en"></span><span lang="ja"></span></p>

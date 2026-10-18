@@ -1,3 +1,4 @@
+import { InputCoverage } from "@reading-studio/contracts/source"
 import { z } from "zod"
 
 export const JobStatus = z.strictObject({
@@ -27,6 +28,7 @@ export const JobStatus = z.strictObject({
   unknownAttemptId: z.string().nullable(),
   provider: z.string(),
   model: z.string(),
+  inputCoverage: z.array(InputCoverage).optional(),
 })
 export const JobList = z.strictObject({
   jobs: z.array(JobStatus),

@@ -21,7 +21,7 @@ async function login(current: Awaited<ReturnType<typeof publicationFixture>>) {
     .join("; ")
 }
 
-test("versioned downloads require authentication and resource ownership", async () => {
+test("anonymous versioned downloads retain library namespace and resource ownership", async () => {
   // Given
   fixture = await publicationFixture()
   const { storage, view } = fixture
@@ -33,10 +33,7 @@ test("versioned downloads require authentication and resource ownership", async 
   const url = `${fixture.origin}/publication-artifacts/${output.id}`
   const foreignApp = createApp({
     reviewStorage: storage,
-    auth: {
-      ownerId: async () => "other-owner",
-      handler: async () => new Response(null, { status: 401 }),
-    },
+    libraryOwnerId: "other-owner",
     security: {
       trustedOrigins: [fixture.origin],
       trustProxy: false,
@@ -52,7 +49,7 @@ test("versioned downloads require authentication and resource ownership", async 
   const foreign = await foreignApp.request(url)
   const owner = await fetch(url, { headers: { cookie } })
   // Then
-  expect(anonymous.status).toBe(401)
+  expect(anonymous.status).toBe(200)
   expect(foreign.status).toBe(404)
   expect(owner.status).toBe(200)
   expect(owner.headers.get("content-disposition")).toContain(
@@ -145,7 +142,7 @@ test("failed exports stay errors and old successful files remain labelled stale"
   expect(oldResponse.status).toBe(200)
   expect(oldResponse.headers.get("x-publication-state")).toBe("stale")
   const panel = await fetch(`${fixture.origin}${fixture.path}`, { headers: { cookie } })
-  expect(await panel.text()).toContain("Error / エラー: render-error")
+  expect(await panel.text()).toContain("Error: render-error")
 }, 90_000)
 
 test("publication rejects forged content and renderer fields instead of trusting request approvals", async () => {

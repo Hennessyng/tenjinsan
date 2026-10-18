@@ -52,7 +52,8 @@ it("providers setup persists a draft without granting or enqueuing any cloud wor
   })
   const location = response.headers.get("location")
   expect(location).toBeTruthy()
-  const setupId = location?.split("/").at(-1)
+  const setupId =
+    location === null ? null : new URL(location, fixture.origin).pathname.split("/").at(-1)
   const setup = fixture.storage.sources.getSetup(setupId)
   expect(setup?.analysis.scope.selected.map((resource) => resource.resourcePath)).toEqual([
     "chapter-one.xhtml",
@@ -102,7 +103,7 @@ it("providers setup binds Send to the stored draft and consumes the decision onc
   })
   // Then
   expect(response.status).toBe(200)
-  const id = location?.split("/").at(-1)
+  const id = location === null ? null : new URL(location, fixture.origin).pathname.split("/").at(-1)
   const grant = fixture.storage.sources.getGrant(`grant-${id}`)
   expect(grant).toMatchObject({
     kind: "active",

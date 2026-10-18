@@ -1,3 +1,4 @@
+import { ExportUi } from "@reading-studio/contracts"
 import { z } from "zod"
 
 const Pair = z.object({ en: z.string(), ja: z.string() })
@@ -24,6 +25,7 @@ export const PublicationState = z.object({
   history: z.array(
     z.object({
       snapshot: z.object({
+        exportUi: ExportUi.optional(),
         publication: z.object({
           id: z.string(),
           approval: z.object({ rendererVersion: z.string(), approvedAt: z.string() }),
@@ -36,6 +38,7 @@ export const PublicationState = z.object({
           id: z.string(),
           format: z.enum(["html", "pdf"]),
           state: z.string(),
+          exportUi: ExportUi.optional(),
           error: z.string().nullable().optional(),
         }),
       ),

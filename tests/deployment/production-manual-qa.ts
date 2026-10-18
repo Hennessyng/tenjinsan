@@ -1,3 +1,4 @@
+// allow: SIZE_OK — One ordered end-to-end acceptance narrative retains shared revision/fence state.
 import { createHash } from "node:crypto"
 import { readFileSync } from "node:fs"
 import { analysisCacheKey, contentDigest } from "@reading-studio/contracts"
@@ -9,7 +10,7 @@ import { startProductionWire } from "./production-wire.ts"
 
 const hosted = process.env["STUDIO_COMPOSE_TEST_MODE"] === "enabled"
 const wire = hosted ? null : await startProductionWire()
-const fixture = hosted ? null : await makeLocalFixture(true)
+const fixture = hosted ? null : await makeLocalFixture(false)
 const environment = { ...(fixture?.environment ?? process.env) }
 delete environment["STUDIO_SYNTHETIC_TEST_MODE"]
 const launcher =
@@ -46,20 +47,12 @@ try {
     : { apiUrl: "http://127.0.0.1:8787", launcherPid: 0 }
   const origin = hosted ? "https://localhost" : ready.apiUrl
   const forwarded = hosted ? { "x-forwarded-host": "localhost" } : {}
-  const login = await fetch(`${ready.apiUrl}/login`, {
-    method: "POST",
+  const entrance = await fetch(`${ready.apiUrl}/`, {
     redirect: "manual",
-    headers: { origin, ...forwarded },
-    body: new URLSearchParams({
-      email: "owner@example.test",
-      password: "correct horse battery staple",
-    }),
+    headers: { ...forwarded },
   })
-  const cookie = login.headers
-    .getSetCookie()
-    .map((entry) => entry.split(";", 1)[0])
-    .join("; ")
-  if (login.status !== 303 || !cookie) throw new TypeError("Manual QA owner login failed")
+  if (entrance.status !== 200 || entrance.headers.get("set-cookie") !== null)
+    throw new TypeError("Anonymous library did not open")
   const post = (path: string, fields: Record<string, string>): Promise<Response> =>
     fetch(`${ready.apiUrl}${path}`, {
       method: "POST",
@@ -67,7 +60,6 @@ try {
       headers: {
         origin,
         ...forwarded,
-        cookie,
         "content-type": "application/json",
       },
       body: JSON.stringify(fields),
@@ -75,14 +67,13 @@ try {
 
   const upload = await fetch(`${ready.apiUrl}/api/imports/upload`, {
     method: "POST",
-    headers: { origin, ...forwarded, cookie, "content-type": "application/epub+zip" },
+    headers: { origin, ...forwarded, "content-type": "application/epub+zip" },
     body: zipFixture(epubEntries),
   })
   if (upload.status !== 202) throw new TypeError(`Intake HTTP ${upload.status}`)
-  const receipt = z.object({ sha256: z.string().length(64) }).parse(await upload.json())
-  const revision = `normalization-${createHash("sha256")
-    .update(JSON.stringify([receipt.sha256, "epub-parser-1", "epub-normalizer-1"]))
-    .digest("hex")}`
+  const revision = z
+    .object({ normalizationRevisionId: z.string().min(1) })
+    .parse(await upload.json()).normalizationRevisionId
   const draft = await post(`/api/study-setup/${revision}`, {
     provider: "openrouter",
     model: "gpt-4.1-mini",
@@ -226,7 +217,7 @@ try {
     )
 
     const evidenceUrl = `${ready.apiUrl}/api/evidence/${study.id}/${lesson.id}`
-    const evidencePage = await fetch(evidenceUrl, { headers: { cookie, ...forwarded } })
+    const evidencePage = await fetch(evidenceUrl, { headers: { ...forwarded } })
     if (evidencePage.status !== 200) throw new TypeError(`Evidence HTTP ${evidencePage.status}`)
     for (const category of ["support", "qualification", "translation", "visual"]) {
       const review = storage.reviews.current(lesson.id)
@@ -274,7 +265,7 @@ try {
         return current?.state === "released" ? current : null
       }, `${format} worker output`)
       const download = await fetch(`${ready.apiUrl}/publication-artifacts/${output.id}`, {
-        headers: { cookie, ...forwarded },
+        headers: { ...forwarded },
       })
       const bytes = new Uint8Array(await download.arrayBuffer())
       if (download.status !== 200 || bytes.length === 0)

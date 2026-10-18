@@ -19,12 +19,12 @@ describe("bounded default security output", () => {
     const write = vi.spyOn(output, "write")
     const sink = createDefaultSecuritySink(output)
     const { app } = harness(async () => new Response(null), sink)
-    const first = await app.request(formRequest())
+    const first = await app.request(formRequest({ origin: "https://attacker.example" }))
     try {
       // When
-      const response = await app.request(formRequest())
+      const response = await app.request(formRequest({ origin: "https://attacker.example" }))
       // Then
-      expect(response.status).toBe(303)
+      expect(response.status).toBe(403)
       expect(write.mock.calls.length).toBe(1)
       const event: unknown = JSON.parse(line)
       expect(event).toMatchObject({ trace_id: first.headers.get("x-request-id") })
@@ -48,16 +48,16 @@ describe("bounded default security output", () => {
     })
     const sink = createDefaultSecuritySink(output)
     const { app } = harness(async () => new Response(null), sink)
-    await app.request(formRequest())
+    await app.request(formRequest({ origin: "https://attacker.example" }))
     finish()
     await setImmediate()
     try {
       // When
-      const response = await app.request(formRequest())
+      const response = await app.request(formRequest({ origin: "https://attacker.example" }))
       // Then
       const event: unknown = JSON.parse(line)
       expect(event).toMatchObject({ trace_id: response.headers.get("x-request-id") })
-      expect(response.status).toBe(303)
+      expect(response.status).toBe(403)
     } finally {
       finish()
       output.destroy()
@@ -80,15 +80,15 @@ describe("bounded default security output", () => {
     const write = vi.spyOn(output, "write")
     const sink = createDefaultSecuritySink(output)
     const { app } = harness(async () => new Response(null, { status: 403 }), sink)
-    await app.request(formRequest())
+    await app.request(formRequest({ origin: "https://attacker.example" }))
     try {
       // When
       finish(new TypeError(canary))
       await setImmediate()
-      const response = await app.request(formRequest())
+      const response = await app.request(formRequest({ origin: "https://attacker.example" }))
       // Then
       expect(errors).toBe(1)
-      expect(response.status).toBe(401)
+      expect(response.status).toBe(403)
       expect(response.headers.get("x-request-id")).toMatch(/^[0-9a-f-]{36}$/)
       expect(write.mock.calls.length).toBe(1)
     } finally {

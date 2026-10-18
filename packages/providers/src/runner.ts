@@ -5,11 +5,16 @@ import { z } from "zod"
 import {
   MAX_PROVIDER_REQUEST_BYTES,
   type ProviderAdapter,
-  ProviderReceipt,
   type StructuredRequest,
 } from "./adapter.ts"
 import { authorizeSource, type ProviderAuthority } from "./authorization.ts"
 import { ProviderError, type ProviderName } from "./catalog.ts"
+import { measureRequest } from "./request-measurement.ts"
+import {
+  inputCoverage,
+  RecordedProviderReceipt as ProviderReceipt,
+  sourceInput,
+} from "./source-input.ts"
 
 type RunningJob = Extract<Job, { readonly state: "running" }>
 type Options = ProviderAuthority & {
@@ -77,7 +82,11 @@ export class ProviderRunner {
           execution.requestCancellation({ jobId: job.id })
         if (current.cancellationRequested || stage.signal?.aborted)
           return execution.cancelClaimedJob(lease())
-        const { setup, blocks: approvedBlocks } = authorizeSource(this.options, current)
+        const {
+          setup,
+          blocks: approvedBlocks,
+          normalization,
+        } = authorizeSource(this.options, current)
         const currentGrant = this.options.storage.sources.getGrant(current.grant.id)
         if (
           job.stage !== "analysis" &&
@@ -89,26 +98,7 @@ export class ProviderRunner {
         )
           throw new ProviderError("unauthorized")
         const window = stage.sourceWindow
-        const blocks = window
-          ? approvedBlocks
-              .filter((block) => block.blockId === window.blockId)
-              .map((block) => {
-                if (
-                  !Number.isInteger(window.start) ||
-                  !Number.isInteger(window.end) ||
-                  window.start < 0 ||
-                  window.end <= window.start ||
-                  window.end > block.text.length
-                )
-                  throw new ProviderError("input-limit")
-                return {
-                  ...block,
-                  text: block.text.slice(window.start, window.end),
-                  start: window.start,
-                  end: window.end,
-                }
-              })
-          : approvedBlocks
+        const blocks = sourceInput(approvedBlocks, window)
         if (blocks.length === 0) throw new ProviderError("unauthorized")
         const adapter = this.options.adapters[job.provider]
         if (!adapter) throw new ProviderError("missing-credentials")
@@ -135,19 +125,7 @@ export class ProviderRunner {
           schema,
           signal: stage.signal ?? new AbortController().signal,
         }
-        const bytes = adapter.measure
-          ? await adapter.measure(request)
-          : Buffer.byteLength(
-              JSON.stringify({
-                model: request.model,
-                settings: request.settings,
-                messages: [{ role: "user", content: request.prompt }],
-                schema: request.schema,
-                output_config: request.schema,
-                response_format: request.schema,
-              }),
-              "utf8",
-            ) + 4096
+        const bytes = await measureRequest(request, adapter)
         if (bytes > MAX_PROVIDER_REQUEST_BYTES) throw new ProviderError("input-limit")
         const attempts = execution.listAttempts(job.runId)
         const latest = attempts.at(-1)
@@ -192,7 +170,17 @@ export class ProviderRunner {
             ...lease(),
             attemptId: prepared.attempt.id,
             receivedAt: this.options.clock().toISOString(),
-            responseBody: new TextEncoder().encode(JSON.stringify(receipt)),
+            responseBody: new TextEncoder().encode(
+              JSON.stringify({
+                ...receipt,
+                inputCoverage: inputCoverage({
+                  normalization,
+                  approved: approvedBlocks,
+                  sent: blocks,
+                  prompt: request.prompt,
+                }),
+              }),
+            ),
             usage: receipt.usage,
           })
         }

@@ -11,7 +11,6 @@ export const sceneStyles = `
 .scene-actions { display: flex; flex-wrap: wrap; gap: var(--space-2); }
 .scene-actions button { max-width: 100%; font: inherit; color: var(--color-ink); background: var(--color-paper); border: var(--rule) solid var(--color-green); padding: var(--space-2) var(--space-3); cursor: pointer; overflow-wrap: anywhere; text-align: start; }
 .scene-actions button:hover:not(:disabled), .scene-actions button[aria-pressed=true] { background: var(--color-green-soft); }
-.scene-actions button[aria-pressed=true] { border-width: var(--focus-width); }
 .scene-actions button:disabled { color: var(--color-muted); border-color: var(--color-line); cursor: default; }
 .scene-seek { display: block; margin-block: var(--space-4); }
 .scene-seek input { display: block; width: 100%; margin: var(--space-2) 0; }

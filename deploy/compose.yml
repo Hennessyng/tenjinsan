@@ -26,9 +26,7 @@ services:
     <<: *app
     build: {context: .., dockerfile: deploy/Dockerfile, target: api}
     environment:
-      AUTH_BASE_URL: ${CANONICAL_ORIGIN:?Set CANONICAL_ORIGIN to your HTTPS origin}
       TRUSTED_ORIGINS: ${CANONICAL_ORIGIN:?Set CANONICAL_ORIGIN to your HTTPS origin}
-      AUTH_SECRET: ${AUTH_SECRET:?Set a private AUTH_SECRET of at least 32 characters}
       DATABASE_PATH: /data/studio.sqlite
       PRIVATE_DATA_ROOT: /data/private
       SERVER_HOST: 0.0.0.0

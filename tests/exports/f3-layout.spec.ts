@@ -159,7 +159,7 @@ test("PDF keeps bilingual headings and following content on the same page", asyn
   const directory = await mkdtemp(join(tmpdir(), "reading-f3-layout-"))
   try {
     // When
-    await writeFile(join(directory, "lesson.pdf"), await exportPdf(emptyRevision))
+    await writeFile(join(directory, "lesson.pdf"), await exportPdf(emptyRevision, { ui: "en+ja" }))
     await exec("pdftotext", [
       "-layout",
       join(directory, "lesson.pdf"),

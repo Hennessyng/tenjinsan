@@ -1,6 +1,7 @@
 import type { ReactElement } from "react"
 import { useEffect, useRef, useState } from "react"
 import type { z } from "zod"
+import { useLanguage } from "../i18n/LanguageProvider.tsx"
 import { captureEditSave } from "../library/useUnsavedEdits.ts"
 import { SourceRequestError, sourceCommand, sourceRequest } from "../source-viewer/client.ts"
 import { SourceFrame } from "../source-viewer/SourceRoutes.tsx"
@@ -9,14 +10,15 @@ import { type OutlineAction, OutlineState } from "./client.ts"
 import { OutlineContent } from "./OutlineContent.tsx"
 
 const statuses = {
-  pending: "Awaiting outline approval",
-  approved: "Outline approved",
-  revise: "Revision requested",
-  defer: "Decision deferred",
-  outdated: "Outdated: review the current brief",
+  pending: "outline.status.pending",
+  approved: "outline.status.approved",
+  revise: "brief.status.revise",
+  defer: "brief.status.defer",
+  outdated: "outline.status.outdated",
 } as const
 
 export function OutlineRoutes(): ReactElement {
+  const { t } = useLanguage()
   const study = window.location.pathname.split("/")[2] ?? ""
   const endpoint = `/api/outlines/${encodeURIComponent(study)}`
   const [state, setState] = useState<Outline | null>(null)
@@ -57,10 +59,10 @@ export function OutlineRoutes(): ReactElement {
     return (
       <SourceFrame>
         {error ? (
-          <p role="alert">Study not found</p>
+          <p role="alert">{t("revision.unavailable")}</p>
         ) : (
           <p className="workspace-loading" role="status">
-            Loading outline
+            {t("outline.loading")}
           </p>
         )}
       </SourceFrame>
@@ -70,39 +72,29 @@ export function OutlineRoutes(): ReactElement {
   return (
     <SourceFrame>
       <section className="setup outline">
-        <p className="eyebrow">READING / TEACHING SEQUENCE</p>
-        <h1>
-          Study outline / <span lang="ja">学習の構成</span>
-        </h1>
+        <p className="eyebrow">{t("outline.eyebrow")}</p>
+        <h1>{t("outline.title")}</h1>
         <nav>
-          <a href={`/briefs/${study}`}>
-            Reading brief / <span lang="ja">読書方針</span>
-          </a>
+          <a href={`/briefs/${study}`}>{t("brief.title")}</a>
         </nav>
         <p>
           {fixture
-            ? "Fixture provider only; no live generation or cloud transmission."
+            ? t("outline.fixture")
             : providerReady
-              ? "Provider-backed outline requests are queued under the approved transmission grant; refresh to review the result."
-              : "Live generation blocked: no live outline provider is configured. Fixture verification is separate."}
+              ? t("outline.provider")
+              : t("outline.blocked")}
         </p>
         {error && (
           <p ref={alert} role="alert" tabIndex={-1}>
-            Unable to proceed: stale revision, missing approval or unresolved flags. Review the
-            current outline.
+            {t("outline.error")}
           </p>
         )}
-        {!brief && (
-          <p className="workspace-empty">
-            Approve the current reading brief before generating an outline. /{" "}
-            <span lang="ja">先に読書方針を承認してください。</span>
-          </p>
-        )}
+        {!brief && <p className="workspace-empty">{t("outline.briefRequired")}</p>}
         {view && (
           <>
-            <p role="status">{statuses[view.status]}</p>
+            <p role="status">{t(statuses[view.status])}</p>
             <p className="metadata" data-outline-revision={view.draft.id}>
-              Revision: {view.draft.id}
+              {t("brief.revision")} {view.draft.id}
             </p>
           </>
         )}
@@ -119,7 +111,7 @@ export function OutlineRoutes(): ReactElement {
               })
             }}
           >
-            {fixture ? "Generate fixture outline" : "Queue outline generation"}
+            {fixture ? t("outline.generateFixture") : t("outline.generate")}
           </button>
         )}
         {current && (
@@ -136,7 +128,7 @@ export function OutlineRoutes(): ReactElement {
                   void submit({ action: "approve", revisionId: view.draft.id })
                 }}
               >
-                Approve outline / 承認する
+                {t("outline.approve")}
               </button>
               <button
                 type="button"
@@ -145,7 +137,7 @@ export function OutlineRoutes(): ReactElement {
                   void submit({ action: "defer", revisionId: view.draft.id })
                 }}
               >
-                Defer / 保留する
+                {t("brief.defer")}
               </button>
               <button
                 type="button"
@@ -154,21 +146,19 @@ export function OutlineRoutes(): ReactElement {
                   void submit({ action: "revise", revisionId: view.draft.id })
                 }}
               >
-                Request revision / 修正する
+                {t("outline.revise")}
               </button>
             </div>
             {(fixture || providerReady) && (
               <>
-                <h2>
-                  How should the sequence change? / <span lang="ja">構成をどう変えますか？</span>
-                </h2>
+                <h2>{t("outline.change")}</h2>
                 <form
                   onSubmit={(event) => {
                     event.preventDefault()
                     void submit({ action: "choice", revisionId: view.draft.id, value: choice })
                   }}
                 >
-                  <label htmlFor="revision-choice">Revision choice / 修正案</label>
+                  <label htmlFor="revision-choice">{t("outline.choice")}</label>
                   <select
                     id="revision-choice"
                     value={choice}
@@ -180,11 +170,11 @@ export function OutlineRoutes(): ReactElement {
                       )
                     }
                   >
-                    <option value="reverse-order">Reverse section order / 順序を逆にする</option>
-                    <option value="simplify-visuals">Simplify visuals / 図解を簡潔にする</option>
+                    <option value="reverse-order">{t("outline.reverse")}</option>
+                    <option value="simplify-visuals">{t("outline.simplify")}</option>
                   </select>
                   <button type="submit" disabled={busy}>
-                    Apply selected revision
+                    {t("outline.apply")}
                   </button>
                 </form>
                 <form
@@ -193,7 +183,7 @@ export function OutlineRoutes(): ReactElement {
                     void submit({ action: "custom", revisionId: view.draft.id, text: custom })
                   }}
                 >
-                  <label htmlFor="custom">Your own visual intention / 独自の図解案</label>
+                  <label htmlFor="custom">{t("outline.custom")}</label>
                   <input
                     id="custom"
                     required
@@ -202,7 +192,7 @@ export function OutlineRoutes(): ReactElement {
                     onChange={(event) => setCustom(event.target.value)}
                   />
                   <button type="submit" disabled={busy}>
-                    Apply custom revision
+                    {t("outline.applyCustom")}
                   </button>
                 </form>
               </>
@@ -211,20 +201,18 @@ export function OutlineRoutes(): ReactElement {
         )}
         <p>
           {view?.status === "approved" && providerReady
-            ? "Approved. Bilingual lesson generation is queued; refresh the evidence page to review the result."
+            ? t("outline.lessonQueued")
             : view?.status === "approved"
-              ? "Approval recorded. Section generation is not implemented in Task18."
-              : "Section generation blocked until this exact outline is approved."}
+              ? t("outline.fixtureApproved")
+              : t("outline.sectionsBlocked")}
         </p>
         {!providerReady && (
           <button disabled type="button">
-            Generate sections / 本文を生成
+            {t("outline.sections")}
           </button>
         )}
         <p>
-          <a href={`/evidence/${study}`}>
-            Review generated lesson evidence / <span lang="ja">生成済み本文の根拠を確認</span>
-          </a>
+          <a href={`/evidence/${study}`}>{t("outline.evidenceLink")}</a>
         </p>
       </section>
     </SourceFrame>

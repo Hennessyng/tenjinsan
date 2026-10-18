@@ -1,7 +1,9 @@
-# Private hosted installation
+# Hosted library installation — no application authentication
 
 This procedure is for an owner-controlled host. It does not supply a domain,
-certificate account, owner password or AI credential.
+certificate account or AI credential. **Anyone reaching this server can access
+and change the library, including requesting permitted provider work.** Use an external network access boundary if needed;
+canonical origin and TLS do not authenticate visitors.
 
 ```text
 Internet -> Caddy :80/:443 -> API (internal network)
@@ -18,7 +20,7 @@ server. No Docker socket, host networking, host IPC, or privileged containers ar
 
 Point your own domain's DNS at the host; allow inbound TCP 80 and 443. Set one canonical
 HTTPS origin, with no path, trailing slash, credentials, query, or nonstandard port.
-The API derives both its authentication URL and allowed origins from that value.
+The API derives its allowed origins from that value; there is no login URL.
 
 From the repository root:
 
@@ -26,29 +28,24 @@ From the repository root:
 cp deploy/.env.example deploy/.env
 chmod 600 deploy/.env
 # Edit deploy/.env privately: replace the example with YOUR HTTPS domain.
-# Generate a 32+ character AUTH_SECRET privately (openssl rand -hex 32 is one option).
-# Put it in deploy/.env using an editor, never in command arguments or logs.
 docker compose --env-file deploy/.env -f deploy/compose.yml config --quiet
 docker compose --env-file deploy/.env -f deploy/compose.yml build
-docker compose --env-file deploy/.env -f deploy/compose.yml run --rm --no-deps api \
-  node --experimental-transform-types scripts/owner.ts
 docker compose --env-file deploy/.env -f deploy/compose.yml up -d --wait
 docker compose --env-file deploy/.env -f deploy/compose.yml ps
 ```
 
-The owner command requires an interactive terminal and prompts for credentials;
-never put a real owner password in command arguments or Compose settings. Choose
-`p`, then enter your email, name and password twice. Visit `/login` on your
-actual `CANONICAL_ORIGIN`. Check `/health` and that all three services are
+No owner password, `AUTH_SECRET` or provisioning command is needed. Existing owner
+and content IDs are preserved; a fresh library receives only an internal owner row.
+Visit `/` on your actual `CANONICAL_ORIGIN`. Check `/health` and that all services are
 healthy with `compose ps`. Caddy attempts automatic certificate issuance and
 renewal for a reachable public domain; local `https://localhost` uses a local
 CA and cannot prove public ACME issuance.
-Missing origin/secret stops Compose; malformed origin/short secret stops the API
-before listening. An unprovisioned owner also prevents API readiness.
+Missing/malformed canonical origin still prevents readiness. Missing credentials
+do not prevent startup. Legacy auth environment settings are no longer used.
 
 Treat `deploy/.env` and Docker daemon access as privileged. `compose config` without
 `--quiet` renders secrets; do not paste its output into tickets or public logs.
-Keep the same secret when recreating containers to preserve existing sessions.
+Keep existing data/volumes when recreating containers; no auth-table deletion is needed.
 `deploy/.env.example` contains a documentation-only hostname, not a real domain.
 Optional `OPENROUTER_API_KEY` and `ANTHROPIC_API_KEY` values in `deploy/.env` are
 forwarded to both API (setup availability) and worker (dispatch). Leave them empty
@@ -103,15 +100,15 @@ snapshot, stop all writers first and include SQLite's WAL and private blobs.
 Preserve `private-data` (SQLite
 including WAL and private blobs), `caddy-data` (certificates), `caddy-config`
 and the separately protected `deploy/.env`. Keep the same Compose project name
-and `AUTH_SECRET`. After rebuilding, check login, health and service status.
+and data paths. After rebuilding, open the library without a session and check health/service status.
 If startup fails, stop services and restore a quiesced volume snapshot with
-UID/GID 1000 and the matching secret and certificate volumes. Do not copy an
+UID/GID1000 and the matching certificate volumes. Do not copy an
 active SQLite file without its WAL or remove it to clear a lock.
 
 For a portable encrypted **logical** backup, keep the API and worker running and
 use the age-enabled `library` CLI inside the API container from a trusted
-interactive host terminal. From the repository root, after provisioning the
-destination owner separately, run on the appropriate source or destination
+interactive host terminal. From the repository root, after initializing the
+destination library normally, run on the appropriate source or destination
 Compose project (never restore onto an occupied domain library):
 
 ```sh
@@ -152,14 +149,14 @@ bun run test:deployment -- hosted
 The test builds real images, uses a unique project/volumes and ephemeral loopback
 ports, provisions only synthetic credentials through the existing fixture driver,
 and trusts Caddy's local CA explicitly with curl `--cacert` (never `-k`). It checks
-HTTPS login, secure cookies, cross-origin rejection, HTTP-to-canonical-HTTPS
+Anonymous HTTPS library access, cross-origin rejection, HTTP-to-canonical-HTTPS
 redirect, private file isolation, no app/worker port bindings, and surviving owner
-sessions/private bytes after forced container recreation. It removes only its own
+library identities/private bytes after forced container recreation. It removes only its own
 test volumes. Invalid/missing configuration is tested as well.
 
 Production must use a real domain. Public DNS, ACME issuance, external firewall
 behavior and production traffic remain unclaimed by the local-CA test.
-React owns the authoring routes; Hono serves its built assets and authenticated
+React owns the authoring routes; Hono serves its built assets and anonymous
 JSON APIs, not authoring pages. The backend worker uses the Vercel AI SDK for
 analysis, questions, outline and bounded persisted lesson-section jobs, then
 reassembles sections in order. The final serialized SDK request body is capped
@@ -177,7 +174,8 @@ remain blocked without consent and credentials; F4 is `[~]`. Public TLS is unver
 
 The image includes official Codex CLI 0.155.1. API and worker share its
 owner/installation-scoped credential directory under `/data/private`, not personal
-host credentials. Connect/disconnect is owner-only in Setup; tokens never reach Caddy
+host credentials. Connect/disconnect remains library-scoped and reachable by visitors;
+there is no application login. Tokens never reach Caddy
 or React. Browser OAuth requires a private operator tunnel to the App Server callback
 on the API container's loopback port 1455. Do not expose that callback publicly.
 If the tunnel or official route is unavailable, leave Send disabled and F4 BLOCKED.

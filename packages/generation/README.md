@@ -12,7 +12,10 @@ findings. The final SDK request body must also fit 32,000 UTF-8 bytes before
 reservation and dispatch. At most 128 windows are admitted, but no more than 64
 attempts per setup across provider and study stages, including repairs, retries
 and lesson sections. Each run has a two-call ceiling. Oversized scopes fail explicitly before
-enqueue. Empty blocks fail explicitly rather than being counted as analyzed.
+enqueue and before normal Send saves a grant. The same planner returns a safe
+not-sent reason and full unsent ranges to review. Textless locator/anchor blocks
+remain stored but do not become analysis windows; a wholly textless selection
+still fails. Retry after a preparation refusal does not encounter a saved grant.
 Absolute source offsets are validated against the dispatched window; stored spans
 are resolved against the exact normalization. Chapter status remains pending until
 all its windows succeed. The synthesis is a deterministic union of source-linked

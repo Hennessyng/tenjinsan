@@ -106,10 +106,14 @@ it("requires new consent and never passes cached findings to the other provider"
     "claude-sonnet-4-6",
     "claude-sonnet-4-6",
   ])
-  for (const request of adapter.requests.slice(2)) {
+  for (const [index, request] of adapter.requests.slice(2).entries()) {
     const payload: unknown = JSON.parse(request.prompt.slice(request.prompt.lastIndexOf("\n") + 1))
     expect(payload).toEqual([
       {
+        editionId: "edition-1",
+        normalizationRevisionId: "normalization-1",
+        originalFragment: index === 0 ? "Synthetic source text." : "Companion presence matters.",
+        ...(index === 0 ? { pageLabel: "1" } : {}),
         blockId: expect.any(String),
         resourcePath: expect.any(String),
         text: expect.any(String),

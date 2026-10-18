@@ -4,9 +4,11 @@
   "private": true,
   "type": "module",
   "exports": {
+    "./app": "./src/app.ts",
     "./publication-fixture": "./src/testing/publication-fixture.ts",
     "./evidence-fixture": "./src/testing/evidence-fixture.ts",
     "./source-viewer-fixture": "./src/testing/source-viewer-fixture.ts",
+    "./upload-fixture": "./src/testing/upload-harness.ts",
     "./interview-fixture": "./src/testing/interview-fixture.ts",
     "./local-startup": "./src/local-startup.ts",
     "./owner-cli": "./src/owner-cli.ts",

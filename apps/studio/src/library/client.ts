@@ -1,3 +1,4 @@
+import type { CatalogKey } from "@reading-studio/contracts/i18n"
 import { createContext, useEffect, useRef, useState } from "react"
 import { z } from "zod"
 import { SourceRequestError, sourceCommand, sourceRequest } from "../source-viewer/client.ts"
@@ -27,24 +28,28 @@ export function readLibraryContext(signal: AbortSignal): Promise<LibraryContext>
   return sourceRequest("/api/library-context", LibraryContext, signal)
 }
 
+export type LibraryLoadError =
+  | { readonly kind: "status"; readonly status: number }
+  | { readonly kind: "retry" }
+
 export function useLibraryContext(
   generation: string,
   active = true,
 ): {
   readonly context: LibraryContext | null
-  readonly error: string
+  readonly error: LibraryLoadError | null
   readonly ready: boolean
   readonly selectStudy: typeof selectLibraryStudy
 } {
   const [state, setState] = useState<{
     readonly context: LibraryContext | null
-    readonly error: string
+    readonly error: LibraryLoadError | null
     readonly generation: string
-  }>({ context: null, error: "", generation: "" })
+  }>({ context: null, error: null, generation: "" })
   const current = useRef(generation)
   useEffect(() => {
     if (!active) {
-      setState({ context: null, error: "", generation: "" })
+      setState({ context: null, error: null, generation: "" })
       return
     }
     current.current = generation
@@ -52,7 +57,7 @@ export function useLibraryContext(
     readLibraryContext(abort.signal)
       .then((context) => {
         if (!abort.signal.aborted && current.current === generation)
-          setState({ context, error: "", generation })
+          setState({ context, error: null, generation })
       })
       .catch((failure: unknown) => {
         if (abort.signal.aborted || current.current !== generation) return
@@ -62,8 +67,8 @@ export function useLibraryContext(
           generation: "",
           error:
             failure instanceof SourceRequestError
-              ? `Library unavailable (${failure.status}). / 図書室を読み込めません。`
-              : "Library unavailable. Please retry. / もう一度お試しください。",
+              ? { kind: "status", status: failure.status }
+              : { kind: "retry" },
         }))
       })
     return () => abort.abort()
@@ -98,7 +103,7 @@ export function selectLibraryStudy(studyId: string): Promise<{ selectedStudyId: 
 export type RoomPrerequisite =
   | { readonly kind: "loading" }
   | { readonly kind: "ready" }
-  | { readonly kind: "missing"; readonly next: RoomId; readonly en: string; readonly ja: string }
+  | { readonly kind: "missing"; readonly next: RoomId; readonly message: CatalogKey }
   | { readonly kind: "unavailable"; readonly status: number }
 
 async function inspectRoom(
@@ -112,8 +117,7 @@ async function inspectRoom(
     return {
       kind: "missing",
       next: "accession",
-      en: "Choose an owned study to continue.",
-      ja: "読書を選んでください。",
+      message: "room.missing.chooseStudy",
     }
   try {
     switch (room) {

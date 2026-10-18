@@ -1,5 +1,11 @@
-import { PublicationRevision, requiredTeachingStates } from "@reading-studio/contracts"
 import {
+  DEFAULT_EXPORT_UI,
+  ExportUi,
+  PublicationRevision,
+  requiredTeachingStates,
+} from "@reading-studio/contracts"
+import {
+  fixedUi,
   pairedLabel,
   pairedText,
   readerStyles,
@@ -14,7 +20,12 @@ import { printPractice } from "./practice.ts"
 
 export { printReadiness } from "./readiness.ts"
 
-export async function exportPrint(input: unknown, resolveAsset?: AssetResolver): Promise<string> {
+export async function exportPrint(
+  input: unknown,
+  resolveAsset?: AssetResolver,
+  ui: ExportUi = DEFAULT_EXPORT_UI,
+): Promise<string> {
+  const choice = ExportUi.parse(ui)
   const { projection } = PublicationRevision.parse(input)
   const assets = await embedAssets(projection, resolveAsset)
   const questions = projection.sections.flatMap((section) =>
@@ -27,7 +38,7 @@ export async function exportPrint(input: unknown, resolveAsset?: AssetResolver):
         .map((exercise) => ({ prefix, exercise })),
     ),
   )
-  const document = html`<!doctype html><html lang="en"><head><meta charset="utf-8">
+  const document = html`<!doctype html><html lang="${choice === "ja" ? "ja" : "en"}"><head><meta charset="utf-8">
     <meta name="viewport" content="width=device-width, initial-scale=1">
     <meta http-equiv="Content-Security-Policy" content="default-src 'none'; style-src 'unsafe-inline'; img-src data:; font-src data:; base-uri 'none'; form-action 'none'">
     <title>${projection.title.en} / ${projection.title.ja}</title>
@@ -49,21 +60,21 @@ export async function exportPrint(input: unknown, resolveAsset?: AssetResolver):
         (
           scene,
         ) => html`<section class="scene" id="scene-${scene.id}" data-print-states="${JSON.stringify(requiredTeachingStates(scene).map((state) => state.id))}">
-        <h3 class="pair-label">${pairedLabel(scene.title)}</h3>${sceneFigure(scene, true)}
+         <h3 class="pair-label">${pairedLabel(scene.title)}</h3>${sceneFigure(scene, true, choice)}
         <ol class="states">${requiredTeachingStates({ ...scene, practice: [] }).map(teachingState)}</ol>
-        ${printPractice(scene.practice, scene.id)}
+         ${printPractice(scene.practice, scene.id, choice)}
         ${scene.captions?.map((caption) => html`<aside class="caption" data-caption="${caption.stateId}">${pairedText(caption.text)}</aside>`)}
       </section>`,
-      )}${printPractice(section.practice, section.id)}</article>`,
+      )}${printPractice(section.practice, section.id, choice)}</article>`,
     )}
     ${
       questions.length
-        ? html`<section class="sources" id="print-questions"><h2 class="pair-label">${pairedLabel({ en: "Curated question collection", ja: "選んだ質問集" })}</h2>
+        ? html`<section class="sources" id="print-questions"><h2>${fixedUi("export.questions", choice)}</h2>
       ${questions.map(({ prefix, exercise }) => html`<section data-question="${prefix}:${exercise.id}"><h3 class="pair-label">${pairedLabel(exercise.prompt)}</h3><ol>${exercise.options.map((option) => html`<li>${pairedText(option.label)}${pairedText(option.feedback)}</li>`)}</ol></section>`)}
     </section>`
         : html``
     }
-    <section id="print-sources" class="sources"><h2 class="pair-label">${pairedLabel({ en: "Sources appendix", ja: "出典付録" })}</h2>
+     <section id="print-sources" class="sources"><h2>${fixedUi("export.sources", choice)}</h2>
       ${projection.sections.map((section) => html`<section id="sources-${section.id}"><h3 class="pair-label">${pairedLabel(section.heading)}</h3><ol>${section.sourceNotes.map((note) => html`<li data-source="${section.id}:${note.id}"><h4 class="pair-label">${pairedLabel(note.title)}</h4><p class="locator">${note.locator}</p>${note.quotation ? html`<blockquote>${note.quotation}</blockquote>` : html``}${pairedText(note.note)}</li>`)}</ol></section>`)}
     </section>${assets.content}</main></body></html>`
   return (await document).toString()

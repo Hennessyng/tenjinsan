@@ -1,7 +1,14 @@
-# Bounded EPUB intake (Task 9)
+# Bounded document intake
+
+TEN-18 adds DOCX, strict UTF-8 TXT and selectable-text PDF to the production
+intake and source pipeline. See [format rules, exact limits and coverage](../../docs/MULTIFORMAT-IMPORT.md).
+The historical EPUB API below retains its archive limits; the narrow bare HTML
+DOCTYPE exception applies only to chapter and EPUB3 navigation XHTML. The app no
+longer requires a session: trusted Origin/Host and library ownership still apply.
+Production responses additionally include a normalization revision when readable.
 
 `POST /api/imports/upload` accepts the original EPUB bytes with
-`Content-Type: application/epub+zip`, an owner session, and the trusted Origin.
+`Content-Type: application/epub+zip` and the trusted Origin. No session is required.
 Multipart uploads are deliberately rejected (415); filenames are never used.
 
 The server streams into a generated `import-*` directory (0700) under
@@ -34,8 +41,9 @@ bun run test:integration -- upload
 node --experimental-transform-types apps/server/src/testing/upload-manual-qa.ts
 ```
 
-Tests and manual QA use only synthetic EPUBs and loopback HTTP with a real owner
-login. The QA driver removes its temporary database and uploads on exit.
+Tests use only synthetic documents and loopback HTTP in an isolated library namespace.
+The historical upload manual-QA driver still assumes the removed login flow and is not
+current anonymous-access proof. It removes its temporary database and uploads on exit.
 
 ## Read-only normalization (Task 10)
 

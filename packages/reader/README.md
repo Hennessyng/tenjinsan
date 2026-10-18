@@ -16,6 +16,21 @@ Native radios select paired, English or Japanese reading through CSS. They work
 without JavaScript, do not persist a preference, and never remove text from the
 document. Print restores both languages.
 
+Fixed interface text comes from the shared EN/JP catalogs. Trusted `ReaderDelivery.ui`
+selects `en`, `ja`, or `en+ja`; the low-level reader retains its legacy paired-interface
+default, while new exports and `privateReaderDocument` default to English. Interface spans
+are excluded from lesson-language hiding, and only the named `reader-language` radios own
+that CSS state; practice option identifiers cannot change it.
+Reader descriptions and dynamic seek `aria-valuetext` are catalog-derived from the same fixed
+interface choice. The trusted runtime receives an escaped numeric-placeholder template; it
+does not read app preferences or interpolate authored content as code.
+
+`privateReaderDocument` alone includes the app preference bridge. It resolves accepted explicit
+language, then a valid remembered choice, then English; storage failures do not block reading.
+Switches with page-local reflection text require Stay/Leave confirmation before storage or URL
+changes. This bridge makes no workflow request and is authorized by an exact private-reader CSP
+hash. Preview/evidence pages remain script-free, and downloaded files never include the bridge.
+
 Task22 adds reusable trusted SVG renderers for layered diagrams, comparisons,
 timelines and annotated processes (including loop arrows). Numbered shapes link
 to complete bilingual teaching notes. Every scene declares `data-print-states`

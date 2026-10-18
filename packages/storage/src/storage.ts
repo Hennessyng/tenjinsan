@@ -7,6 +7,7 @@ import { databaseDiagnostics, openDatabase } from "./database.ts"
 import { ContractBoundaryError, StoredRecordError } from "./errors.ts"
 import { type ExecutionRepository, SqliteExecutionRepository } from "./execution.ts"
 import { InterviewRepository } from "./interviews.ts"
+import { ensureLibraryOwner } from "./library-owner.ts"
 import { MaintenanceAdmission } from "./maintenance.ts"
 import {
   holdMaintenanceProcess,
@@ -61,6 +62,7 @@ export interface Storage {
   readonly workflow: WorkflowRepository
   readonly execution: ExecutionRepository
   readonly blobs: PrivateBlobStore
+  libraryOwnerId(): string
   diagnostics(): StorageDiagnostics
   counts(): StorageCounts
   close(): void
@@ -110,6 +112,10 @@ class SqliteStorage implements Storage {
     this.publicationOutputs = new PublicationOutputs(context, publications, this.outlines)
     this.execution = new SqliteExecutionRepository(context, sources, publications)
     this.revisions = new RevisionRepository(context, this)
+  }
+
+  libraryOwnerId(): string {
+    return ensureLibraryOwner(this.context.sqlite)
   }
 
   diagnostics(): StorageDiagnostics {

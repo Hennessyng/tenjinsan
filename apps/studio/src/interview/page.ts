@@ -3,6 +3,7 @@ import {
   assertNever,
   type InterviewDefinition,
 } from "@reading-studio/contracts"
+import { translate } from "@reading-studio/contracts/i18n"
 import { html, raw } from "hono/html"
 import { sourcePage } from "../source-viewer/page.ts"
 import { type InterviewLanguage, interviewCopy } from "./copy.ts"
@@ -13,8 +14,8 @@ export { interviewFromDiscovery } from "./discovery.ts"
 const styles = `
 .interview form { margin-block: var(--space-6); }
 .interview .answer-card { display: flex; align-items: baseline; gap: var(--space-3); padding: var(--space-4); margin-block: var(--space-2); border: var(--rule) solid var(--color-line); background: var(--color-paper-raised); cursor: pointer; }
-.answer-card:has(:checked) { background: var(--color-green-soft); border-color: var(--color-green); }
-.answer-card:focus-within { outline: var(--focus-width) solid var(--color-focus); outline-offset: var(--space-1); }
+.answer-card:has(:checked) { background: var(--color-green-soft); }
+.answer-card:has(:focus-visible) { outline: var(--focus-width) solid var(--color-focus); outline-offset: var(--space-1); }
 .interview textarea { display: block; width: 100%; margin-bottom: var(--space-4); padding: var(--space-4); font: inherit; color: var(--color-ink); background: var(--color-paper-raised); border: var(--rule) solid var(--color-green); }
 .interview progress { width: 100%; accent-color: var(--color-green); }
 .interview nav { margin-block: var(--space-6); }
@@ -51,6 +52,7 @@ export function interviewPage(input: {
   readonly state: "view" | "saved" | "error"
 }) {
   const { definition, answers, language, state } = input
+  const t = (key: Parameters<typeof translate>[1]) => translate(language, key)
   const copy = interviewCopy[language]
   const base = `/interviews/${definition.studyId}`
   const link = (step: string, lang = language) => `${base}?step=${step}&lang=${lang}`
@@ -80,9 +82,9 @@ export function interviewPage(input: {
   return sourcePage(
     copy.title,
     html`<style>${raw(styles)}</style><section class="setup interview" lang="${language}">
-    <p class="eyebrow"><span lang="en">READING</span> / ${language === "en" ? "YOUR PERSPECTIVE" : "あなたの視点"}</p>
+    <p class="eyebrow">${t("interview.eyebrow")}</p>
     <h1>${copy.title}</h1><p>${copy.intro}</p>
-    <nav aria-label="${language === "en" ? "Language" : "言語"}"><a href="${link(review ? "~review" : step.question.id, "en")}" lang="en" aria-current="${language === "en" ? "true" : "false"}">English</a> / <a href="${link(review ? "~review" : step.question.id, "ja")}" lang="ja" aria-current="${language === "ja" ? "true" : "false"}">日本語</a></nav>
+    <nav aria-label="${t("interview.nav.language")}"><a href="${link(review ? "~review" : step.question.id, "en")}" lang="en" aria-current="${language === "en" ? "true" : "false"}">${t("language.name.en")}</a> / <a href="${link(review ? "~review" : step.question.id, "ja")}" lang="ja" aria-current="${language === "ja" ? "true" : "false"}">${t("language.name.ja")}</a></nav>
     <label for="progress">${copy.progress} ${savedCount} ${copy.of} ${sequence.length} ${copy.suggested}</label><progress id="progress" value="${savedCount}" max="${sequence.length}"></progress>
     <p>${copy.hint}</p>
     ${state === "error" ? html`<p role="alert" tabindex="-1" autofocus>${copy.error}</p>` : html``}
@@ -109,11 +111,11 @@ export function interviewPage(input: {
           : html``
       }
       ${answerForms({ definition, step, answer: current?.answer, language })}
-       <nav class="setup-actions" aria-label="${language === "en" ? "Interview steps" : "質問の移動"}">${back ? html`<a href="${link(back.question.id)}">${copy.back}</a>` : html``}${next ? html`<a href="${link(next.question.id)}">${copy.next}</a>` : html``}<a href="${link("~review")}">${copy.review}</a></nav>`
+        <nav class="setup-actions" aria-label="${t("interview.nav.steps")}">${back ? html`<a href="${link(back.question.id)}">${copy.back}</a>` : html``}${next ? html`<a href="${link(next.question.id)}">${copy.next}</a>` : html``}<a href="${link("~review")}">${copy.review}</a></nav>`
     }
     <h2>${copy.browse}</h2>${definition.groups.map((group) => html`<details><summary>${group.label[language]}</summary><ul>${definition.steps.filter((item) => item.groupId === group.id).map((item) => html`<li><a href="${link(item.question.id)}">${item.question.lens?.label[language] ?? item.question.prompt[language]}</a></li>`)}</ul></details>`)}
-<p><a href="/briefs/${definition.studyId}">Reading brief / <span lang="ja">読書方針を確認</span></a></p>
-<p><a href="/revisions/${definition.studyId}">Study revisions / <span lang="ja">読書の版</span></a></p>
+<p><a href="/briefs/${definition.studyId}?lang=${language}">${t("interview.link.brief")}</a></p>
+<p><a href="/revisions/${definition.studyId}?lang=${language}">${t("interview.link.revisions")}</a></p>
   </section>`,
     language,
   )

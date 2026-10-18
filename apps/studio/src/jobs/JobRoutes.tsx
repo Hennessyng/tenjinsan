@@ -1,5 +1,6 @@
 import type { ReactElement } from "react"
 import { useContext, useEffect, useRef, useState } from "react"
+import { useLanguage } from "../i18n/LanguageProvider.tsx"
 import { SelectedLibraryStudy } from "../library/client.ts"
 import { SourceRequestError, sourceCommand, sourceRequest } from "../source-viewer/client.ts"
 import { SourceFrame } from "../source-viewer/SourceRoutes.tsx"
@@ -7,6 +8,7 @@ import { type JobStatus as Job, JobList, JobStatus } from "./client.ts"
 import { JobEntry } from "./JobEntry.tsx"
 
 export function JobRoutes(): ReactElement {
+  const { t } = useLanguage()
   const selected = useContext(SelectedLibraryStudy)
   const studyId = selected === undefined ? undefined : (selected?.id ?? null)
   const [jobs, setJobs] = useState<readonly Job[] | null>(null)
@@ -47,15 +49,11 @@ export function JobRoutes(): ReactElement {
       } catch (failure) {
         if (!active || request.signal.aborted) return
         if (!(failure instanceof Error)) throw failure
-        if (failure instanceof SourceRequestError && failure.status === 401) {
-          active = false
-          setJobs(null)
-        }
         failures += 1
         setError(
           failure instanceof SourceRequestError && failure.status === 503
-            ? "Library maintenance in progress / メンテナンス中"
-            : "Jobs unavailable; showing last recorded state. / 作業を取得できません。最後の記録を表示しています。",
+            ? t("jobs.error.maintenance")
+            : t("jobs.error.unavailable"),
         )
       } finally {
         if (controller === request) controller = null
@@ -84,7 +82,7 @@ export function JobRoutes(): ReactElement {
       controller?.abort()
       document.removeEventListener("visibilitychange", visibility)
     }
-  }, [studyId, observation])
+  }, [studyId, observation, t])
   async function refresh(): Promise<void> {
     setObservation((value) => value + 1)
   }
@@ -114,8 +112,8 @@ export function JobRoutes(): ReactElement {
     } catch (failure) {
       setError(
         failure instanceof SourceRequestError && failure.status === 409
-          ? "This job changed. Refresh before deciding. / 状態が変わりました。更新してから選び直してください。"
-          : "Decision unavailable. Review the current setup. / 操作できません。現在の設定を確認してください。",
+          ? t("jobs.error.changed")
+          : t("jobs.error.decision"),
       )
       requestAnimationFrame(() => alert.current?.focus())
     } finally {
@@ -125,21 +123,10 @@ export function JobRoutes(): ReactElement {
   return (
     <SourceFrame>
       <section className="job-ledger">
-        <p className="eyebrow">PRIVATE STUDIO / WORK LEDGER</p>
-        <h1>
-          Study progress <span lang="ja">学習の進行状況</span>
-        </h1>
-        <p lang="en">
-          Follow each approved step without showing private source passages or provider responses.
-        </p>
-        <p lang="ja">本文やプロバイダーの回答を表示せず、承認済みの工程を確認します。</p>
-        <p lang="en">
-          Accepted calls can incur charges even when their outcome is unknown. No provider or model
-          changes here.
-        </p>
-        <p lang="ja">
-          結果が不明な呼び出しにも料金が発生する場合があります。ここではモデルを変更できません。
-        </p>
+        <p className="eyebrow">{t("jobs.eyebrow")}</p>
+        <h1>{t("jobs.title")}</h1>
+        <p>{t("jobs.intro")}</p>
+        <p>{t("jobs.charges")}</p>
         {error && (
           <p role="alert" ref={alert} tabIndex={-1}>
             {error}
@@ -154,18 +141,16 @@ export function JobRoutes(): ReactElement {
             void refresh()
           }}
         >
-          Refresh status / <span lang="ja">状態を更新</span>
+          {t("jobs.refresh")}
         </button>
         {jobs === null && !error && (
           <p className="workspace-loading" role="status">
-            Loading jobs / <span lang="ja">作業を読み込み中</span>
+            {t("jobs.loading")}
           </p>
         )}
         {jobs?.length === 0 && (
           <p className="workspace-empty" role="status">
-            No jobs on a current approved setup. Begin from your sources. /{" "}
-            <span lang="ja">現在の承認済み設定には作業がありません。資料から始めてください。</span>{" "}
-            <a href="/sources">Your sources / 資料一覧</a>
+            {t("jobs.empty")} <a href="/sources">{t("jobs.sourcesLink")}</a>
           </p>
         )}
         {jobs && jobs.length > 0 && (
