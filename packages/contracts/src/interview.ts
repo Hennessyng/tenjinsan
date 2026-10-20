@@ -51,3 +51,24 @@ export const InterviewDefinition = z
   })
   .readonly()
 export type InterviewDefinition = z.infer<typeof InterviewDefinition>
+
+const ReadinessAction = z
+  .string()
+  .startsWith("/")
+  .refine((value) => !value.startsWith("//") && !value.includes("\\"))
+export const InterviewReadiness = z.discriminatedUnion("kind", [
+  z.strictObject({ kind: z.literal("missing-study") }).readonly(),
+  z.strictObject({ kind: z.literal("ready"), actionHref: ReadinessAction }).readonly(),
+  z.strictObject({ kind: z.literal("setup-required"), actionHref: ReadinessAction }).readonly(),
+  z.strictObject({ kind: z.literal("review-required"), actionHref: ReadinessAction }).readonly(),
+  z
+    .strictObject({
+      kind: z.literal("progress"),
+      stage: z.enum(["analysis", "questions"]),
+      state: z.enum(["queued", "running", "failed", "paused", "cancelled", "not-scheduled"]),
+      reason: z.string().nullable(),
+      actionHref: ReadinessAction,
+    })
+    .readonly(),
+])
+export type InterviewReadiness = z.infer<typeof InterviewReadiness>

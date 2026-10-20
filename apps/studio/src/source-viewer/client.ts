@@ -20,7 +20,10 @@ export const Reader = z.strictObject({
 })
 
 export class SourceRequestError extends Error {
-  constructor(readonly status: number) {
+  constructor(
+    readonly status: number,
+    readonly refusal?: "provider-unavailable" | "connection-changed",
+  ) {
     super(`Source request failed (${status})`)
   }
 }
@@ -57,6 +60,27 @@ export async function sourceCommand<T>(
     ...(signal ? { signal } : {}),
   })
   if (!response.ok) {
+    if (response.status === 409 || response.status === 503) {
+      let body: unknown
+      try {
+        body = await response.json()
+      } catch (error) {
+        if (error instanceof SyntaxError) throw new SourceRequestError(response.status)
+        throw error
+      }
+      const refusal = z
+        .object({
+          error: z.enum(["Selected provider unavailable", "subscription-connection-changed"]),
+        })
+        .safeParse(body)
+      if (refusal.success)
+        throw new SourceRequestError(
+          response.status,
+          refusal.data.error === "Selected provider unavailable"
+            ? "provider-unavailable"
+            : "connection-changed",
+        )
+    }
     if (response.status === 422) {
       const failure = SourcePreparationFailure.safeParse(await response.json())
       if (failure.success) throw new SourcePreparationError(failure.data)

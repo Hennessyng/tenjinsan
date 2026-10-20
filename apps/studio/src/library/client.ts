@@ -135,6 +135,8 @@ async function inspectRoom(
 ): Promise<RoomPrerequisite> {
   const missing = roomPrerequisites[room]
   if (missing === null) return { kind: "ready" }
+  if (room === "reference" && /^\/interviews(?:\/[^/]+)?$/.test(window.location.pathname))
+    return { kind: "ready" }
   if (!study)
     return {
       kind: "missing",

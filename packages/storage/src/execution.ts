@@ -11,6 +11,7 @@ import {
   type Job as JobRecord,
   RunId,
   type GenerationRun as RunRecord,
+  SetupRevisionId,
 } from "@reading-studio/contracts"
 import { eq } from "drizzle-orm"
 import { ArtifactOperations } from "./artifact-operations.ts"
@@ -35,6 +36,7 @@ export interface ExecutionRepository {
   getRun(input: unknown): RunRecord | null
   getAttempt(input: unknown): AttemptRecord | null
   getJob(input: unknown): JobRecord | null
+  listSetupJobs(input: unknown): readonly JobRecord[]
   listOwnerJobs(input: unknown): readonly JobRecord[]
   decideOwnerJob(input: unknown): JobRecord
   listCompletedAnalysisJobs(): readonly JobRecord[]
@@ -155,6 +157,15 @@ export class SqliteExecutionRepository implements ExecutionRepository {
 
   listOwnerJobs(input: unknown): readonly JobRecord[] {
     return this.ownerJobs.list(input)
+  }
+  listSetupJobs(input: unknown): readonly JobRecord[] {
+    const id = parseInput(SetupRevisionId, input, "setup revision ID")
+    return this.context.db
+      .select()
+      .from(jobs)
+      .where(eq(jobs.setupRevisionId, id))
+      .all()
+      .map((row) => decodeRecord(Job, row.recordJson, "job", row.id))
   }
 
   decideOwnerJob(input: unknown): JobRecord {

@@ -39,6 +39,7 @@ export async function uploadHarness(options?: {
       ? { studioAssets: loadStudioAssets(resolve(import.meta.dirname, "../../../studio/dist")) }
       : {}),
     reviewStorage: sourceStorage,
+    interviews: sourceStorage.interviews,
     providerAvailable: () => options?.providerAvailable ?? false,
     sources: sourceStorage.sources,
     libraryOwnerId: storage.ensureLibraryOwner(),

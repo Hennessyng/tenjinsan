@@ -12,6 +12,7 @@ import { Hono } from "hono"
 import { configureBrief } from "./brief.ts"
 import { configureEvidence } from "./evidence.ts"
 import { configureInterview } from "./interview.ts"
+import { configureInterviewReadiness } from "./interview-readiness.ts"
 import { configureJobs } from "./jobs.ts"
 import { configureLibraryContext } from "./library-context.ts"
 import {
@@ -169,6 +170,7 @@ export function createApp({
     })
   if (reviewStorage) configureRevisions(app, reviewStorage)
   if (reviewStorage) configureJobs(app, reviewStorage)
+  if (reviewStorage) configureInterviewReadiness(app, reviewStorage)
   if (reviewStorage) configureProviderConnections(app, reviewStorage)
   if (reviewStorage)
     configureRevisionPage(app, {
