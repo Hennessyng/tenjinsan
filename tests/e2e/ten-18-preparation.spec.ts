@@ -27,7 +27,7 @@ async function review(
   await page.goto(`${harness.origin}/imports`)
   await page.getByLabel(/Choose EPUB/).setInputFiles(input)
   await page.getByRole("button", { name: "Import document", exact: true }).click()
-  await page.getByRole("link", { name: "Read imported source", exact: true }).click()
+  await page.getByRole("link", { name: "Read this book", exact: true }).click()
   await page.getByRole("link", { name: "Set up a study", exact: true }).click()
   await page.getByRole("button", { name: "Review transmission", exact: true }).click()
   await expect(

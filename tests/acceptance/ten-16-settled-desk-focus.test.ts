@@ -23,7 +23,7 @@ async function withOwnedInterview(verify: (page: Page, studyId: string) => Promi
     await page.waitForURL(`${origin}/`)
     await page.getByRole("status", { name: "Entering the library" }).waitFor({ state: "detached" })
     const route = page.getByRole("navigation", { name: "Reading route / 読書ルート" })
-    await route.getByRole("button", { name: /Accession desk/ }).click()
+    await route.getByRole("button", { name: /Import & read/ }).click()
     await page.getByLabel("Choose EPUB").setInputFiles({
       name: "synthetic.epub",
       mimeType: "application/epub+zip",

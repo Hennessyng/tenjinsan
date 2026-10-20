@@ -29,10 +29,10 @@ export async function runDeployedJourney(page: Page, origin: string, evidence: s
   await expect(page.locator("main#library")).toBeVisible()
   await expect(
     page.getByRole("navigation", { name: "Reading route / 読書ルート" }).getByRole("button"),
-  ).toHaveCount(10)
+  ).toHaveCount(9)
   await page
     .getByRole("navigation", { name: "Reading route / 読書ルート" })
-    .getByRole("button", { name: /Accession desk/ })
+    .getByRole("button", { name: /Import & read/ })
     .click()
   await expect(page.getByRole("heading", { name: "Import a book" })).toBeVisible()
   await page.getByLabel("Choose EPUB").setInputFiles({

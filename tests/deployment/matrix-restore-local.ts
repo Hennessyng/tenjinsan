@@ -71,7 +71,7 @@ export async function restoreLocalMatrix(
     await expect(page.locator("main#library")).toBeVisible()
     await expect(
       page.getByRole("navigation", { name: "Reading route / 読書ルート" }).getByRole("button"),
-    ).toHaveCount(10)
+    ).toHaveCount(9)
     const destinationSessionCookie = (await context.cookies(ready.apiUrl)).find((cookie) =>
       cookie.name.endsWith("better-auth.session_token"),
     )?.value
@@ -133,7 +133,7 @@ export async function restoreLocalMatrix(
     await expect(freshPage.locator("main#library")).toBeVisible()
     await expect(
       freshPage.getByRole("navigation", { name: "Reading route / 読書ルート" }).getByRole("button"),
-    ).toHaveCount(10)
+    ).toHaveCount(9)
     const fresh = await freshPage.request.get(`${ready.apiUrl}/api/publications/${targets.studyId}`)
     expect(fresh.status()).toBe(200)
     await launcher.stop(ready.launcherPid)

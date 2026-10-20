@@ -114,7 +114,7 @@ export async function restoreComposeMatrix(
     await expect(page.locator("main#library")).toBeVisible()
     await expect(
       page.getByRole("navigation", { name: "Reading route / 読書ルート" }).getByRole("button"),
-    ).toHaveCount(10)
+    ).toHaveCount(9)
     const destinationSessionCookie = (await context.cookies(origin)).find((cookie) =>
       cookie.name.endsWith("better-auth.session_token"),
     )?.value
@@ -162,7 +162,7 @@ export async function restoreComposeMatrix(
     await expect(freshPage.locator("main#library")).toBeVisible()
     await expect(
       freshPage.getByRole("navigation", { name: "Reading route / 読書ルート" }).getByRole("button"),
-    ).toHaveCount(10)
+    ).toHaveCount(9)
     const fresh = await freshPage.request.get(`${origin}/api/publications/${targets.studyId}`)
     expect(fresh.status()).toBe(200)
     return {

@@ -69,7 +69,12 @@ export function LibraryShell({
     context?.studies.filter(
       (study) => study.id === pathId || study.normalizations.includes(pathId ?? ""),
     ) ?? []
-  const direct = linked.length === 1 ? (linked[0] ?? null) : null
+  const direct =
+    linked.find((item) => item.id === selected?.id) ??
+    linked.reduce<(typeof linked)[number] | null>(
+      (first, item) => (!first || item.id < first.id ? item : first),
+      null,
+    )
   const conflict = selected !== null && direct !== null && selected.id !== direct.id
   const routeStudy = conflict ? null : (selected ?? direct)
   const study = useMemo(

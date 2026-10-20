@@ -54,7 +54,7 @@ it("TEN-16 S1 T3 downloads approved bilingual output through continuous ordinary
         await page
           .getByRole("status", { name: "Entering the library" })
           .waitFor({ state: "detached" })
-        await open("Accession desk")
+        await open("Import & read")
         await page.getByLabel("Choose EPUB").setInputFiles({
           name: "synthetic.epub",
           mimeType: "application/epub+zip",
@@ -88,7 +88,8 @@ it("TEN-16 S1 T3 downloads approved bilingual output through continuous ordinary
             async () => LibraryContext.parse(await read("/api/library-context")).selectedStudyId,
           )
           .toBe(study.id)
-        await open("The stacks")
+        await open("Import & read")
+        await page.locator(`a[href="/sources/${source.normalization.id}"]`).click()
         await visible(
           page.getByRole("heading", { name: source.edition.title, exact: true }),
         ).toBeVisible()

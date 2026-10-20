@@ -43,7 +43,7 @@ it.each([
       expect.objectContaining({ headers: { "Content-Type": media }, body: file }),
     ),
   )
-  expect(await screen.findByRole("link", { name: "Read imported source" })).toHaveProperty(
+  expect(await screen.findByRole("link", { name: "Read this book" })).toHaveProperty(
     "pathname",
     "/sources/revision-fixture",
   )

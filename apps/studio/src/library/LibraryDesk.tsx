@@ -69,6 +69,7 @@ export function LibraryDesk({
   return (
     <section
       id="desk"
+      data-room={room.id}
       role={nativeMain ? undefined : "main"}
       className="desk is-open"
       aria-labelledby="desk-title"

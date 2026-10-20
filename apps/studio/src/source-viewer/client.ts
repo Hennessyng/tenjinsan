@@ -46,6 +46,7 @@ export async function sourceCommand<T>(
   path: string,
   payload: unknown,
   schema: z.ZodType<T>,
+  signal?: AbortSignal,
 ): Promise<T> {
   const response = await fetch(path, {
     method: "POST",
@@ -53,6 +54,7 @@ export async function sourceCommand<T>(
     cache: "no-store",
     headers: { "content-type": "application/json" },
     body: JSON.stringify(payload),
+    ...(signal ? { signal } : {}),
   })
   if (!response.ok) {
     if (response.status === 422) {

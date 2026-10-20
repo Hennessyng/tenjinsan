@@ -29,7 +29,7 @@ describe("studio shell", () => {
     expect(screen.queryByText(/読書ルート/)).toBeNull()
     expect(
       screen.getByRole("navigation", { name: "Reading route" }).querySelectorAll("button").length,
-    ).toBe(10)
+    ).toBe(9)
   })
 
   it("opens the library without login, logout or session-expiry gates", async () => {

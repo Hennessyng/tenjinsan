@@ -56,7 +56,7 @@ it("TEN-16 S3 F2 keeps a meaningful single main through hall, loading, prerequis
       await held
       await route.fulfill({ response })
     })
-    await navigation.getByRole("button", { name: /1\. Accession/ }).click()
+    await navigation.getByRole("button", { name: /1\. Import & read/ }).click()
     await observation
     await visible(
       page

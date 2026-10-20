@@ -24,6 +24,15 @@ export const LibraryContext = z
   .readonly()
 export type LibraryContext = z.infer<typeof LibraryContext>
 
+class LibraryContextAdoption extends Event {
+  constructor(readonly context: LibraryContext) {
+    super("studio-library-context")
+  }
+}
+export function adoptLibraryContext(context: LibraryContext): void {
+  window.dispatchEvent(new LibraryContextAdoption(context))
+}
+
 export function readLibraryContext(signal: AbortSignal): Promise<LibraryContext> {
   return sourceRequest("/api/library-context", LibraryContext, signal)
 }
@@ -47,6 +56,15 @@ export function useLibraryContext(
     readonly generation: string
   }>({ context: null, error: null, generation: "" })
   const current = useRef(generation)
+  useEffect(() => {
+    const adopt = (event: Event) => {
+      if (!active || !(event instanceof LibraryContextAdoption)) return
+      current.current = ""
+      setState({ context: event.context, error: null, generation })
+    }
+    window.addEventListener("studio-library-context", adopt)
+    return () => window.removeEventListener("studio-library-context", adopt)
+  }, [active, generation])
   useEffect(() => {
     if (!active) {
       setState({ context: null, error: null, generation: "" })
@@ -92,11 +110,15 @@ export function useLibraryContext(
   }
 }
 
-export function selectLibraryStudy(studyId: string): Promise<{ selectedStudyId: string }> {
+export function selectLibraryStudy(
+  studyId: string,
+  signal?: AbortSignal,
+): Promise<{ selectedStudyId: string }> {
   return sourceCommand(
     "/api/library-selection",
     { studyId },
     z.strictObject({ selectedStudyId: z.string() }),
+    signal,
   )
 }
 
@@ -122,7 +144,6 @@ async function inspectRoom(
   try {
     switch (room) {
       case "accession":
-      case "stacks":
       case "bindery":
         return { kind: "ready" }
       case "lending":
@@ -204,5 +225,5 @@ export function useRoomPrerequisite(room: RoomId, study: LibraryStudy | null): R
     )
     return () => abort.abort()
   }, [generation, room, study])
-  return state
+  return roomPrerequisites[room] === null ? { kind: "ready" } : state
 }

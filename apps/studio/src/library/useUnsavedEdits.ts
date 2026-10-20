@@ -124,7 +124,13 @@ export function useUnsavedEdits(): void {
         event.target instanceof Element
           ? event.target.closest<HTMLAnchorElement>("#library a[href]")
           : null
-      if (!anchor || anchor.target === "_blank" || anchor.hasAttribute("download")) return
+      if (
+        !anchor ||
+        anchor.target === "_blank" ||
+        anchor.hasAttribute("download") ||
+        anchor.hasAttribute("data-source-open")
+      )
+        return
       const target = new URL(anchor.href)
       if (
         target.origin !== location.origin ||

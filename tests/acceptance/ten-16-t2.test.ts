@@ -91,8 +91,7 @@ it("TEN-16 S1 T2 selects the owned imported study through all ten rooms", async 
       })
       .toBe(studyId)
     const rooms = [
-      "Accession desk",
-      "The stacks",
+      "Import & read",
       "Lending desk",
       "Reference desk",
       "Reading table",

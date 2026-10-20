@@ -51,7 +51,7 @@ it("TEN-16 S5 T7 recovers real expired sessions without protected content or mut
     const loss = page.waitForResponse(
       (response) => response.url().endsWith("/api/library-context") && response.status() === 401,
     )
-    await open("Accession desk")
+    await open("Import & read")
     await loss
     await visible(page.getByRole("heading", { name: /Authentication required/ })).toBeVisible()
     await visible(page.getByLabel("Choose EPUB")).toHaveCount(0)
@@ -90,7 +90,7 @@ it("TEN-16 S5 T7 recovers real expired sessions without protected content or mut
     expect(continued).toBe(false)
     await page.getByRole("link", { name: /Sign in/ }).click()
     await signIn()
-    await open("Accession desk")
+    await open("Import & read")
     await page.getByLabel("Choose EPUB").setInputFiles({
       name: "synthetic.epub",
       mimeType: "application/epub+zip",

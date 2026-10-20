@@ -47,7 +47,7 @@ export async function runMatrix(deployment: MatrixDeployment): Promise<readonly 
   await expect(page.locator("main#library")).toBeVisible()
   await expect(
     page.getByRole("navigation", { name: "Reading route / 読書ルート" }).getByRole("button"),
-  ).toHaveCount(10)
+  ).toHaveCount(9)
   const post = (path: string, data: object) =>
     page.request.post(`${origin}${path}`, { data, headers: { origin }, failOnStatusCode: false })
   const before = await deployment.snapshot()
