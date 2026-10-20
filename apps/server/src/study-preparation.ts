@@ -56,6 +56,7 @@ export async function preflightStudyDecision(
     case "ready":
       return undefined
     case "limited": {
+      context.header("X-Preparation-Refusal", scope.failure.coverage.reason)
       if (context.req.path.startsWith("/api/")) return context.json(scope.failure, 422)
       const coverage = scope.failure.coverage
       const locale = context.req.query("lang") === "ja" ? "ja" : "en"
@@ -71,7 +72,7 @@ export async function preflightStudyDecision(
       return context.html(
         sourcePage(
           title,
-          html`<h1>${title}</h1><p>${translate(locale, "setup.refusal.reason", { reason, required: coverage.requiredWindows, max: coverage.maxWindows })} <code>${coverage.reason}</code></p><p>${translate(locale, "setup.refusal.body")}</p><h2>${translate(locale, "setup.refusal.unsent")}</h2><ul>${coverage.unsentRanges.map((range) => html`<li>${range.resourcePath} · ${range.blockId} · UTF-16 [${range.start}, ${range.end})</li>`)}</ul><a href="/sources/${input.normalization.id}/setup?lang=${locale}">${translate(locale, "setup.scope")}</a>`,
+          html`<h1>${title}</h1><p>${translate(locale, "setup.refusal.reason", { reason, required: coverage.requiredWindows, max: coverage.maxWindows })} <code>${coverage.reason}</code></p><p>${translate(locale, "setup.refusal.body")}</p><h2>${translate(locale, "setup.refusal.unsent")}</h2><ul>${coverage.unsentRanges.map((range) => html`<li>${range.resourcePath} · ${range.blockId} · UTF-16 [${range.start}, ${range.end})</li>`)}</ul><a href="/sources/${input.normalization.id}/setup?lang=${locale}">${translate(locale, "setup.back")}</a>`,
           locale,
         ),
         422,

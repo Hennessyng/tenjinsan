@@ -1,4 +1,4 @@
-import { createHash } from "node:crypto"
+import { createHash, randomBytes } from "node:crypto"
 import { readFileSync } from "node:fs"
 import { Digest } from "@reading-studio/contracts"
 import type Database from "better-sqlite3"
@@ -84,6 +84,7 @@ function historyScope(sqlite: Database.Database, row: Row, tableName: string) {
 }
 
 export function snapshot(sqlite: Database.Database, blobs: PrivateBlobStore): Payload {
+  const redactionKey = randomBytes(32)
   const history = sqlite
     .prepare("SELECT record_json FROM backup_history ORDER BY sequence")
     .all()
@@ -94,7 +95,7 @@ export function snapshot(sqlite: Database.Database, blobs: PrivateBlobStore): Pa
     const rows = sqlite
       .prepare(`SELECT ${columns(table).join(",")} FROM ${table.name} ORDER BY rowid`)
       .all()
-      .map((row) => safeRecord(table.name, parseRow(table, row)))
+      .map((row) => safeRecord(table.name, parseRow(table, row), redactionKey))
     if (table.historical) {
       history.push(
         ...rows.map((row) =>

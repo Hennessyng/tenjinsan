@@ -16,6 +16,7 @@ import {
   sourceInput,
 } from "./source-input.ts"
 import { structuredRequest } from "./structured-request.ts"
+import { preflightSubscription } from "./subscription-preflight.ts"
 
 type RunningJob = Extract<Job, { readonly state: "running" }>
 type Options = ProviderAuthority & {
@@ -83,6 +84,7 @@ export class ProviderRunner {
           execution.requestCancellation({ jobId: job.id })
         if (current.cancellationRequested || stage.signal?.aborted)
           return execution.cancelClaimedJob(lease())
+        await preflightSubscription(this.options, current)
         const {
           setup,
           blocks: approvedBlocks,

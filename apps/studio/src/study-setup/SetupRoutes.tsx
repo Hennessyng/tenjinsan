@@ -1,3 +1,4 @@
+import { setupDecisionHeading, setupProgressUrl } from "@reading-studio/contracts/setup-progress"
 import type { SourcePreparationFailure } from "@reading-studio/contracts/source"
 import type { ReactElement } from "react"
 import { useEffect, useRef, useState } from "react"
@@ -11,18 +12,48 @@ import {
   sourceRequest,
 } from "../source-viewer/client.ts"
 import { SourceFrame } from "../source-viewer/SourceRoutes.tsx"
-import type { SetupSelection } from "./client.ts"
-import { SetupChoices, SetupCreated, SetupDecision, SetupReview } from "./client.ts"
+import type { SavedSetupDecision, SetupSelection } from "./client.ts"
+import {
+  SetupChoices,
+  SetupCreated,
+  SetupDecision,
+  type SetupReview,
+  SetupReviewResponse,
+} from "./client.ts"
 import { PreparationRefusal } from "./PreparationRefusal.tsx"
 import { SetupChoices as ChoicesView } from "./SetupChoices.tsx"
 import { SetupReview as ReviewView } from "./SetupReview.tsx"
+import { SetupSavedStatus } from "./SetupSavedStatus.tsx"
 
 type Page =
   | { readonly kind: "loading" }
   | { readonly kind: "choices"; readonly value: z.infer<typeof SetupChoices> }
   | { readonly kind: "review"; readonly value: z.infer<typeof SetupReview> }
-  | { readonly kind: "result"; readonly decision: "cancel" | "send"; readonly grantId?: string }
+  | { readonly kind: "result"; readonly decision: "cancel" }
+  | (SavedSetupDecision & { readonly kind: "result"; readonly progressUrl: string })
   | { readonly kind: "error"; readonly status: number }
+
+function reviewedPage(value: z.infer<typeof SetupReviewResponse>, setupId: string): Page {
+  if (!("decision" in value)) return { kind: "review", value }
+  switch (value.decision) {
+    case "send":
+      return {
+        kind: "result",
+        ...value,
+        progressUrl: value.progressUrl ?? setupProgressUrl(setupId),
+      }
+    case "cancel":
+      return { kind: "result", decision: "cancel" }
+    case "revise":
+      return { kind: "error", status: 409 }
+    default:
+      return assertNever(value)
+  }
+}
+
+function assertNever(value: never): never {
+  throw new TypeError(`Unknown setup decision: ${value}`)
+}
 
 export function SetupRoutes(): ReactElement {
   const { t, locale } = useLanguage()
@@ -30,6 +61,7 @@ export function SetupRoutes(): ReactElement {
   const base = `/api/study-setup/${encodeURIComponent(revision ?? "")}`
   const [page, setPage] = useState<Page>({ kind: "loading" })
   const [busy, setBusy] = useState(false)
+  const deciding = useRef(false)
   const [message, setMessage] = useState("")
   const [connectionRecovery, setConnectionRecovery] = useState(false)
   const [refusal, setRefusal] = useState<SourcePreparationFailure | null>(null)
@@ -46,8 +78,8 @@ export function SetupRoutes(): ReactElement {
     const controller = new AbortController()
     const endpoint = setupId ? `${base}/${encodeURIComponent(setupId)}` : base
     const load = setupId
-      ? sourceRequest(endpoint, SetupReview, controller.signal).then(
-          (value) => ({ kind: "review", value }) as const,
+      ? sourceRequest(endpoint, SetupReviewResponse, controller.signal).then((value) =>
+          reviewedPage(value, setupId ?? ""),
         )
       : sourceRequest(endpoint, SetupChoices, controller.signal).then(
           (value) => ({ kind: "choices", value }) as const,
@@ -70,14 +102,16 @@ export function SetupRoutes(): ReactElement {
       )
     } catch (error) {
       setMessage(
-        error instanceof SourceRequestError && error.status === 400
-          ? t("setup.selectChapters")
+        error instanceof SourceRequestError && error.status === 422
+          ? t("setup.coverage.empty")
           : t("setup.saveError"),
       )
       setBusy(false)
     }
   }
-  async function decide(decision: "send" | "revise" | "cancel"): Promise<void> {
+  async function decide(decision: "send" | "resume" | "revise" | "cancel"): Promise<void> {
+    if (deciding.current) return
+    deciding.current = true
     setBusy(true)
     setMessage("")
     setConnectionRecovery(false)
@@ -89,16 +123,27 @@ export function SetupRoutes(): ReactElement {
         SetupDecision,
       )
       if (result.decision === "revise") window.location.assign(`/sources/${revision}/setup`)
-      else
-        setPage({
-          kind: "result",
-          decision: result.decision,
-          ...(result.decision === "send" ? { grantId: result.grantId } : {}),
-        })
+      else if (result.decision === "send") setPage(reviewedPage(result, setupId ?? ""))
+      else setPage({ kind: "result", decision: "cancel" })
     } catch (error) {
       if (error instanceof SourcePreparationError) {
         setRefusal(error.failure)
         return
+      }
+      if (decision === "send" || decision === "resume") {
+        try {
+          const persisted = await sourceRequest(
+            `${base}/${encodeURIComponent(setupId ?? "")}`,
+            SetupReviewResponse,
+            AbortSignal.timeout(15000),
+          )
+          if ("decision" in persisted) {
+            setPage(reviewedPage(persisted, setupId ?? ""))
+            return
+          }
+        } catch (readError) {
+          if (!(readError instanceof Error)) throw readError
+        }
       }
       if (error instanceof SourceRequestError && error.refusal) {
         setConnectionRecovery(true)
@@ -111,6 +156,7 @@ export function SetupRoutes(): ReactElement {
           : t("setup.decisionError"),
       )
     } finally {
+      deciding.current = false
       setBusy(false)
     }
   }
@@ -151,10 +197,15 @@ export function SetupRoutes(): ReactElement {
         {page.kind === "result" && (
           <section className="setup">
             <h1 ref={result} tabIndex={-1}>
-              {page.decision === "send" ? t("setup.approved") : t("setup.cancelled")}
+              {page.decision === "send"
+                ? t(setupDecisionHeading(page.analysisProgress, page.schedulingFailure))
+                : t("setup.cancelled")}
             </h1>
-            <p>{page.decision === "send" ? t("setup.approvedNote") : t("setup.cancelledNote")}</p>
-            {page.grantId && <p data-grant={page.grantId}>{t("setup.consentSaved")}</p>}
+            {page.decision === "send" ? (
+              <SetupSavedStatus value={page} onResume={() => decide("resume")} busy={busy} />
+            ) : (
+              <p>{t("setup.cancelledNote")}</p>
+            )}
             <p>
               <a href={`/sources/${revision}/setup`}>{t("setup.back")}</a>
             </p>

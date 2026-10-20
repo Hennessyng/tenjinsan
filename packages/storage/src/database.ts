@@ -37,6 +37,8 @@ export function openDatabase(databasePath: string): StorageContext {
       "installations",
       "backup_history",
       "auth_sessions",
+      "subscription_connections",
+      "subscription_sessions",
       ...TABLES.map((entry) => entry.name),
     ]) {
       for (const action of ["INSERT", "UPDATE", "DELETE"] as const) {

@@ -67,6 +67,17 @@ are never exported. Source owner links become the constant, non-identifying
 `historical-owner` handle; destination ownership is assigned during import.
 This does not anonymize text or source documents the reader entered themselves.
 
+TEN-21's local subscription revocation fences, connection-session records and
+tool-owned credential directories are also excluded. Subscription
+destination account/workspace/installation identity in historical setups and analysis
+cache inputs is replaced by non-authorizing, per-destination keyed-hash aliases;
+distinct destinations retain distinct analysis cache identities. One random private
+hash key is used for each capture and is never exported. Already-redacted aliases
+remain stable on later captures. Historical connection revisions use a nonzero
+sentinel, not the zero returned for an absent live fence. Analysis cache keys are
+recomputed consistently. Restored grants remain historical, never usable consent.
+This is offline groundwork, not restoration of a working subscription connection.
+
 The age CLI owns the passphrase prompt on the controlling TTY. Logical archive
 bytes pass through process pipes; no plaintext archive file is staged. The application
 does not accept a passphrase argument, environment variable, stdin pipe or config

@@ -10,10 +10,14 @@ import { createApp } from "../app.ts"
 import { createOwnerAuth } from "../auth/auth.ts"
 import { createOwnerService } from "../auth/owner.ts"
 import { loadStudioAssets } from "../studio-assets.ts"
+import { localSubscriptionFixtureWorker } from "./local-subscription-worker.ts"
 
 export async function sourceViewerFixture(options?: {
-  readonly providerAvailable?: boolean
+  readonly providerAvailable?: boolean | (() => boolean)
   readonly studioAssets?: boolean
+  readonly serverHost?: string
+  readonly executeLocalSubscriptions?: boolean
+  readonly onSetupSend?: NonNullable<Parameters<typeof createApp>[0]>["onSetupSend"]
 }) {
   const directory = await mkdtemp(join(tmpdir(), "source-viewer-"))
   const databasePath = join(directory, "studio.sqlite")
@@ -125,7 +129,11 @@ export async function sourceViewerFixture(options?: {
       editionHash: "b".repeat(64),
     },
   })
+  const localWorker = localSubscriptionFixtureWorker(storage)
   const app = createApp({
+    ...(options?.onSetupSend ? { onSetupSend: options.onSetupSend } : {}),
+    ...(options?.executeLocalSubscriptions ? { onSetupSend: localWorker.enqueue } : {}),
+    ...(options?.serverHost ? { serverHost: options.serverHost } : {}),
     ...(options?.studioAssets
       ? { studioAssets: loadStudioAssets(resolve(import.meta.dirname, "../../../studio/dist")) }
       : {}),
@@ -137,7 +145,10 @@ export async function sourceViewerFixture(options?: {
     outlineProvider: fixtureOutlineProvider,
     interviews: storage.interviews,
     briefs: storage.briefs,
-    providerAvailable: () => options?.providerAvailable ?? true,
+    providerAvailable: () =>
+      typeof options?.providerAvailable === "function"
+        ? options.providerAvailable()
+        : (options?.providerAvailable ?? true),
     upload: { root },
     security: {
       apiBodyBytes: 1024,
@@ -151,6 +162,7 @@ export async function sourceViewerFixture(options?: {
   })
   server.on("request", getRequestListener(app.fetch))
   return {
+    localWorker,
     origin,
     databasePath,
     privateDataRoot: root,
@@ -161,6 +173,7 @@ export async function sourceViewerFixture(options?: {
       await new Promise<void>((resolve, reject) =>
         server.close((error) => (error ? reject(error) : resolve())),
       )
+      await localWorker.settled()
       storage.close()
       authStorage.close()
       await rm(directory, { recursive: true, force: true })

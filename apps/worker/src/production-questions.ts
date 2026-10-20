@@ -1,5 +1,14 @@
 import { analysisCacheKey, type Job } from "@reading-studio/contracts"
-import { DiscoveryDraft, generateQuestions } from "@reading-studio/generation/questions"
+import {
+  DiscoveryDraft,
+  DiscoveryError,
+  generateQuestions,
+} from "@reading-studio/generation/questions"
+import {
+  QuestionsHandoffError,
+  questionBankStatus,
+} from "@reading-studio/generation/queue-questions"
+import { z } from "zod"
 
 export { queueQuestions } from "@reading-studio/generation/queue-questions"
 
@@ -45,6 +54,28 @@ export function questionsStage(storage: Storage, job: Job): StructuredStage {
   if (!source) throw new TypeError("Approved source window required")
   return {
     schema: DiscoveryDraft.superRefine((draft, context) => {
+      try {
+        generateQuestions(
+          {
+            analysis,
+            context: {
+              revisionId: job.inputRevisionId,
+              studyId: setup.studyId,
+              preferredGoalKeys: [],
+              customQuestion: null,
+            },
+            expected: {
+              analysisRevisionId: analysis.id,
+              contextRevisionId: job.inputRevisionId,
+              studyId: setup.studyId,
+            },
+          },
+          draft,
+        )
+      } catch (error) {
+        if (!(error instanceof DiscoveryError || error instanceof z.ZodError)) throw error
+        context.addIssue({ code: "custom", message: "unusable question choices" })
+      }
       if (
         draft.analysisRevisionId !== analysis.id ||
         draft.contextRevisionId !== job.inputRevisionId
@@ -76,16 +107,31 @@ export function saveQuestions(storage: Storage, job: Job): void {
     storage.sources.getGrant(job.grant.id)?.kind !== "active"
   )
     throw new ProviderError("unauthorized")
-  const current = storage.interviews.latest(setup.studyId)
-  if (current) {
-    if (current.analysisRevisionId !== analysis.id) throw new TypeError("Interview lineage changed")
-    return
+  if (
+    job.inputRevisionId !== storage.workflow.ensureAnalysisInput(setup.id) ||
+    job.stage !== "questions" ||
+    job.provider !== setup.analysis.provider ||
+    job.model !== setup.analysis.model ||
+    job.grant.setupRevisionId !== setup.id
+  )
+    throw new QuestionsHandoffError("unauthorized")
+  const bankStatus = questionBankStatus(storage, setup, analysis)
+  switch (bankStatus) {
+    case "compatible":
+      return
+    case "incompatible":
+      throw new QuestionsHandoffError("bank-incompatible")
+    case "missing":
+      break
+    default:
+      assertNever(bankStatus)
   }
   const attempt = storage.execution.listAttempts(job.runId).at(-1)
   const body = attempt && storage.execution.getAttemptReceipt(attempt.id)
   if (!body) throw new TypeError("Missing durable questions receipt")
   const receipt = ProviderReceipt.parse(JSON.parse(new TextDecoder().decode(body)))
   if (receipt.kind !== "output") throw new TypeError("Questions output unavailable")
+  const output = questionsStage(storage, job).schema.parse(JSON.parse(receipt.text))
   const context = {
     revisionId: job.inputRevisionId,
     studyId: setup.studyId,
@@ -102,7 +148,7 @@ export function saveQuestions(storage: Storage, job: Job): void {
         studyId: setup.studyId,
       },
     },
-    JSON.parse(receipt.text),
+    output,
   )
   for (const lens of bank.lenses) {
     const existing = storage.workflow.getQuestion(lens.question.revisionId)
@@ -124,4 +170,8 @@ export function saveQuestions(storage: Storage, job: Job): void {
     })),
     shortlist: bank.shortlist,
   })
+}
+
+function assertNever(value: never): never {
+  throw new TypeError(`Unknown question bank status: ${value}`)
 }

@@ -18,6 +18,8 @@ const pauseCodes = new Set([
   "unavailable",
   "missing-credentials",
   "output-limit",
+  "subscription-unverified",
+  "subscription-connection-changed",
 ])
 export class ProviderOperations {
   constructor(

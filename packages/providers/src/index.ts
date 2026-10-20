@@ -7,6 +7,8 @@ export {
 export { authorizeSource, type ProviderAuthority, reviewedSourceBlocks } from "./authorization.ts"
 export { defaultSettings, modelChoices, ProviderError, validateModel } from "./catalog.ts"
 export { selectedEvidence } from "./evidence.ts"
+export { LocalSubscriptionAdapter } from "./local-subscription-adapter.ts"
+export { localRequestBytes } from "./local-tool-request.ts"
 export { ProviderRunner, type StructuredStage } from "./runner.ts"
 export {
   InputCoverage,
@@ -15,3 +17,4 @@ export {
   sourceInput,
 } from "./source-input.ts"
 export { structuredRequest } from "./structured-request.ts"
+export { preflightSubscription } from "./subscription-preflight.ts"

@@ -1,38 +1,18 @@
 import { randomUUID } from "node:crypto"
-import {
-  NormalizationRevisionId,
-  SetupRevisionId,
-  StudySetupRevision,
-} from "@reading-studio/contracts"
-import { translate, type UiLocale } from "@reading-studio/contracts/i18n"
-import { configuredCredential, defaultSettings } from "@reading-studio/providers"
-import type { SourceRepository, Storage } from "@reading-studio/storage"
-import { setupResult, setupReview } from "@reading-studio/studio/study-setup"
+import { isSubscriptionProvider, StudySetupRevision } from "@reading-studio/contracts"
+import { defaultSettings } from "@reading-studio/providers"
 import type { Context, Hono } from "hono"
-import { z } from "zod"
 import type { AppEnvironment } from "./middleware/access.ts"
-import { offeredModels } from "./provider-connections.ts"
-import { preflightStudyDecision } from "./study-preparation.ts"
+import { subscriptionSendRefusal } from "./study-send-guards.ts"
+import { createSetupContext } from "./study-setup-context.ts"
+import { configureSetupDecision, type SetupDecisionOptions } from "./study-setup-decision.ts"
 import { Draft, selectSourceScope } from "./study-setup-input.ts"
 import { configureSetupReadApi } from "./study-setup-read-api.ts"
+import { savedSetupDecision } from "./study-setup-send.ts"
+import { selectedSubscription } from "./subscription-setup.ts"
+import { hasForwardedHeaders } from "./subscriptions.ts"
 
-const Decision = z.strictObject({
-  decision: z.enum(["send", "revise", "cancel"]),
-  includeOriginal: z.boolean().optional(),
-})
-type Options = {
-  readonly sources: SourceRepository
-  readonly storage?: Storage
-  readonly available?: (provider: "openai" | "anthropic" | "openrouter" | "codex") => boolean
-  readonly onSend?: (input: {
-    readonly setupId: string
-    readonly grantId: string
-    readonly ownerId: string
-    readonly installationId: string
-  }) => void
-}
-
-export function configureStudySetup(app: Hono<AppEnvironment>, options: Options) {
+export function configureStudySetup(app: Hono<AppEnvironment>, options: SetupDecisionOptions) {
   const { sources } = options
   app.use("/sources/:revision/setup/*", async (context, next) => {
     context.header("Referrer-Policy", "same-origin")
@@ -42,36 +22,22 @@ export function configureStudySetup(app: Hono<AppEnvironment>, options: Options)
     context.header("Referrer-Policy", "same-origin")
     await next()
   })
-  const choices = (ownerId: string) => offeredModels(options.storage, ownerId)
-  const available = async (
-    provider: StudySetupRevision["analysis"]["provider"],
-    model: string,
-    ownerId: string,
-  ) =>
-    provider !== "openai" &&
-    (await choices(ownerId)).some(
-      (choice) => choice.provider === provider && choice.model === model,
-    ) &&
-    (provider !== "anthropic" ||
-      (options.available?.(provider) ?? configuredCredential(provider) !== undefined))
-  function owned(revision: string, ownerId: string) {
-    const parsed = NormalizationRevisionId.safeParse(revision)
-    if (!parsed.success) return null
-    const normalization = sources.getNormalization(parsed.data)
-    if (!normalization) return null
-    const study = sources
-      .listStudiesByEdition(normalization.editionId)
-      .find((study) => study.ownerId === ownerId)
-    return study ? { normalization, study } : null
-  }
-  const unavailable = (revision: string, locale: UiLocale = "en") =>
-    setupResult({
-      title: translate(locale, "setup.unavailable"),
-      message: translate(locale, "setup.stale"),
-      revision,
-      locale,
-    })
-  configureSetupReadApi(app, sources, owned, available, unavailable, choices)
+  const helpers = createSetupContext(options)
+  const { choices, available, owned, unavailable } = helpers
+  configureSetupDecision(app, options, helpers)
+  configureSetupReadApi(
+    app,
+    sources,
+    owned,
+    available,
+    unavailable,
+    choices,
+    (setup, grantId, context) => {
+      const saved = savedSetupDecision(options.storage, setup, grantId)
+      const refusal = subscriptionSendRefusal(context, options, setup)
+      return refusal ? { ...saved, schedulingFailure: refusal, canResume: false } : saved
+    },
+  )
   async function createDraft(context: Context<AppEnvironment>) {
     const locale = context.req.query("lang") === "ja" ? "ja" : "en"
     const json = context.req.path.startsWith("/api/")
@@ -90,12 +56,20 @@ export function configureStudySetup(app: Hono<AppEnvironment>, options: Options)
         ? context.json({ error: "Invalid setup choices" }, 400)
         : context.text("Invalid setup choices", 400)
     const { provider } = parsed.data
-    const selection = selectSourceScope(source.normalization, parsed.data)
+    if (
+      isSubscriptionProvider(provider) &&
+      (!options.localSubscriptions ||
+        !selectedSubscription(options.storage, context.get("ownerId"), provider) ||
+        hasForwardedHeaders(context.req.raw.headers))
+    )
+      return context.json({ error: "subscription-unverified", transmission: "not-sent" }, 409)
+    const destination = selectedSubscription(options.storage, context.get("ownerId"), provider)
+    const selection = selectSourceScope(source.normalization)
     switch (selection.kind) {
       case "error":
         return json
-          ? context.json({ error: selection.message }, 400)
-          : context.text(selection.message, 400)
+          ? context.json({ error: selection.message }, 422)
+          : context.text(selection.message, 422)
       case "ready":
         break
       default:
@@ -122,6 +96,7 @@ export function configureStudySetup(app: Hono<AppEnvironment>, options: Options)
         scope: selection.scope,
         provider,
         model: choice.model,
+        ...(destination ? { destination } : {}),
         analysisPromptVersion: "analysis-1",
         analysisSchemaVersion: "analysis-1",
         settings: defaultSettings,
@@ -142,102 +117,6 @@ export function configureStudySetup(app: Hono<AppEnvironment>, options: Options)
   }
   app.post("/sources/:revision/setup", createDraft)
   app.post("/api/study-setup/:revision", createDraft)
-  async function decideDraft(context: Context<AppEnvironment>) {
-    const locale = context.req.query("lang") === "ja" ? "ja" : "en"
-    const json = context.req.path.startsWith("/api/")
-    if (!context.req.header("origin")) return context.text("Forbidden", 403)
-    const revision = context.req.param("revision") ?? ""
-    const source = owned(revision, context.get("ownerId"))
-    const id = SetupRevisionId.safeParse(context.req.param("setup"))
-    const decision = Decision.safeParse(
-      json ? await context.req.json() : await context.req.parseBody({ all: true }),
-    )
-    const setup = id.success ? sources.getSetup(id.data) : null
-    if (decision.success && decision.data.includeOriginal)
-      return context.json({ error: "original-file-unavailable" }, 415)
-    if (
-      !source ||
-      !setup ||
-      !decision.success ||
-      setup.studyId !== source.study.id ||
-      setup.analysis.normalizationRevisionId !== revision ||
-      sources.getLatestSetup(source.study.id)?.id !== setup.id ||
-      sources.getGrant(`grant-${setup.id}`)
-    )
-      return json
-        ? context.json({ error: "Setup unavailable" }, 409)
-        : context.html(unavailable(revision, locale), 409)
-    const refusal = await preflightStudyDecision(context, {
-      setup,
-      normalization: source.normalization,
-      decision: decision.data.decision,
-    })
-    if (refusal) return refusal
-    if (
-      decision.data.decision === "send" &&
-      !(await available(setup.analysis.provider, setup.analysis.model, context.get("ownerId")))
-    )
-      return json
-        ? context.json({ error: "Selected provider unavailable" }, 503)
-        : context.html(
-            setupReview({ setup, normalization: source.normalization, available: false, locale }),
-            503,
-          )
-    const installationId =
-      sources.getInstallation(source.study.ownerId) ??
-      sources.createInstallation({ id: randomUUID(), ownerId: source.study.ownerId })
-    const grant = sources.appendGrant({
-      id: `grant-${setup.id}`,
-      kind: decision.data.decision === "send" ? "active" : "revoked",
-      setupRevisionId: setup.id,
-      installationId,
-      ownerId: source.study.ownerId,
-      categories: ["book-text", "derived-study-material", "reader-context"],
-      approvedAt: new Date().toISOString(),
-      ...(decision.data.decision === "send" ? {} : { revokedAt: new Date().toISOString() }),
-    })
-    if (decision.data.decision === "send") {
-      options.onSend?.({
-        setupId: setup.id,
-        grantId: grant.id,
-        ownerId: source.study.ownerId,
-        installationId,
-      })
-    }
-    switch (decision.data.decision) {
-      case "revise":
-        return json
-          ? context.json({ decision: "revise" as const })
-          : context.redirect(`/sources/${revision}/setup?lang=${locale}`, 303)
-      case "cancel":
-        return json
-          ? context.json({ decision: "cancel" as const })
-          : context.html(
-              setupResult({
-                title: translate(locale, "setup.cancelled"),
-                message: translate(locale, "setup.cancelledNote"),
-                revision,
-                locale,
-              }),
-            )
-      case "send":
-        return json
-          ? context.json({ decision: "send" as const, grantId: grant.id })
-          : context.html(
-              setupResult({
-                title: translate(locale, "setup.approved"),
-                message: translate(locale, "setup.approvedNote"),
-                revision,
-                locale,
-                grantId: grant.id,
-              }),
-            )
-      default:
-        return assertNever(decision.data.decision)
-    }
-  }
-  app.post("/sources/:revision/setup/:setup", decideDraft)
-  app.post("/api/study-setup/:revision/:setup", decideDraft)
 }
 function assertNever(value: never): never {
   throw new TypeError(`Unknown setup decision: ${value}`)

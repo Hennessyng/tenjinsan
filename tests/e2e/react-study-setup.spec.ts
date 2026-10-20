@@ -28,25 +28,26 @@ test.describe("React study setup", () => {
   })
 
   for (const width of [375, 768, 1280]) {
-    test(`reviews selected scope before saving consent at ${width}px`, async ({
+    test(`reviews the whole-book setup before saving consent at ${width}px`, async ({
       page,
     }, testInfo) => {
-      // Given: a signed-in owner with an included and an excluded resource.
+      // Given: a signed-in owner with two included resources and one omitted resource.
       await page.setViewportSize({ width, height: 900 })
       await page.goto("http://127.0.0.1:4173/sources/revision-fixture/setup")
       await expect(page.getByRole("heading", { name: "Set up a study" })).toBeVisible()
       await page
         .getByLabel("Provider and model")
         .selectOption({ label: "Anthropic / Claude Sonnet 4.6" })
-      await page.getByLabel("Choose specific chapters").check()
-      await page.getByLabel("chapter-one.xhtml", { exact: true }).check()
+      await expect(page.getByRole("radio")).toHaveCount(0)
+      await expect(page.getByRole("checkbox")).toHaveCount(0)
       const grantsBefore = fixture.storage.counts().grants
       // When: the owner requests the review.
       await page.getByRole("button", { name: "Review transmission" }).click()
       // Then: nothing is granted before an explicit Send decision.
       await expect(page.getByRole("heading", { name: "Review transmission" })).toBeVisible()
       await expect(page.locator("[data-selected]")).toContainText("chapter-one.xhtml")
-      await expect(page.locator("[data-excluded]")).toContainText("chapter-two.xhtml")
+      await expect(page.locator("[data-selected]")).toContainText("chapter-two.xhtml")
+      await expect(page.locator("[data-excluded]")).toContainText("appendix.xhtml")
       expect(fixture.storage.counts()).toMatchObject({ grants: grantsBefore, jobs: 0, attempts: 0 })
       expect(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth)).toBe(
         true,

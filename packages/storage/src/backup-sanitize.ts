@@ -1,19 +1,90 @@
+import { createHmac, randomBytes } from "node:crypto"
 import {
+  AnalysisCacheInput,
+  AnalysisRevision,
+  analysisCacheKey,
   EvidenceDraft,
   GenerationRun,
   Job,
   PublicationOutput,
+  StudySetupRevision,
   TransmissionGrant,
 } from "@reading-studio/contracts"
 import { z } from "zod"
 import { INSTALLATION_HANDLE, OWNER_HANDLE, type Row } from "./backup-schema.ts"
 
-export function safeRecord(table: string, row: Row): Row {
+function historicalAnalysis(
+  input: AnalysisCacheInput,
+  redactionKey: Uint8Array,
+): AnalysisCacheInput {
+  if (!input.destination) return input
+  const destination = input.destination
+  const historicalId = /^historical-account-([a-f0-9]{64})$/.exec(destination.accountId)?.[1]
+  if (
+    historicalId &&
+    destination.installationId === `historical-installation-${historicalId}` &&
+    destination.workspaceId === null &&
+    destination.connectionRevision === Number.MAX_SAFE_INTEGER &&
+    destination.observedAccount === undefined
+  )
+    return input
+  // One private key per capture keeps aliases consistent without enabling identity guessing from an archive.
+  const id = createHmac("sha256", redactionKey)
+    .update(
+      JSON.stringify([
+        destination.provider,
+        destination.accountId,
+        destination.workspaceId,
+        destination.installationId,
+        destination.connectionRevision,
+        destination.billingRoute,
+        destination.observedAccount,
+      ]),
+    )
+    .digest("hex")
+  return AnalysisCacheInput.parse({
+    ...input,
+    destination: {
+      ...input.destination,
+      accountId: `historical-account-${id}`,
+      workspaceId: null,
+      installationId: `historical-installation-${id}`,
+      connectionRevision: Number.MAX_SAFE_INTEGER,
+      observedAccount: undefined,
+    },
+  })
+}
+
+export function safeRecord(
+  table: string,
+  row: Row,
+  redactionKey: Uint8Array = randomBytes(32),
+): Row {
   if (table === "studies") return { ...row, owner_id: OWNER_HANDLE }
   if (table === "owner_job_decisions") return { ...row, owner_id: OWNER_HANDLE }
   if (typeof row["record_json"] !== "string") return row
   const input: unknown = JSON.parse(row["record_json"])
   switch (table) {
+    case "setup_revisions": {
+      const setup = StudySetupRevision.parse(input)
+      return {
+        ...row,
+        record_json: JSON.stringify({
+          ...setup,
+          analysis: historicalAnalysis(setup.analysis, redactionKey),
+        }),
+      }
+    }
+    case "analysis_revisions": {
+      const analysis = AnalysisRevision.parse(input)
+      const cacheInput = historicalAnalysis(analysis.cacheInput, redactionKey)
+      const cacheKey = analysisCacheKey(cacheInput)
+      return {
+        ...row,
+        cache_key: cacheKey,
+        record_json: JSON.stringify({ ...analysis, cacheInput, cacheKey }),
+      }
+    }
     case "transmission_grants": {
       const grant = TransmissionGrant.parse(input)
       const record = {

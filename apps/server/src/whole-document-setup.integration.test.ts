@@ -15,7 +15,7 @@ it("reviews whole extracted scope and refuses unverified original attachments wi
   const response = await fetch(`${fixture.origin}/api/study-setup/revision-fixture`, {
     method: "POST",
     headers,
-    body: JSON.stringify({ provider: "anthropic", scope: "whole-document" }),
+    body: JSON.stringify({ provider: "anthropic" }),
   })
   // Then
   expect(response.status).toBe(201)

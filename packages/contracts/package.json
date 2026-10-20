@@ -7,8 +7,12 @@
   "exports": {
     ".": "./src/index.ts",
     "./source": "./src/source.ts",
+    "./source-scope": "./src/source-scope.ts",
     "./interview": "./src/interview.ts",
     "./choices": "./src/choices.ts",
+    "./provider": "./src/provider.ts",
+    "./subscriptions": "./src/subscriptions.ts",
+    "./setup-progress": "./src/setup-progress.ts",
     "./i18n": "./src/i18n/index.ts"
   },
   "scripts": {

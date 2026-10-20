@@ -54,7 +54,6 @@ it("TEN-16 S2 T4 observes a recorded unknown outcome without another decision or
     const setupResponse = await post(`/api/study-setup/${source.normalization.id}`, {
       provider: "openrouter",
       model: "gpt-4.1-mini",
-      scope: "all-main-chapters",
     })
     expect(setupResponse.status()).toBe(201)
     const setupId = z.object({ setupId: z.string() }).parse(await setupResponse.json()).setupId

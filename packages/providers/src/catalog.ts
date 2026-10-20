@@ -14,12 +14,15 @@ export class ProviderError extends Error {
       | "unsupported-settings"
       | "outcome-unknown"
       | "unauthorized"
-      | "input-limit",
+      | "input-limit"
+      | "subscription-unverified"
+      | "subscription-connection-changed",
   ) {
     super(code)
   }
 }
 export function validateModel(provider: ProviderName, model: string, settings: Settings) {
+  if (provider === "claude-subscription") throw new ProviderError("subscription-unverified")
   if (
     provider === "openai" ||
     !model.trim() ||

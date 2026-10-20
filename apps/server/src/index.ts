@@ -9,6 +9,7 @@ import { parseServerConfig } from "./config.ts"
 import { productionIntake } from "./intake.ts"
 import { loadStudioAssets } from "./studio-assets.ts"
 import { studySetupSend } from "./study-setup-send.ts"
+import { localSubscriptionAccess } from "./subscriptions.ts"
 import { syntheticIntake } from "./testing/synthetic-intake.ts"
 
 const config = parseServerConfig(process.env)
@@ -22,6 +23,7 @@ const sourceStorage = openStorage({
 const libraryOwnerId = sourceStorage.libraryOwnerId()
 const syntheticMode = process.env["STUDIO_SYNTHETIC_TEST_MODE"] === "enabled"
 const app = createApp({
+  serverHost: config.host,
   studioAssets: loadStudioAssets(resolve(import.meta.dirname, "../../studio/dist")),
   reviewStorage: sourceStorage,
   sources: sourceStorage.sources,
@@ -36,7 +38,11 @@ const app = createApp({
       ? syntheticIntake(sourceStorage, privateRoot)
       : productionIntake(sourceStorage, privateRoot),
   },
-  onSetupSend: studySetupSend(sourceStorage, !syntheticMode),
+  onSetupSend: studySetupSend(
+    sourceStorage,
+    !syntheticMode,
+    localSubscriptionAccess(config.host, config),
+  ),
   ...(!syntheticMode
     ? {
         onOutlineGenerate: (briefRevisionId: string, setupRevisionId: string, grantId: string) =>

@@ -8,16 +8,26 @@ import {
   generationStage,
   saveGenerationStage,
 } from "@reading-studio/generation/provider-stages"
-import { configuredCredential, ProviderAdapter, ProviderRunner } from "@reading-studio/providers"
+import {
+  configuredCredential,
+  LocalSubscriptionAdapter,
+  ProviderAdapter,
+  ProviderRunner,
+  preflightSubscription,
+} from "@reading-studio/providers"
 import { renderPublicationOutput } from "@reading-studio/server/publication-service"
 import { openStorage } from "@reading-studio/storage"
 import { z } from "zod"
-import { questionsStage, queueQuestions, saveQuestions } from "./production-questions.ts"
+import { advanceQuestionHandoff, recoverQuestionHandoffs } from "./production-handoffs.ts"
+import { questionsStage, saveQuestions } from "./production-questions.ts"
 import { WorkerRuntime } from "./runtime.ts"
 
 const Config = z.object({
   DATABASE_PATH: z.string().trim().min(1),
   PRIVATE_DATA_ROOT: z.string().trim().min(1),
+  SERVER_HOST: z.string().optional(),
+  TRUST_PROXY: z.string().optional(),
+  TRUSTED_ORIGINS: z.string().optional(),
   STUDIO_PROVIDER_BASE_URL: z
     .url()
     .refine((url) => new URL(url).hostname === "127.0.0.1")
@@ -27,6 +37,18 @@ const Config = z.object({
 
 export async function runProductionWorker(signal: AbortSignal): Promise<void> {
   const config = Config.parse(process.env)
+  const origins = z
+    .array(z.url())
+    .min(1)
+    .safeParse(config.TRUSTED_ORIGINS?.split(",").map((origin) => origin.trim()))
+  const localSubscriptions =
+    config.SERVER_HOST !== undefined &&
+    ["127.0.0.1", "::1", "[::1]", "localhost"].includes(config.SERVER_HOST) &&
+    config.TRUST_PROXY === "0" &&
+    origins.success &&
+    origins.data.every((origin) =>
+      ["127.0.0.1", "::1", "[::1]", "localhost"].includes(new URL(origin).hostname),
+    )
   if (config.STUDIO_MATRIX_RENDER_FAILURE && !config.STUDIO_PROVIDER_BASE_URL)
     throw new TypeError("Matrix renderer fault requires a loopback provider")
   const storage = openStorage({
@@ -60,24 +82,7 @@ export async function runProductionWorker(signal: AbortSignal): Promise<void> {
     const startupAdmission = storage.maintenance.enter()
     if (startupAdmission !== null)
       try {
-        for (const job of storage.execution.listCompletedAnalysisJobs()) {
-          if (job.provider === "openai") continue
-          const grant = storage.sources.getGrant(job.grant.id)
-          const setup = storage.sources.getSetup(job.setupRevisionId)
-          if (
-            grant?.kind !== "active" ||
-            !setup ||
-            storage.sources.getLatestSetup(setup.studyId)?.id !== setup.id
-          )
-            continue
-          const authority = {
-            storage,
-            ownerId: grant.ownerId,
-            installationId: grant.installationId,
-          }
-          const analysis = new BookMapPipeline(authority).prepare(setup.id, grant.id)
-          queueQuestions(storage, setup.id, grant.id, analysis)
-        }
+        recoverQuestionHandoffs(storage, localSubscriptions)
         for (const job of storage.execution.listCompletedLessonJobs()) {
           if (job.provider === "openai") continue
           const setup = storage.sources.getSetup(job.setupRevisionId)
@@ -94,7 +99,7 @@ export async function runProductionWorker(signal: AbortSignal): Promise<void> {
       signal,
       tokenFactory: randomUUID,
       attemptIdFactory: () => randomUUID(),
-      resolveStage: (job) => {
+      resolveStage: async (job) => {
         if (
           job.stage !== "analysis" &&
           job.stage !== "questions" &&
@@ -104,9 +109,11 @@ export async function runProductionWorker(signal: AbortSignal): Promise<void> {
           throw new TypeError(`Unsupported persisted stage: ${job.stage}`)
         const authority = {
           storage,
+          localSubscriptions,
           ownerId: job.grant.ownerId,
           installationId: job.grant.installationId,
         }
+        await preflightSubscription(authority, job)
         return {
           kind: "structured" as const,
           runner: new ProviderRunner({
@@ -114,6 +121,9 @@ export async function runProductionWorker(signal: AbortSignal): Promise<void> {
             clock: () => new Date(),
             adapters: {
               ...adapters,
+              ...(["chatgpt-subscription", "grok-subscription"].includes(job.provider)
+                ? { [job.provider]: new LocalSubscriptionAdapter(authority, job) }
+                : {}),
               codex: new ProviderAdapter({
                 provider: "codex",
                 codex: storage.providerConnections.codex(
@@ -148,16 +158,7 @@ export async function runProductionWorker(signal: AbortSignal): Promise<void> {
             result.job.state === "completed" &&
             result.job.stage === "analysis"
           ) {
-            const authority = {
-              storage,
-              ownerId: result.job.grant.ownerId,
-              installationId: result.job.grant.installationId,
-            }
-            const analysis = new BookMapPipeline(authority).prepare(
-              result.job.setupRevisionId,
-              result.job.grant.id,
-            )
-            queueQuestions(storage, result.job.setupRevisionId, result.job.grant.id, analysis)
+            advanceQuestionHandoff(storage, result.job.grant, localSubscriptions)
           }
           if (
             result.kind === "provider" &&

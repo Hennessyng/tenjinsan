@@ -77,7 +77,6 @@ try {
   const draft = await post(`/api/study-setup/${revision}`, {
     provider: "openrouter",
     model: "gpt-4.1-mini",
-    scope: "all-main-chapters",
   })
   if (draft.status !== 201) throw new TypeError(`Setup HTTP ${draft.status}`)
   if (wireCount() !== 0) throw new TypeError("Provider called before explicit grant")

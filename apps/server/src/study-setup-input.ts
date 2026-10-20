@@ -1,71 +1,27 @@
-import { type NormalizationRevision, SourceScope } from "@reading-studio/contracts"
+import {
+  type NormalizationRevision,
+  Provider,
+  type SourceScope,
+  wholeBookScope,
+} from "@reading-studio/contracts"
 import { z } from "zod"
 
+/**
+ * A new setup chooses only a provider and model. Source scope is never a client choice:
+ * the one tolerated legacy field is the literal that already names the enforced behavior.
+ * Any subset, main-chapter or chapter-list input is rejected by the strict schema.
+ */
 export const Draft = z.strictObject({
-  provider: z.enum(["openrouter", "codex", "anthropic"]),
+  provider: Provider.exclude(["openai"]),
   model: z.string().min(1).optional(),
-  scope: z.enum(["whole-document", "all-main-chapters", "partial"]),
-  chapters: z.union([z.string(), z.array(z.string())]).optional(),
+  scope: z.literal("whole-document").optional(),
 })
 
 export function selectSourceScope(
   normalization: NormalizationRevision,
-  choices: z.infer<typeof Draft>,
 ):
-  | {
-      readonly kind: "error"
-      readonly message: "Invalid source scope" | "Select available chapters explicitly"
-    }
+  | { readonly kind: "error"; readonly message: "No extracted text" }
   | { readonly kind: "ready"; readonly scope: z.infer<typeof SourceScope> } {
-  const paths =
-    choices.chapters === undefined
-      ? []
-      : typeof choices.chapters === "string"
-        ? [choices.chapters]
-        : choices.chapters
-  const resources = normalization.resources.filter((resource) => resource.status === "included")
-  if (
-    paths.some((path) => !resources.some((resource) => resource.path === path)) ||
-    new Set(paths).size !== paths.length
-  )
-    return { kind: "error", message: "Invalid source scope" }
-  let selected: typeof resources
-  switch (choices.scope) {
-    case "whole-document":
-      selected = resources
-      break
-    case "all-main-chapters":
-      if (
-        normalization.resources.some(
-          (resource) => resource.role === "main-chapter" && resource.status === "excluded",
-        )
-      )
-        return { kind: "error", message: "Select available chapters explicitly" }
-      selected = resources.filter((resource) => resource.role === "main-chapter")
-      break
-    case "partial":
-      selected = resources.filter((resource) => paths.includes(resource.path))
-      break
-    default:
-      return assertNever(choices.scope)
-  }
-  if (!selected.length) return { kind: "error", message: "Select available chapters explicitly" }
-  const project = (resource: (typeof resources)[number]) => ({
-    resourcePath: resource.path,
-    blockIds: resource.blocks.map((block) => block.id),
-  })
-  return {
-    kind: "ready",
-    scope: SourceScope.parse({
-      kind: choices.scope,
-      selected: selected.map(project),
-      exclusions:
-        choices.scope === "partial"
-          ? resources.filter((resource) => !selected.includes(resource)).map(project)
-          : [],
-    }),
-  }
-}
-function assertNever(value: never): never {
-  throw new TypeError(`Unexpected scope: ${value}`)
+  const scope = wholeBookScope(normalization)
+  return scope ? { kind: "ready", scope } : { kind: "error", message: "No extracted text" }
 }

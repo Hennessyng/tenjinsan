@@ -29,7 +29,7 @@ async function draft(bytes: Buffer<ArrayBuffer>, media: string) {
   const response = await fetch(`${harness.origin}/api/study-setup/${revision}`, {
     method: "POST",
     headers,
-    body: JSON.stringify({ provider: "anthropic", scope: "whole-document" }),
+    body: JSON.stringify({ provider: "anthropic" }),
   })
   expect(response.status).toBe(201)
   const setupId = z.object({ setupId: z.string() }).parse(await response.json()).setupId
@@ -208,7 +208,7 @@ it("renders Japanese non-API preparation refusal without granting or queuing", a
   expect(harness.sourceStorage.counts()).toMatchObject({ grants: 0, jobs: 0, attempts: 0 })
 })
 
-it("allows a newly reviewed smaller DOCX scope after preparation refuses the whole document", async () => {
+it("offers no smaller scope after preparation refuses the whole document, and repeats the refusal without side effects", async () => {
   // Given
   const bytes = zipFixture(
     docxEntries.map((entry) =>
@@ -225,8 +225,8 @@ it("allows a newly reviewed smaller DOCX scope after preparation refuses the who
     bytes,
     "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
   )
-  const refused = await send()
-  expect(refused.status).toBe(422)
+  expect((await send()).status).toBe(422)
+  // When: a smaller scope is requested directly
   const smaller = await fetch(`${harness.origin}/api/study-setup/${revision}`, {
     method: "POST",
     headers,
@@ -236,17 +236,58 @@ it("allows a newly reviewed smaller DOCX scope after preparation refuses the who
       chapters: ["word/header1.xml"],
     }),
   })
-  expect(smaller.status).toBe(201)
-  const current = z.object({ setupId: z.string() }).parse(await smaller.json()).setupId
-  // When
-  const response = await fetch(`${harness.origin}/api/study-setup/${revision}/${current}`, {
-    method: "POST",
-    headers,
-    body: JSON.stringify({ decision: "send" }),
-  })
-  // Then
-  expect(response.status).toBe(200)
+  const repeated = await send()
+  // Then: nothing smaller is persisted and the unchanged setup is refused again
+  expect(smaller.status).toBe(400)
+  expect(repeated.status).toBe(422)
+  expect(
+    harness.sourceStorage.sources.getLatestSetup(
+      harness.sourceStorage.sources.getSetup(setupId)?.studyId,
+    )?.id,
+  ).toBe(setupId)
   expect(harness.sourceStorage.sources.getGrant(`grant-${setupId}`)).toBeNull()
-  expect(harness.sourceStorage.sources.getGrant(`grant-${current}`)?.kind).toBe("active")
-  expect(harness.sourceStorage.counts()).toMatchObject({ grants: 1, jobs: 1, attempts: 0 })
+  expect(harness.sourceStorage.counts()).toMatchObject({
+    setups: 1,
+    grants: 0,
+    jobs: 0,
+    runs: 0,
+    attempts: 0,
+  })
 })
+
+it.each([
+  [
+    "en",
+    "Import a smaller document",
+    /source scope|revise the scope|\benlarge|\braise (the |a )?limit|\bincrease|\btruncat/i,
+  ],
+  [
+    "ja",
+    "より小さな文書を取り込んでください",
+    /資料の範囲を見直|範囲を選|上限を(引き上げ|拡大)|切り詰め(て|ます)送/,
+  ],
+])(
+  "gives %s recovery guidance without a removed scope chooser, silent truncation or larger limits",
+  async (locale, expected, forbidden) => {
+    // Given
+    const { harness, revision, setupId } = await draft(
+      Buffer.from("x".repeat(128 * 12_000 + 1)),
+      "text/plain",
+    )
+    // When
+    const response = await fetch(
+      `${harness.origin}/sources/${revision}/setup/${setupId}?lang=${locale}`,
+      {
+        method: "POST",
+        headers: { origin: harness.origin, "content-type": "application/x-www-form-urlencoded" },
+        body: "decision=send",
+      },
+    )
+    // Then
+    expect(response.status).toBe(422)
+    const body = await response.text()
+    expect(body.toLowerCase()).toContain(expected.toLowerCase())
+    expect(body).not.toMatch(forbidden)
+    expect(harness.sourceStorage.counts()).toMatchObject({ grants: 0, jobs: 0, attempts: 0 })
+  },
+)

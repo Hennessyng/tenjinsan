@@ -1,29 +1,15 @@
 import { env } from "node:process"
 import { createAnthropic } from "@ai-sdk/anthropic"
+import { isSubscriptionProvider } from "@reading-studio/contracts"
 import type { Storage } from "@reading-studio/storage"
 import { generateText, jsonSchema, NoObjectGeneratedError, Output } from "ai"
 import { z } from "zod"
 import { ProviderError, type ProviderName, type Settings, validateModel } from "./catalog.ts"
+import { codexPayload, dispatchCodex } from "./codex-dispatch.ts"
+import { ProviderReceipt } from "./provider-receipt.ts"
 
 export { ProviderError } from "./catalog.ts"
-
-const usage = z.discriminatedUnion("kind", [
-  z.strictObject({
-    kind: z.literal("known"),
-    inputTokens: z.number().int().nonnegative(),
-    outputTokens: z.number().int().nonnegative(),
-  }),
-  z.strictObject({ kind: z.literal("unknown") }),
-])
-export const ProviderReceipt = z.discriminatedUnion("kind", [
-  z.strictObject({ kind: z.literal("output"), text: z.string(), usage }),
-  z.strictObject({
-    kind: z.literal("error"),
-    code: z.enum(["rate-limited", "rejected", "unavailable", "refused", "truncated"]),
-    usage,
-  }),
-])
-export type ProviderReceipt = z.infer<typeof ProviderReceipt>
+export { ProviderReceipt } from "./provider-receipt.ts"
 export type AdapterConfig = {
   readonly provider: ProviderName
   readonly apiKey?: string
@@ -48,6 +34,9 @@ export function configuredCredential(provider: ProviderName): string | undefined
   switch (provider) {
     case "openai":
     case "codex":
+    case "chatgpt-subscription":
+    case "claude-subscription":
+    case "grok-subscription":
       return undefined
     case "openrouter":
       return env["OPENROUTER_API_KEY"]?.trim() || undefined
@@ -64,6 +53,7 @@ function assertNever(value: never): never {
 export class ProviderAdapter {
   private readonly config: AdapterConfig & { readonly apiKey: string }
   constructor(config: AdapterConfig) {
+    if (isSubscriptionProvider(config.provider)) throw new ProviderError("subscription-unverified")
     if (config.provider === "openai") throw new ProviderError("unsupported-model")
     const apiKey =
       config.apiKey ??
@@ -116,7 +106,7 @@ export class ProviderAdapter {
       validateModel(this.config.provider, request.model, request.settings)
       if ((await this.measure(request)) > MAX_PROVIDER_REQUEST_BYTES)
         throw new ProviderError("input-limit")
-      if (this.config.provider === "codex") return await this.codexDispatch(request)
+      if (this.config.provider === "codex") return await dispatchCodex(this.config, request)
       if (this.config.provider === "openrouter") {
         const choices = await ProviderAdapter.openRouterModels(
           this.config.apiKey,
@@ -246,11 +236,7 @@ export class ProviderAdapter {
       }))
   }
   private payload(request: StructuredRequest) {
-    if (this.config.provider === "codex")
-      return {
-        input: [{ type: "text", text: request.prompt, text_elements: [] }],
-        outputSchema: request.schema,
-      }
+    if (this.config.provider === "codex") return codexPayload(request)
     return {
       model: request.model,
       messages: [{ role: "user", content: request.prompt }],
@@ -260,119 +246,6 @@ export class ProviderAdapter {
         type: "json_schema",
         json_schema: { name: "study", strict: true, schema: request.schema },
       },
-    }
-  }
-  private async codexDispatch(request: StructuredRequest): Promise<ProviderReceipt> {
-    const connection = this.config.codex
-    if (!connection) throw new ProviderError("missing-credentials")
-    if (!(await connection.models()).some((choice) => choice.model === request.model)) {
-      await connection.disconnect()
-      return { kind: "error", code: "rejected", usage: { kind: "unknown" } }
-    }
-    const session = await connection.open()
-    const signal = AbortSignal.any([
-      request.signal,
-      AbortSignal.timeout(this.config.timeoutMs ?? 90000),
-    ])
-    try {
-      const started = z.object({ thread: z.object({ id: z.string() }) }).parse(
-        await session.request("thread/start", {
-          model: request.model,
-          ephemeral: true,
-          approvalPolicy: "never",
-          sandbox: "read-only",
-          config: { "features.shell_tool": false, web_search: "disabled" },
-        }),
-      )
-      const receipt = await new Promise<ProviderReceipt>((resolve, reject) => {
-        let text = ""
-        let usage: ProviderReceipt["usage"] = { kind: "unknown" }
-        let completed = false
-        const finish = (receipt: ProviderReceipt) => {
-          unsubscribe()
-          signal.removeEventListener("abort", abort)
-          resolve(receipt)
-        }
-        const abort = () => {
-          unsubscribe()
-          signal.removeEventListener("abort", abort)
-          if (completed && !request.signal.aborted) {
-            resolve({ kind: "error", code: "unavailable", usage })
-            return
-          }
-          reject(new ProviderError("outcome-unknown"))
-        }
-        const unsubscribe = session.subscribe((method, raw) => {
-          const event = z.object({ threadId: z.string() }).passthrough().safeParse(raw)
-          if (!event.success || event.data.threadId !== started.thread.id) return
-          if (method === "thread/tokenUsage/updated") {
-            const tokens = z
-              .object({
-                tokenUsage: z.object({
-                  last: z.object({
-                    inputTokens: z.number().int().nonnegative(),
-                    outputTokens: z.number().int().nonnegative(),
-                  }),
-                }),
-              })
-              .safeParse(raw)
-            if (tokens.success) {
-              usage = { kind: "known", ...tokens.data.tokenUsage.last }
-              if (completed) finish({ kind: "output", text, usage })
-            }
-          }
-          if (method === "item/completed") {
-            const item = z
-              .object({ item: z.object({ type: z.literal("agentMessage"), text: z.string() }) })
-              .safeParse(raw)
-            if (item.success) text = item.data.item.text
-          }
-          if (method === "turn/completed") {
-            const turn = z
-              .object({
-                turn: z.object({
-                  status: z.string(),
-                  error: z.object({ codexErrorInfo: z.unknown() }).nullish(),
-                }),
-              })
-              .safeParse(raw)
-            if (turn.success && turn.data.turn.status === "completed") {
-              completed = true
-              if (usage.kind === "known") finish({ kind: "output", text, usage })
-              return
-            }
-            const error = turn.success ? turn.data.turn.error?.codexErrorInfo : undefined
-            switch (error) {
-              case "usageLimitExceeded":
-              case "rateLimitExceeded":
-              case "sessionBudgetExceeded":
-                finish({ kind: "error", code: "rate-limited", usage })
-                break
-              case "unauthorized":
-                finish({ kind: "error", code: "rejected", usage })
-                break
-              default:
-                finish({ kind: "error", code: "unavailable", usage })
-            }
-          }
-        })
-        signal.addEventListener("abort", abort, { once: true })
-        if (signal.aborted) {
-          abort()
-          return
-        }
-        session
-          .request("turn/start", { threadId: started.thread.id, ...this.payload(request) })
-          .catch(() => {
-            unsubscribe()
-            signal.removeEventListener("abort", abort)
-            resolve({ kind: "error", code: "rejected", usage })
-          })
-      })
-      if (receipt.kind === "error" && receipt.code === "rejected") await connection.disconnect()
-      return receipt
-    } finally {
-      session.close()
     }
   }
 }

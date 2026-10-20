@@ -1,5 +1,10 @@
-import type { NormalizationRevision, StudySetupRevision } from "@reading-studio/contracts"
 import {
+  LocalSubscriptionProvider,
+  type NormalizationRevision,
+  type StudySetupRevision,
+} from "@reading-studio/contracts"
+import {
+  localRequestBytes,
   MAX_PROVIDER_REQUEST_BYTES,
   ProviderAdapter,
   ProviderError,
@@ -38,16 +43,22 @@ export async function bookMapRequestsFit(input: {
   readonly windows: readonly SourceWindow[]
   readonly definition?: BookMapDefinition
 }): Promise<boolean> {
-  const adapter = new ProviderAdapter({
-    provider: input.setup.analysis.provider,
-    apiKey: "local-sizing-only",
-  })
+  const local = LocalSubscriptionProvider.safeParse(input.setup.analysis.provider)
+  const adapter = local.success
+    ? null
+    : new ProviderAdapter({
+        provider: input.setup.analysis.provider,
+        apiKey: "local-sizing-only",
+      })
   for (const window of input.windows) {
     const request = bookMapRequest(input.setup, input.normalization, window)
     const instruction = input.definition?.instruction ?? bookMapDefinition.instruction
     const prompt = `${instruction}\n${request.prompt.slice(bookMapDefinition.instruction.length + 1)}`
     try {
-      const bytes = await adapter.measure({ ...request, prompt })
+      const bytes = local.success
+        ? localRequestBytes(local.data, { ...request, prompt })
+        : await adapter?.measure({ ...request, prompt })
+      if (bytes === undefined) return false
       if (!Number.isSafeInteger(bytes) || bytes < 0 || bytes > MAX_PROVIDER_REQUEST_BYTES)
         return false
     } catch (error) {

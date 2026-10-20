@@ -1,5 +1,33 @@
-import { type AnalysisRevision, contentDigest, Job, RunBudget } from "@reading-studio/contracts"
+import {
+  type AnalysisRevision,
+  analysisCacheKey,
+  contentDigest,
+  Job,
+  RunBudget,
+  type StudySetupRevision,
+} from "@reading-studio/contracts"
 import type { Storage } from "@reading-studio/storage"
+
+export class QuestionsHandoffError extends Error {
+  override readonly name = "QuestionsHandoffError"
+  constructor(readonly code: "bank-incompatible" | "unauthorized") {
+    super(code)
+  }
+}
+
+export function questionBankStatus(
+  storage: Storage,
+  setup: StudySetupRevision,
+  analysis: AnalysisRevision | null,
+): "missing" | "compatible" | "incompatible" {
+  const bank = storage.interviews.latest(setup.studyId)
+  if (!bank) return "missing"
+  return bank.studyId === setup.studyId &&
+    bank.analysisRevisionId === analysis?.id &&
+    bank.contextRevisionId === `analysis-${contentDigest(setup.id)}`
+    ? "compatible"
+    : "incompatible"
+}
 
 export function queueQuestions(
   storage: Storage,
@@ -10,7 +38,26 @@ export function queueQuestions(
   if (analysis.status !== "successful") return
   const setup = storage.sources.getSetup(setupId)
   const grant = storage.sources.getGrant(grantId)
-  if (!setup || !grant || storage.interviews.latest(setup.studyId)) return
+  if (
+    !setup ||
+    grant?.kind !== "active" ||
+    grant.setupRevisionId !== setup.id ||
+    storage.sources.getLatestSetup(setup.studyId)?.id !== setup.id ||
+    analysis.cacheKey !== analysisCacheKey(setup.analysis) ||
+    storage.workflow.findSuccessfulAnalysis(analysis.cacheKey)?.id !== analysis.id
+  )
+    throw new QuestionsHandoffError("unauthorized")
+  const bankStatus = questionBankStatus(storage, setup, analysis)
+  switch (bankStatus) {
+    case "compatible":
+      return
+    case "incompatible":
+      throw new QuestionsHandoffError("bank-incompatible")
+    case "missing":
+      break
+    default:
+      assertNever(bankStatus)
+  }
   const inputRevisionId = storage.workflow.ensureAnalysisInput(setupId)
   const id = `questions-${contentDigest(JSON.stringify([setupId, grantId, analysis.id]))}`
   if (!storage.execution.getRun(id))
@@ -40,4 +87,8 @@ export function queueQuestions(
         state: "queued",
       }),
     )
+}
+
+function assertNever(value: never): never {
+  throw new TypeError(`Unknown question bank status: ${value}`)
 }

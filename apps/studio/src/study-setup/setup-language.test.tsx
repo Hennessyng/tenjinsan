@@ -1,5 +1,5 @@
 // @vitest-environment happy-dom
-import { cleanup, render, screen } from "@testing-library/react"
+import { cleanup, render, screen, waitFor } from "@testing-library/react"
 import { afterEach, expect, it, vi } from "vitest"
 import { LanguageProvider } from "../i18n/LanguageProvider.tsx"
 import { LANGUAGE_STORAGE_KEY } from "../i18n/preference.ts"
@@ -30,7 +30,7 @@ afterEach(() => {
 
 it.each([
   ["analysis-window-limit", "分析範囲の上限に達しました"],
-  ["empty-text-scope", "選んだ範囲に本文がありません"],
+  ["empty-text-scope", "この設定には抽出済みの本文がありません"],
 ] as const)(
   "localizes preparation reason %s while retaining its diagnostic code",
   (reason, label) => {
@@ -64,7 +64,7 @@ it("localizes setup and connection controls without sending or connecting on dis
   // Given
   history.replaceState(null, "", "/sources/revision-1/setup")
   localStorage.setItem(LANGUAGE_STORAGE_KEY, "ja")
-  const request = vi.fn(async () =>
+  const request = vi.fn(async (_path: string, _options?: RequestInit) =>
     Response.json({
       normalization,
       choices: [{ provider: "anthropic", model: "synthetic", label: "Anthropic synthetic" }],
@@ -81,10 +81,19 @@ it("localizes setup and connection controls without sending or connecting on dis
   expect(await screen.findByRole("heading", { name: "読書を設定する" })).toBeDefined()
   expect(screen.getByRole("button", { name: "送信内容を確認" })).toBeDefined()
   expect(screen.getByRole("button", { name: "Codex に接続" })).toBeDefined()
-  expect(
-    screen.getByRole("radio", { name: "文書全体 — 補足部分を含む抽出済みテキストすべて" }),
-  ).toHaveProperty("checked", true)
-  expect(request).toHaveBeenCalledTimes(1)
+  expect(screen.queryAllByRole("radio")).toHaveLength(0)
+  expect(screen.queryAllByRole("checkbox")).toHaveLength(0)
+  expect(screen.getByText(/抽出済みのすべての資料とブロックが含まれます/)).toBeDefined()
+  await waitFor(() =>
+    expect(request.mock.calls.map(([path]) => path)).toEqual([
+      "/api/study-setup/revision-1",
+      "/api/subscription-connections",
+    ]),
+  )
+  for (const [, options] of request.mock.calls) {
+    expect(options?.method ?? "GET").toBe("GET")
+    expect(options?.body).toBeUndefined()
+  }
 })
 
 it("localizes unavailable-provider review without enabling Send", async () => {

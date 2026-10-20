@@ -16,7 +16,7 @@ test.describe("study-setup", () => {
     await page.getByRole("button", { name: "Log in" }).click()
   })
   for (const width of [375, 768, 1280]) {
-    test(`reviews partial source scope and cancels without approval at ${width}px`, async ({
+    test(`reviews whole-book setup and cancels without approval at ${width}px`, async ({
       page,
     }) => {
       // Given
@@ -24,13 +24,13 @@ test.describe("study-setup", () => {
       await page.goto(`${fixture.origin}/sources/revision-fixture`)
       await page.getByRole("link", { name: "Set up a study" }).click()
       await page.getByLabel("Provider and model").selectOption("anthropic")
-      await page.getByLabel("Choose specific chapters").check()
-      await page.getByLabel("chapter-one.xhtml", { exact: true }).check()
+      await expect(page.getByRole("radio")).toHaveCount(0)
+      await expect(page.getByRole("checkbox")).toHaveCount(0)
       await page.getByLabel("Provider and model").focus()
       await page.keyboard.press("Tab")
-      const scopeChoice = page.getByLabel("Choose specific chapters")
-      await expect(scopeChoice).toBeFocused()
-      expect(await scopeChoice.evaluate((element) => getComputedStyle(element).outlineWidth)).toBe(
+      const reviewButton = page.getByRole("button", { name: "Review transmission" })
+      await expect(reviewButton).toBeFocused()
+      expect(await reviewButton.evaluate((element) => getComputedStyle(element).outlineWidth)).toBe(
         "3px",
       )
       await page.screenshot({
@@ -42,7 +42,8 @@ test.describe("study-setup", () => {
       // Then
       await expect(page.getByRole("heading", { name: "Review transmission" })).toBeVisible()
       await expect(page.locator("[data-selected]")).toContainText("chapter-one.xhtml")
-      await expect(page.locator("[data-excluded]")).toContainText("chapter-two.xhtml")
+      await expect(page.locator("[data-selected]")).toContainText("chapter-two.xhtml")
+      await expect(page.locator("[data-excluded]")).toContainText("appendix.xhtml")
       await page.getByRole("button", { name: "Send", exact: true }).focus()
       await page.keyboard.press("Tab")
       await expect(page.getByRole("button", { name: "Revise", exact: true })).toBeFocused()

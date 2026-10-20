@@ -45,7 +45,6 @@ it("TEN-16 S4 T6 retains Stay edits and discards only unsaved room and study edi
     const setupResponse = await post(`/api/study-setup/${study.normalizationId}`, {
       provider: "openrouter",
       model: "gpt-4.1-mini",
-      scope: "all-main-chapters",
     })
     expect(setupResponse.status()).toBe(201)
     const setupId = z.object({ setupId: z.string() }).parse(await setupResponse.json()).setupId

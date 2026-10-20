@@ -5,6 +5,7 @@
   "type": "module",
   "exports": {
     "./app": "./src/app.ts",
+    "./study-setup-send": "./src/study-setup-send.ts",
     "./publication-fixture": "./src/testing/publication-fixture.ts",
     "./evidence-fixture": "./src/testing/evidence-fixture.ts",
     "./source-viewer-fixture": "./src/testing/source-viewer-fixture.ts",

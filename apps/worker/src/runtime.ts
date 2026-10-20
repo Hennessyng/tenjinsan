@@ -1,5 +1,5 @@
 import type { Digest, ExternalAttempt, GenerationRun, Job } from "@reading-studio/contracts"
-import type { ProviderRunner, StructuredStage } from "@reading-studio/providers"
+import { ProviderError, type ProviderRunner, type StructuredStage } from "@reading-studio/providers"
 import { MaintenancePausedError, type Storage } from "@reading-studio/storage"
 
 export type ProviderDispatch = {
@@ -52,7 +52,9 @@ export type WorkerRuntimeOptions = {
   readonly tokenFactory: () => string
   readonly attemptIdFactory: (reservation: number) => string
   readonly signal?: AbortSignal
-  readonly resolveStage: (job: Extract<Job, { readonly state: "running" }>) => StageHandler
+  readonly resolveStage: (
+    job: Extract<Job, { readonly state: "running" }>,
+  ) => StageHandler | Promise<StageHandler>
 }
 
 export class WorkerRuntimeError extends Error {
@@ -90,7 +92,6 @@ export class WorkerRuntime {
       this.options.storage.execution.releaseForMaintenance(this.lease(claimed))
       return { kind: "idle" }
     }
-    const stage = this.options.resolveStage(claimed)
     let heartbeatError: unknown
     const heartbeat = setInterval(
       () => {
@@ -109,6 +110,7 @@ export class WorkerRuntime {
     )
     heartbeat.unref()
     try {
+      const stage = await this.options.resolveStage(claimed)
       let result: WorkerRunResult
       switch (stage.kind) {
         case "structured":
@@ -132,6 +134,19 @@ export class WorkerRuntime {
       if (heartbeatError) throw heartbeatError
       return result
     } catch (error) {
+      if (
+        error instanceof ProviderError &&
+        (error.code === "subscription-unverified" ||
+          error.code === "subscription-connection-changed")
+      ) {
+        const execution = this.options.storage.execution
+        const lease = this.lease(claimed)
+        const job = execution.failProviderJob({ lease, code: error.code, retryable: false })
+        const pause = execution.providerPause(claimed.id)
+        if (pause)
+          console.info(JSON.stringify({ event: "provider-paused", jobId: claimed.id, ...pause }))
+        return { kind: "provider", job }
+      }
       if (!(error instanceof MaintenancePausedError)) throw error
       this.options.storage.execution.releaseForMaintenance(this.lease(claimed))
       return { kind: "idle" }

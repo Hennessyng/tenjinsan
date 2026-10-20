@@ -74,9 +74,17 @@ a hard total-process memory ceiling must additionally enforce it at the host.
 
 ## Send coverage and original files
 
-Whole-document scope selects **every extracted block**, including supplementary
-parts. All-main-chapters and explicit partial scopes remain available. Extraction
-omissions stay visible even when all available text is selected.
+Every new setup covers the whole extraction: **every extracted block of every
+included resource**, main chapters and supplementary parts alike. There is no scope,
+main-chapter or chapter choice, and the server rejects subset/main-only or chapter-list
+creation requests without persisting a setup. The legacy literal `scope: "whole-document"`
+is tolerated but does not control the selection. Resources omitted during extraction stay visible as honest
+coverage disclosure on setup and review; a nonempty extraction with omissions proceeds
+without a separate acknowledgement. An extraction with no text cannot create or send a
+study. Setups and grants stored under an earlier scope choice keep their stored scope
+unchanged; reconfiguring creates a new whole-document setup that needs a fresh Send.
+This does not expand extraction, enable original attachments or establish that the
+whole book was semantically processed.
 
 Before saving Send consent, the API and queueing pipeline use the same preparation
 planner: at most 128 windows of 12,000 UTF-16 units. Empty EPUB anchors remain in
@@ -84,7 +92,7 @@ the source but do not become zero-length analysis windows. An oversized or textl
 selection returns safe 422 `scope-limit` with a `not-sent` coverage reason and the
 entire selected range inventory, including locations. No grant/jobs/attempts are
 created. Repeating the unchanged Send gives the same refusal rather than a stuck
-409. Review a smaller available scope or import a smaller source; nothing is
+409. Import a smaller source to continue; there is no smaller-scope option and nothing is
 silently sliced. The later 64-call and wire budgets remain separate limits.
 
 Every provider input includes source identity, format locators and exact UTF-16

@@ -3,8 +3,9 @@ import { SetupRevisionId } from "@reading-studio/contracts"
 import type { UiLocale } from "@reading-studio/contracts/i18n"
 import type { SourceRepository } from "@reading-studio/storage"
 import { setupChoices, type setupResult, setupReview } from "@reading-studio/studio/study-setup"
-import type { Hono } from "hono"
+import type { Context, Hono } from "hono"
 import type { AppEnvironment } from "./middleware/access.ts"
+import type { savedSetupDecision } from "./study-setup-send.ts"
 
 type Owned = {
   readonly normalization: NormalizationRevision
@@ -24,6 +25,11 @@ export function configureSetupReadApi(
   choices: (
     ownerId: string,
   ) => Promise<readonly { provider: string; model: string; label: string }[]>,
+  savedDecision: (
+    setup: StudySetupRevision,
+    grantId: string,
+    context: Context<AppEnvironment>,
+  ) => ReturnType<typeof savedSetupDecision>,
 ): void {
   app.get("/sources/:revision/setup", async (context) => {
     const locale = context.req.query("lang") === "ja" ? "ja" : "en"
@@ -49,10 +55,13 @@ export function configureSetupReadApi(
       !setup ||
       setup.studyId !== source.study.id ||
       setup.analysis.normalizationRevisionId !== revision ||
-      sources.getLatestSetup(source.study.id)?.id !== setup.id ||
-      sources.getGrant(`grant-${setup.id}`)
+      sources.getLatestSetup(source.study.id)?.id !== setup.id
     )
       return context.html(unavailable(revision, locale), 409)
+    const grant = sources.getGrant(`grant-${setup.id}`)
+    if (grant?.kind === "active")
+      return context.redirect(`/jobs?setup=${encodeURIComponent(setup.id)}`, 303)
+    if (grant) return context.html(unavailable(revision, locale), 409)
     return context.html(
       setupReview({
         locale,
@@ -86,10 +95,12 @@ export function configureSetupReadApi(
       !setup ||
       setup.studyId !== source.study.id ||
       setup.analysis.normalizationRevisionId !== source.normalization.id ||
-      sources.getLatestSetup(source.study.id)?.id !== setup.id ||
-      sources.getGrant(`grant-${setup.id}`)
+      sources.getLatestSetup(source.study.id)?.id !== setup.id
     )
       return context.json({ error: "Setup unavailable" }, 409)
+    const grant = sources.getGrant(`grant-${setup.id}`)
+    if (grant?.kind === "active") return context.json(savedDecision(setup, grant.id, context))
+    if (grant) return context.json({ error: "Setup unavailable" }, 409)
     return context.json({
       setup,
       normalization: source.normalization,

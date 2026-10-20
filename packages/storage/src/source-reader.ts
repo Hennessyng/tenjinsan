@@ -116,6 +116,15 @@ export class SourceReader {
       : decodeRecord(TransmissionGrant, row.recordJson, "transmission grant", id)
   }
 
+  listActiveGrants(): readonly GrantRecord[] {
+    return this.context.db
+      .select()
+      .from(transmissionGrants)
+      .where(eq(transmissionGrants.kind, "active"))
+      .all()
+      .map((row) => decodeRecord(TransmissionGrant, row.recordJson, "transmission grant", row.id))
+  }
+
   listStudiesByEdition(input: unknown): readonly StudyRecord[] {
     const editionId = parseInput(EditionId, input, "edition ID")
     return this.context.db

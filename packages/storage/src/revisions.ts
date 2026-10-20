@@ -6,6 +6,7 @@ import {
   SetupRevisionId,
   StudyId,
   StudySetupRevision,
+  wholeBookScope,
 } from "@reading-studio/contracts"
 import { z } from "zod"
 import type { StorageContext } from "./database.ts"
@@ -18,6 +19,12 @@ const Revision = Expected.extend({
   analysis: AnalysisCacheInput,
   generation: StudySetupRevision.unwrap().shape.generation,
 })
+const coverage = (scope: z.infer<typeof AnalysisCacheInput>["scope"]) =>
+  JSON.stringify(
+    scope.selected
+      .map((resource) => [resource.resourcePath, [...resource.blockIds].sort()] as const)
+      .sort(([left], [right]) => (left < right ? -1 : left > right ? 1 : 0)),
+  )
 const Parent = z.object({ studyId: StudyId, setupRevisionId: SetupRevisionId })
 
 export class RevisionRepository {
@@ -68,13 +75,25 @@ export class RevisionRepository {
         if (current.setup.id !== write.expectedSetupRevisionId)
           throw new ContractBoundaryError("stale study revision")
         const { sources, interviews } = this.storage
+        const normalization = sources.getNormalization(
+          current.setup.analysis.normalizationRevisionId,
+        )
+        const whole = normalization ? wholeBookScope(normalization) : null
+        if (!whole) throw new ContractBoundaryError("whole-book source scope")
+        const retainsAnalysis =
+          current.setup.analysis.scope.kind !== "partial" &&
+          current.setup.analysis.scope.exclusions.length === 0 &&
+          coverage(current.setup.analysis.scope) === coverage(whole)
+        const analysis = retainsAnalysis
+          ? current.setup.analysis
+          : { ...current.setup.analysis, scope: whole }
         const study = sources.createStudy({
           id: randomUUID(),
           ownerId: write.ownerId,
           editionId: current.setup.editionId,
         })
         const setup = sources.appendSetup({
-          record: { ...current.setup, id: randomUUID(), studyId: study.id },
+          record: { ...current.setup, analysis, id: randomUUID(), studyId: study.id },
           parentRevisionId: null,
         })
         this.context.sqlite
@@ -83,7 +102,7 @@ export class RevisionRepository {
           )
           .run(study.id, write.studyId, current.setup.id)
         const interview = interviews.latest(write.studyId)
-        if (interview && current.analysis?.id === interview.analysisRevisionId) {
+        if (retainsAnalysis && interview && current.analysis?.id === interview.analysisRevisionId) {
           interviews.create({
             ...interview,
             id: randomUUID(),
@@ -103,6 +122,19 @@ export class RevisionRepository {
         const current = this.current({ studyId: write.studyId, ownerId: write.ownerId })
         if (current.setup.id !== write.expectedSetupRevisionId)
           throw new ContractBoundaryError("stale study revision")
+        // A revision is a new setup: it must cover every included resource and block.
+        // Subset, main-only or partial scopes are never persisted by this path.
+        const extracted = this.storage.sources.getNormalization(
+          write.analysis.normalizationRevisionId,
+        )
+        const scope = extracted ? wholeBookScope(extracted) : null
+        if (
+          !scope ||
+          write.analysis.scope.kind === "partial" ||
+          write.analysis.scope.exclusions.length > 0 ||
+          coverage(write.analysis.scope) !== coverage(scope)
+        )
+          throw new ContractBoundaryError("whole-book source scope")
         this.storage.sources.appendSetup({
           record: {
             ...current.setup,
