@@ -1,0 +1,14 @@
+@scope (.library) {
+  @media (max-height: 500px) {
+    [data-room="accession"] #desk-body {
+      display: block;
+      overflow: auto;
+    }
+    [data-room="accession"] .desk-main {
+      overflow: visible;
+    }
+    [data-room="accession"] .reader {
+      grid-template-columns: 1fr;
+    }
+  }
+}

@@ -11,13 +11,13 @@ export function navigateRoom(
   const current = new URL(window.location.href)
   const target = new URL(room === null ? "/" : roomHref(room, study), current)
   const keys =
-    room === "stacks"
+    room === "accession"
       ? ["chapter", "citation"]
       : room === "reference" || room === "review"
         ? ["lang", "step"]
         : ["lang"]
   const language = current.searchParams.get("lang")
-  if (room !== "stacks" && language !== null) target.searchParams.set("lang", locale)
+  if (language !== null) target.searchParams.set("lang", locale)
   if (current.pathname === target.pathname) {
     for (const key of keys) {
       const value = current.searchParams.get(key)

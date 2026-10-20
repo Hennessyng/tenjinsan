@@ -89,9 +89,6 @@ export function buildHall(world: HTMLElement): ReadonlyMap<RoomId, HTMLElement> 
       case "accession":
         furnitureA.accession(parts)
         break
-      case "stacks":
-        furnitureA.stacks(parts, room)
-        break
       case "lending":
         furnitureA.lending(parts)
         break

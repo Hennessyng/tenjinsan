@@ -58,11 +58,12 @@ it("opens the confirmed study source while its context refresh is delayed", asyn
     await received
     await page
       .getByRole("navigation", { name: "Reading route / 読書ルート" })
-      .getByRole("button", { name: /The stacks/ })
+      .getByRole("button", { name: /Import & read/ })
       .click()
-    // Then the destination is that study's source, never the unselected source list.
-    await visible(page).toHaveURL(`${origin}/sources/${study.normalizationId}`)
+    // Then the shared room retains access to that study's exact source.
+    await visible(page).toHaveURL(`${origin}/imports`)
     events.emit("release")
+    await page.locator(`a[href="/sources/${study.normalizationId}"]`).click()
     await visible(page.getByRole("heading", { name: study.title, exact: true })).toBeVisible()
   } finally {
     events.emit("release")

@@ -3,6 +3,7 @@ import { useContext, useEffect, useState } from "react"
 import type { z } from "zod"
 import { useLanguage } from "../i18n/LanguageProvider.tsx"
 import { LibraryFrameContext } from "../library/LibraryShell.tsx"
+import { ReadSourceLink } from "../library/ReadSourceLink.tsx"
 import { Library, Reader, SourceRequestError, sourceRequest } from "./client.ts"
 import { SourceDetails, sourceLocation } from "./SourceDetails.tsx"
 
@@ -116,7 +117,7 @@ function SourceLibrary(): ReactElement {
         <ul>
           {documents.map(({ edition, normalization }) => (
             <li key={normalization.id}>
-              <a href={`/sources/${normalization.id}`}>{edition.title}</a>
+              <ReadSourceLink revision={normalization.id}>{edition.title}</ReadSourceLink>
               <p>
                 {t("source.library.coverage", {
                   coverage: t(

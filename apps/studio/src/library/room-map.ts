@@ -12,17 +12,8 @@ export const libraryRooms = [
     h: 90,
   },
   {
-    id: "stacks",
-    n: 2,
-    x: 110,
-    y: 470,
-    w: 164,
-    d: 270,
-    h: 215,
-  },
-  {
     id: "lending",
-    n: 3,
+    n: 2,
     x: 300,
     y: 690,
     w: 170,
@@ -31,7 +22,7 @@ export const libraryRooms = [
   },
   {
     id: "reference",
-    n: 4,
+    n: 3,
     x: 270,
     y: 330,
     w: 130,
@@ -40,7 +31,7 @@ export const libraryRooms = [
   },
   {
     id: "reading",
-    n: 5,
+    n: 4,
     x: 440,
     y: 350,
     w: 190,
@@ -49,7 +40,7 @@ export const libraryRooms = [
   },
   {
     id: "catalogue",
-    n: 6,
+    n: 5,
     x: 360,
     y: 14,
     w: 230,
@@ -58,7 +49,7 @@ export const libraryRooms = [
   },
   {
     id: "bindery",
-    n: 7,
+    n: 6,
     x: 660,
     y: 200,
     w: 120,
@@ -67,7 +58,7 @@ export const libraryRooms = [
   },
   {
     id: "review",
-    n: 8,
+    n: 7,
     x: 640,
     y: 380,
     w: 140,
@@ -76,7 +67,7 @@ export const libraryRooms = [
   },
   {
     id: "ledger",
-    n: 9,
+    n: 8,
     x: 230,
     y: 40,
     w: 90,
@@ -85,7 +76,7 @@ export const libraryRooms = [
   },
   {
     id: "display",
-    n: 10,
+    n: 9,
     x: 60,
     y: 60,
     w: 130,
@@ -98,9 +89,8 @@ export type RoomId = LibraryRoom["id"]
 
 export const roomPrerequisites = {
   accession: null,
-  stacks: null,
   bindery: null,
-  lending: { next: "stacks", message: "room.lending.requires" },
+  lending: { next: "accession", message: "room.lending.requires" },
   reference: { next: "lending", message: "room.reference.requires" },
   reading: { next: "reference", message: "room.reading.requires" },
   catalogue: { next: "reading", message: "room.catalogue.requires" },
@@ -113,7 +103,6 @@ export const roomPrerequisites = {
 
 export const roomText = {
   accession: { name: "room.accession.name", action: "room.accession.action" },
-  stacks: { name: "room.stacks.name", action: "room.stacks.action" },
   lending: { name: "room.lending.name", action: "room.lending.action" },
   reference: { name: "room.reference.name", action: "room.reference.action" },
   reading: { name: "room.reading.name", action: "room.reading.action" },
@@ -131,8 +120,6 @@ export function roomHref(room: RoomId, study: LibraryStudy | null): string {
   switch (room) {
     case "accession":
       return "/imports"
-    case "stacks":
-      return study?.normalizationId ? `/sources/${study.normalizationId}` : "/sources"
     case "lending":
       return study?.normalizationId ? `/sources/${study.normalizationId}/setup` : inspect
     case "reference":
@@ -153,12 +140,15 @@ export function roomHref(room: RoomId, study: LibraryStudy | null): string {
 }
 
 export function roomAt(url: URL): LibraryRoom | null {
-  const inspect = libraryRooms.find((room) => room.id === url.searchParams.get("room"))
+  const requested = url.searchParams.get("room")
+  const inspect = libraryRooms.find(
+    (room) => room.id === (requested === "stacks" ? "accession" : requested),
+  )
   if (url.pathname === "/") return inspect ?? null
   const prefix = url.pathname.split("/")[1]
   const routes: Readonly<Record<string, RoomId>> = {
     imports: "accession",
-    sources: url.pathname.includes("/setup") ? "lending" : "stacks",
+    sources: url.pathname.includes("/setup") ? "lending" : "accession",
     interviews: "reference",
     briefs: "reading",
     outlines: "catalogue",

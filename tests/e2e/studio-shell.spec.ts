@@ -1,16 +1,16 @@
 import { expect, test } from "@playwright/test"
 
-test("studio shell is bilingual, semantic, and keyboard reachable", async ({ page }) => {
-  await page.goto("/")
+test("studio shell follows interface language, semantics, and keyboard reachability", async ({
+  page,
+}) => {
+  await page.goto("/?lang=en")
 
-  await expect(page.getByRole("link", { name: "Back to the hall / ホールへ戻る" })).toContainText(
-    "TENJINSAN",
-  )
-  await expect(page.locator("[lang='ja']", { hasText: "読書ルート" }).first()).toBeVisible()
+  await expect(page.getByRole("link", { name: "Back to the hall" })).toContainText("TENJINSAN")
+  await expect(page.getByRole("button", { name: "日本語", exact: true })).toBeVisible()
   await expect(page.getByRole("main")).toHaveCount(1)
   await expect(
-    page.getByRole("navigation", { name: "Reading route / 読書ルート" }).getByRole("button"),
-  ).toHaveCount(10)
+    page.getByRole("navigation", { name: "Reading route" }).getByRole("button"),
+  ).toHaveCount(9)
 
   await page.keyboard.press("Tab")
   await expect(page.getByRole("link", { name: /Skip to the reading route/i })).toBeFocused()
@@ -20,7 +20,7 @@ test("focus treatment and narrow reflow remain accessible", async ({ page }) => 
   await page.setViewportSize({ width: 195, height: 844 })
   await page.goto("/")
 
-  const link = page.getByRole("link", { name: "Back to the hall / ホールへ戻る" })
+  const link = page.getByRole("link", { name: "Back to the hall" })
   await link.focus()
   expect(await link.evaluate((element) => getComputedStyle(element).outlineColor)).toBe(
     "rgb(138, 61, 39)",
@@ -38,8 +38,8 @@ test("room navigation preserves query context through browser history and repeat
 
   const importRoom = () =>
     page
-      .getByRole("navigation", { name: "Reading route / 読書ルート" })
-      .getByRole("button", { name: /1\. Accession/ })
+      .getByRole("navigation", { name: "読書ルート" })
+      .getByRole("button", { name: /1\. 取り込んで読む/ })
 
   await importRoom().click()
   await expect(page).toHaveURL("/imports?lang=ja")

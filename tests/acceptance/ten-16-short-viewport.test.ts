@@ -23,7 +23,7 @@ it("TEN-16 S1 F9 fits native controls and reachable numbered navigation in short
     await page.waitForURL(`${origin}/`)
     await page.getByRole("status", { name: "Entering the library" }).waitFor({ state: "detached" })
     const route = page.getByRole("navigation", { name: "Reading route / 読書ルート" })
-    await route.getByRole("button", { name: /Accession desk/ }).click()
+    await route.getByRole("button", { name: /Import & read/ }).click()
     await page.getByLabel("Choose EPUB").setInputFiles({
       name: "synthetic.epub",
       mimeType: "application/epub+zip",
@@ -109,7 +109,7 @@ it("TEN-16 S1 F9 fits native controls and reachable numbered navigation in short
       expect(inputBounds.y + inputBounds.height).toBeLessThanOrEqual(
         paneBounds.y + paneBounds.height,
       )
-      const control = route.getByRole("button", { name: /The stacks/ })
+      const control = route.getByRole("button", { name: /Import & read/ })
       const hit = await control.evaluate((element) => {
         const bounds = element.getBoundingClientRect()
         const target = document.elementFromPoint(
@@ -120,7 +120,7 @@ it("TEN-16 S1 F9 fits native controls and reachable numbered navigation in short
       })
       expect(hit).toBe(true)
       await control.click()
-      await visible(page.locator("#desk-title")).toContainText("Read the source")
+      await visible(page.locator("#desk-title")).toContainText("Bring a book in and read")
       expect(await page.locator("#desk .desk-main").evaluate((element) => element.scrollTop)).toBe(
         0,
       )

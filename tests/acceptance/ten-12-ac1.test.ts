@@ -116,7 +116,7 @@ it("TEN-12 AC1 presents existing normal routes as a private library", async () =
         ).toHaveCount(0)
         const navigation = page.getByRole("navigation", { name: "Reading route / 読書ルート" })
         await browserExpect(navigation).toBeVisible()
-        await browserExpect(navigation.getByRole("button")).toHaveCount(10)
+        await browserExpect(navigation.getByRole("button")).toHaveCount(9)
         await browserExpect(navigation.locator("[lang=ja]")).not.toHaveCount(0)
         const material = await navigation.evaluate(
           (element) => getComputedStyle(element).backgroundColor,
@@ -129,11 +129,11 @@ it("TEN-12 AC1 presents existing normal routes as a private library", async () =
           mains: await page.getByRole("main").count(),
         })
         await navigation
-          .getByRole("button", { name: /2\. The stacks/ })
+          .getByRole("button", { name: /1\. Import & read/ })
           .first()
           .focus()
         await browserExpect(
-          navigation.getByRole("button", { name: /2\. The stacks/ }).first(),
+          navigation.getByRole("button", { name: /1\. Import & read/ }).first(),
         ).toBeFocused()
         await page.screenshot({
           path: `${directory}/${width}-${routes.indexOf(path)}.png`,

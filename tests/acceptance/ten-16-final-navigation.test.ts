@@ -18,7 +18,7 @@ it("TEN-16 S1 F3 retains applicable language and history without carrying unrela
     await page.goto(`${fixture.origin}${initial}`)
     const navigation = page.getByRole("navigation", { name: "Reading route / 読書ルート" })
     await visible(navigation).toBeVisible()
-    const importRoom = navigation.getByRole("button", { name: /1\. Accession/ })
+    const importRoom = navigation.getByRole("button", { name: /1\. Import & read/ })
 
     await importRoom.click()
     await visible(page.getByLabel("Choose EPUB")).toBeVisible()
@@ -56,9 +56,10 @@ it("TEN-16 S1 F3 retains applicable language and history without carrying unrela
     expect(mutations).toEqual([])
     await page.goto(`${fixture.origin}/sources/revision-fixture?chapter=1`)
     await visible(page.getByText("Reading is a conversation across time.")).toBeVisible()
-    await navigation.getByRole("button", { name: /2\. The stacks/ }).click()
-    expect(new URL(page.url()).search).toBe("?chapter=1")
-    await navigation.getByRole("button", { name: /3\. Lending desk/ }).click()
+    await navigation.getByRole("button", { name: /1\. Import & read/ }).click()
+    expect(new URL(page.url()).pathname).toBe("/imports")
+    expect(new URL(page.url()).search).toBe("")
+    await navigation.getByRole("button", { name: /2\. Lending desk/ }).click()
     await visible(
       page.getByRole("combobox", { name: "Provider and model", exact: true }),
     ).toBeVisible()
@@ -67,9 +68,10 @@ it("TEN-16 S1 F3 retains applicable language and history without carrying unrela
     await visible(
       page.getByRole("combobox", { name: "Provider and model", exact: true }),
     ).toBeVisible()
-    await navigation.getByRole("button", { name: /2\. The stacks/ }).click()
+    await navigation.getByRole("button", { name: /1\. Import & read/ }).click()
+    await page.locator('a[href="/sources/revision-fixture"]').click()
     await visible(page.getByText("Attention begins with a question.")).toBeVisible()
-    expect(new URL(page.url()).searchParams.has("lang")).toBe(false)
+    expect(new URL(page.url()).searchParams.get("lang")).toBe("ja")
   } finally {
     await browser.close()
     await fixture.close()

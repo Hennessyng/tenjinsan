@@ -113,7 +113,7 @@ it("TEN-16 S2 T4 observes a recorded unknown outcome without another decision or
     })
     await page
       .getByRole("navigation", { name: "Reading route / 読書ルート" })
-      .getByRole("button", { name: /Accession desk/ })
+      .getByRole("button", { name: /Import & read/ })
       .click()
     await visible(page.getByLabel("Choose EPUB")).toBeVisible()
     expect(stopped).toEqual([])

@@ -32,7 +32,7 @@ it("TEN-16 S5 F4 announces actual owner expiry without retaining source content"
     )
     await page
       .getByRole("navigation", { name: "Reading route / 読書ルート" })
-      .getByRole("button", { name: /1\. Accession/ })
+      .getByRole("button", { name: /1\. Import & read/ })
       .click()
     expect((await refusal).status()).toBe(401)
     await visible(page.getByRole("heading", { name: /Authentication required/ })).toBeVisible()

@@ -81,7 +81,7 @@ it.each(["loaded-null", "persisted-A"] as const)(
       const accessionRead = page.waitForResponse((reply) =>
         reply.url().endsWith("/api/library-context"),
       )
-      await route.getByRole("button", { name: /Accession desk/ }).click()
+      await route.getByRole("button", { name: /Import & read/ }).click()
       await accessionRead
       await page.getByLabel("Choose EPUB").waitFor()
       const received = once(continuation, "received", { signal: AbortSignal.timeout(15000) })

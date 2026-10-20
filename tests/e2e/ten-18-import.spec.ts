@@ -77,11 +77,9 @@ for (const fixture of [
     // Then
     expect(response.status()).toBe(202)
     expect(harness.sourceStorage.counts().attempts).toBe(0)
-    await expect(
-      page.getByRole("link", { name: "Read imported source", exact: true }),
-    ).toBeVisible()
+    await expect(page.getByRole("link", { name: "Read this book", exact: true })).toBeVisible()
     await capture(page, `${fixture.format}-accepted`)
-    await page.getByRole("link", { name: "Read imported source", exact: true }).click()
+    await page.getByRole("link", { name: "Read this book", exact: true }).click()
     await expect(page.locator("article")).toContainText(fixture.expected)
     await page.getByText("Coverage and edition details", { exact: true }).click()
     if (fixture.format === "pdf") {

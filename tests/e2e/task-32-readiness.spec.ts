@@ -46,7 +46,7 @@ test("local owner login is ready at three widths and stops cleanly", async ({ pa
     await expect(page.locator("main#library")).toBeVisible()
     await expect(
       page.getByRole("navigation", { name: "Reading route / 読書ルート" }).getByRole("button"),
-    ).toHaveCount(10)
+    ).toHaveCount(9)
     await expect(page.locator('script[type="module"][src^="/assets/"]')).toHaveCount(1)
     expect(
       (
@@ -72,10 +72,10 @@ test("local owner login is ready at three widths and stops cleanly", async ({ pa
       await expect(page.locator("main#library")).toBeVisible()
       await expect(
         page.getByRole("navigation", { name: "Reading route / 読書ルート" }).getByRole("button"),
-      ).toHaveCount(10)
+      ).toHaveCount(9)
       await page
         .getByRole("navigation", { name: "Reading route / 読書ルート" })
-        .getByRole("button", { name: /Accession desk/ })
+        .getByRole("button", { name: /Import & read/ })
         .click()
       await expect(page.getByRole("heading", { name: "Import a book" })).toBeVisible()
       await page.screenshot({
@@ -249,7 +249,7 @@ test("isolated Compose login is ready through local-CA HTTPS", async () => {
     await expect(page.locator("main#library")).toBeVisible()
     await expect(
       page.getByRole("navigation", { name: "Reading route / 読書ルート" }).getByRole("button"),
-    ).toHaveCount(10)
+    ).toHaveCount(9)
     expect(
       (
         await page.request.post("https://localhost/briefs/missing", {
@@ -264,10 +264,10 @@ test("isolated Compose login is ready through local-CA HTTPS", async () => {
       await expect(page.locator("main#library")).toBeVisible()
       await expect(
         page.getByRole("navigation", { name: "Reading route / 読書ルート" }).getByRole("button"),
-      ).toHaveCount(10)
+      ).toHaveCount(9)
       await page
         .getByRole("navigation", { name: "Reading route / 読書ルート" })
-        .getByRole("button", { name: /Accession desk/ })
+        .getByRole("button", { name: /Import & read/ })
         .click()
       await expect(page.getByRole("heading", { name: "Import a book" })).toBeVisible()
       await page.screenshot({

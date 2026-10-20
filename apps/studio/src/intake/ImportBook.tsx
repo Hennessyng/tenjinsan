@@ -1,16 +1,12 @@
 import type { CatalogKey } from "@reading-studio/contracts/i18n"
 import type { FormEvent, ReactElement } from "react"
-import { useState } from "react"
+import { useLayoutEffect, useRef, useState } from "react"
 import { z } from "zod"
 import { useLanguage } from "../i18n/LanguageProvider.tsx"
+import { ReadSourceLink } from "../library/ReadSourceLink.tsx"
 import { captureEditSave } from "../library/useUnsavedEdits.ts"
+import { Receipt, useImportReceipt } from "./receipt.tsx"
 
-const Receipt = z.object({
-  id: z.string(),
-  state: z.literal("queued"),
-  bytes: z.number().int().nonnegative(),
-  normalizationRevisionId: z.string().optional(),
-})
 const media = [
   ["epub", "application/epub+zip"],
   ["docx", "application/vnd.openxmlformats-officedocument.wordprocessingml.document"],
@@ -57,13 +53,20 @@ export function ImportBook(): ReactElement {
   const { t } = useLanguage()
   const [file, setFile] = useState<File | null>(null)
   const [busy, setBusy] = useState(false)
-  const [receipt, setReceipt] = useState<z.infer<typeof Receipt> | null>(null)
+  const [receipt, setReceipt] = useImportReceipt()
   const [error, setError] = useState("")
+  const outcome = useRef<HTMLDivElement>(null)
+  const focusReceipt = useRef(false)
+  useLayoutEffect(() => {
+    if (!focusReceipt.current || !receipt) return
+    focusReceipt.current = false
+    outcome.current?.focus()
+  }, [receipt])
 
   async function upload(event: FormEvent<HTMLFormElement>): Promise<void> {
     event.preventDefault()
     const committed = captureEditSave()
-    if (!file) return
+    if (!file || busy) return
     const contentType = media.find(([extension]) =>
       file.name.toLowerCase().endsWith(`.${extension}`),
     )?.[1]
@@ -90,7 +93,9 @@ export function ImportBook(): ReactElement {
         )
         return
       }
-      setReceipt(Receipt.parse(await response.json()))
+      const accepted = Receipt.parse(await response.json())
+      focusReceipt.current = true
+      setReceipt(accepted)
       committed()
     } catch (failure) {
       if (failure instanceof Error) setError(t("import.interrupted"))
@@ -124,6 +129,7 @@ export function ImportBook(): ReactElement {
                 type="file"
                 accept=".epub,.docx,.txt,.pdf,application/epub+zip,application/vnd.openxmlformats-officedocument.wordprocessingml.document,text/plain,application/pdf"
                 required
+                disabled={busy}
                 onChange={(event) => setFile(event.currentTarget.files?.item(0) ?? null)}
               />
               <button
@@ -147,7 +153,12 @@ export function ImportBook(): ReactElement {
           </div>
         )}
         {receipt && (
-          <div className="intake-outcome intake-outcome-accepted" role="status">
+          <div
+            className="intake-outcome intake-outcome-accepted"
+            role="status"
+            ref={outcome}
+            tabIndex={-1}
+          >
             <strong className="intake-stamp">
               {receipt.normalizationRevisionId
                 ? t("import.status.normalized")
@@ -167,9 +178,9 @@ export function ImportBook(): ReactElement {
               <a href="/sources">{t("import.viewSources")}</a>
               {receipt.normalizationRevisionId && (
                 <p>
-                  <a href={`/sources/${encodeURIComponent(receipt.normalizationRevisionId)}`}>
+                  <ReadSourceLink revision={receipt.normalizationRevisionId}>
                     {t("import.readSource")}
-                  </a>
+                  </ReadSourceLink>
                 </p>
               )}
             </div>

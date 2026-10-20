@@ -66,7 +66,7 @@ it("TEN-12 AC4 preserves failures and recovery inside the library", async () => 
         await page.screenshot({ path: `${directory}/${width}-${rows.length}.png`, fullPage: true })
         await page
           .getByRole("navigation", { name: "Reading route / 読書ルート" })
-          .getByRole("button", { name: /2\. The stacks/ })
+          .getByRole("button", { name: /1\. Import & read/ })
           .first()
           .click()
         await visible(

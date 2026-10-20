@@ -45,7 +45,7 @@ it("TEN-12 AC3 presents real absence without hiding existing sources", async () 
         await page.getByRole("button", { name: "Return to hall / 広間に戻る", exact: true }).click()
         await page
           .getByRole("navigation", { name: "Reading route / 読書ルート" })
-          .getByRole("button", { name: /2\. The stacks/ })
+          .getByRole("button", { name: /1\. Import & read/ })
           .first()
           .click()
         await visible(
