@@ -1,4 +1,5 @@
 import type { Answer } from "@reading-studio/contracts/choices"
+import { InterviewReadiness as Readiness } from "@reading-studio/contracts/interview"
 import type { ReactElement } from "react"
 import { useEffect, useState } from "react"
 import type { z } from "zod"
@@ -11,11 +12,13 @@ import { InterviewList, InterviewState, SavedAnswer } from "./client.ts"
 import { interviewCopy } from "./copy.ts"
 import { InterviewGroups } from "./InterviewGroups.tsx"
 import { InterviewQuestion } from "./InterviewQuestion.tsx"
+import { InterviewReadiness } from "./InterviewReadiness.tsx"
 import { InterviewReview } from "./InterviewReview.tsx"
 
 type Page =
   | { readonly kind: "loading" }
   | { readonly kind: "error" }
+  | { readonly kind: "readiness"; readonly value: z.infer<typeof Readiness> }
   | { readonly kind: "list"; readonly definitions: z.infer<typeof InterviewList>["definitions"] }
   | { readonly kind: "interview"; readonly value: Interview }
 
@@ -37,7 +40,17 @@ export function InterviewRoutes(): ReactElement {
           `/api/interviews/${encodeURIComponent(study)}`,
           InterviewState,
           controller.signal,
-        ).then((value) => ({ kind: "interview", value }) as const)
+        )
+          .then((value) => ({ kind: "interview", value }) as const)
+          .catch((error: unknown) => {
+            if (error instanceof SourceRequestError && error.status === 404)
+              return sourceRequest(
+                `/api/interview-readiness/${encodeURIComponent(study)}`,
+                Readiness,
+                controller.signal,
+              ).then((value) => ({ kind: "readiness", value }) as const)
+            throw error
+          })
       : sourceRequest("/api/interviews", InterviewList, controller.signal).then(
           ({ definitions }) => ({ kind: "list", definitions }) as const,
         )
@@ -59,10 +72,19 @@ export function InterviewRoutes(): ReactElement {
     return (
       <SourceFrame>
         <section className="setup workspace-error">
-          <h1>{t("interview.unavailable.title")}</h1>
-          <p>{t("interview.unavailable.body")}</p>
+          <h1>{t("interview.readiness.error")}</h1>
+          <p>{t("interview.readiness.errorBody")}</p>
+          <p>
+            <a href={`${base}?lang=${language}`}>{t("interview.readiness.reload")}</a>
+          </p>
           <a href="/sources">{t("interview.unavailable.back")}</a>
         </section>
+      </SourceFrame>
+    )
+  if (page.kind === "readiness")
+    return (
+      <SourceFrame>
+        <InterviewReadiness value={page.value} />
       </SourceFrame>
     )
   if (page.kind === "list")

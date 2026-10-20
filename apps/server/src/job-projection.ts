@@ -55,9 +55,13 @@ const safeFailures = new Set([
   "unsupported-settings",
 ])
 
-export function projectOwnerJobs(storage: Storage, ownerId: string) {
+export function projectOwnerJobs(storage: Storage, ownerId: string, setupId?: string) {
   const installationId = storage.sources.getInstallation(ownerId)
-  const owned = storage.execution.listOwnerJobs(ownerId).filter((job) => {
+  const candidates =
+    setupId === undefined
+      ? storage.execution.listOwnerJobs(ownerId)
+      : storage.execution.listSetupJobs(setupId)
+  const owned = candidates.filter((job) => {
     const setup = storage.sources.getSetup(job.setupRevisionId)
     if (job.provider === "openai") return setup !== null && job.grant.ownerId === ownerId
     return (

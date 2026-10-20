@@ -11,6 +11,7 @@ export function JobRoutes(): ReactElement {
   const { t } = useLanguage()
   const selected = useContext(SelectedLibraryStudy)
   const studyId = selected === undefined ? undefined : (selected?.id ?? null)
+  const scopedSetupId = new URLSearchParams(window.location.search).get("setup")
   const [jobs, setJobs] = useState<readonly Job[] | null>(null)
   const [error, setError] = useState("")
   const [busy, setBusy] = useState(false)
@@ -29,7 +30,7 @@ export function JobRoutes(): ReactElement {
     }
   }, [busy])
   useEffect(() => {
-    const generation = `${studyId}:${observation}`
+    const generation = `${studyId}:${scopedSetupId}:${observation}`
     requestGeneration.current = generation
     let active = true
     let controller: AbortController | null = null
@@ -43,7 +44,13 @@ export function JobRoutes(): ReactElement {
       try {
         const value = await sourceRequest("/api/study-jobs", JobList, request.signal)
         if (!active || request.signal.aborted || requestGeneration.current !== generation) return
-        setJobs(value.jobs.filter((job) => studyId === undefined || job.studyId === studyId))
+        setJobs(
+          value.jobs.filter((job) =>
+            scopedSetupId !== null
+              ? job.setupRevisionId === scopedSetupId
+              : studyId === undefined || job.studyId === studyId,
+          ),
+        )
         setError("")
         failures = 0
       } catch (failure) {
@@ -82,7 +89,7 @@ export function JobRoutes(): ReactElement {
       controller?.abort()
       document.removeEventListener("visibilitychange", visibility)
     }
-  }, [studyId, observation, t])
+  }, [studyId, scopedSetupId, observation, t])
   async function refresh(): Promise<void> {
     setObservation((value) => value + 1)
   }
@@ -127,6 +134,7 @@ export function JobRoutes(): ReactElement {
         <h1>{t("jobs.title")}</h1>
         <p>{t("jobs.intro")}</p>
         <p>{t("jobs.charges")}</p>
+        {scopedSetupId !== null && <p role="status">{t("jobs.scopedSetup")}</p>}
         {error && (
           <p role="alert" ref={alert} tabIndex={-1}>
             {error}

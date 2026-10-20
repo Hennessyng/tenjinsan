@@ -3,6 +3,7 @@ import { cleanup, render, screen } from "@testing-library/react"
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest"
 import { LanguageProvider } from "../i18n/LanguageProvider.tsx"
 import { LANGUAGE_STORAGE_KEY } from "../i18n/preference.ts"
+import { SelectedLibraryStudy } from "../library/client.ts"
 import { JobRoutes } from "./JobRoutes.tsx"
 
 const base = {
@@ -58,6 +59,25 @@ afterEach(() => {
   cleanup()
   vi.unstubAllGlobals()
 })
+
+it.each(["en", "ja"] as const)(
+  "offers the same-study interview after completed questions in %s",
+  async (locale) => {
+    // Given
+    open(locale, [{ ...base, id: "questions-done", stage: "questions", state: "completed" }])
+    // When
+    await screen.findByRole("heading", {
+      name: locale === "en" ? "Questions · Completed" : "質問 · 完了",
+    })
+    const links = screen.getAllByRole("link", {
+      name: locale === "en" ? "Interview questions" : "読書の質問",
+    })
+    // Then
+    expect(links.map((link) => link.getAttribute("href"))).toContain(
+      `/interviews/study-1?lang=${locale}`,
+    )
+  },
+)
 
 describe("Given Japanese is the app language", () => {
   it.each([
@@ -147,3 +167,40 @@ describe("Given English is the app language", () => {
     expect(document.body.textContent).not.toMatch(hasJapanese)
   })
 })
+
+it.each([
+  { scope: "setup-1", visible: true },
+  { scope: "missing-setup", visible: false },
+])(
+  "keeps explicit progress scope $scope without relying on a saved study selection",
+  async ({ scope, visible }) => {
+    // Given
+    window.history.replaceState(null, "", `/jobs?setup=${scope}`)
+    localStorage.setItem(LANGUAGE_STORAGE_KEY, "en")
+    const request = vi.fn(async (_path: string, options?: RequestInit) => {
+      if (options?.method && options.method !== "GET")
+        throw new TypeError("Progress read must not act on jobs")
+      return Response.json({
+        jobs: [
+          { ...base, id: "linked-job", state: "completed" },
+          { ...base, id: "other-job", setupRevisionId: "other-setup", state: "completed" },
+        ],
+        providerCharges: "not-returned",
+      })
+    })
+    vi.stubGlobal("fetch", request)
+    // When
+    render(
+      <LanguageProvider>
+        <SelectedLibraryStudy value={null}>
+          <JobRoutes />
+        </SelectedLibraryStudy>
+      </LanguageProvider>,
+    )
+    // Then
+    if (visible) expect(await screen.findByText("linked-job")).toBeDefined()
+    else await screen.findByText(/No jobs on a current/)
+    expect(screen.queryByText("other-job")).toBeNull()
+    expect(request).toHaveBeenCalledTimes(1)
+  },
+)

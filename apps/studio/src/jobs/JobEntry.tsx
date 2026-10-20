@@ -83,7 +83,7 @@ function UnknownDecision({
 }
 
 export function JobEntry({ job, busy, onAction }: Props): ReactElement {
-  const { t } = useLanguage()
+  const { t, locale } = useLanguage()
   const active = job.state === "queued" || job.state === "running" || job.state === "paused"
   const stateKey = stateLabels[job.state]
   const stageKey = stageLabels[job.stage]
@@ -207,6 +207,7 @@ export function JobEntry({ job, busy, onAction }: Props): ReactElement {
         )}
         <nav className="job-links" aria-label={t("jobs.links.aria")}>
           <a href={`/revisions/${job.studyId}`}>{t("jobs.links.study")}</a>
+          <a href={`/interviews/${job.studyId}?lang=${locale}`}>{t("jobs.links.interview")}</a>
           <a href={`/sources/${job.sourceRevisionId}`}>{t("jobs.links.source")}</a>
           <a href={`/sources/${job.sourceRevisionId}/setup`}>{t("jobs.links.setup")}</a>
           <a href={`/briefs/${job.studyId}`}>{t("jobs.links.brief")}</a>

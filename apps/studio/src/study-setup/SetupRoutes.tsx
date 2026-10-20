@@ -25,12 +25,13 @@ type Page =
   | { readonly kind: "error"; readonly status: number }
 
 export function SetupRoutes(): ReactElement {
-  const { t } = useLanguage()
+  const { t, locale } = useLanguage()
   const [, , revision, , setupId] = window.location.pathname.split("/")
   const base = `/api/study-setup/${encodeURIComponent(revision ?? "")}`
   const [page, setPage] = useState<Page>({ kind: "loading" })
   const [busy, setBusy] = useState(false)
   const [message, setMessage] = useState("")
+  const [connectionRecovery, setConnectionRecovery] = useState(false)
   const [refusal, setRefusal] = useState<SourcePreparationFailure | null>(null)
   const alert = useRef<HTMLParagraphElement>(null)
   const result = useRef<HTMLHeadingElement>(null)
@@ -79,6 +80,7 @@ export function SetupRoutes(): ReactElement {
   async function decide(decision: "send" | "revise" | "cancel"): Promise<void> {
     setBusy(true)
     setMessage("")
+    setConnectionRecovery(false)
     setRefusal(null)
     try {
       const result = await sourceCommand(
@@ -98,6 +100,11 @@ export function SetupRoutes(): ReactElement {
         setRefusal(error.failure)
         return
       }
+      if (error instanceof SourceRequestError && error.refusal) {
+        setConnectionRecovery(true)
+        setMessage(t(`setup.refusal.${error.refusal}`))
+        return
+      }
       setMessage(
         error instanceof SourceRequestError && error.status === 409
           ? t("setup.stale")
@@ -114,6 +121,13 @@ export function SetupRoutes(): ReactElement {
         {message && (
           <p role="alert" ref={alert} tabIndex={-1}>
             {message}
+          </p>
+        )}
+        {connectionRecovery && (
+          <p>
+            <a href={`/sources/${revision}/setup?lang=${locale}`}>
+              {t("setup.refusal.connections")}
+            </a>
           </p>
         )}
         {page.kind === "loading" && (
