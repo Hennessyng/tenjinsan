@@ -1,3 +1,4 @@
+import { Provider } from "@reading-studio/contracts/provider"
 import { z } from "zod"
 
 const Setup = z.object({
@@ -5,7 +6,7 @@ const Setup = z.object({
   studyId: z.string(),
   editionId: z.string(),
   analysis: z.object({
-    provider: z.enum(["openai", "anthropic", "openrouter", "codex"]),
+    provider: Provider,
     model: z.string(),
     scope: z.object({
       kind: z.string(),
@@ -15,6 +16,7 @@ const Setup = z.object({
   }),
 })
 export const RevisionState = z.object({
+  reviewUrl: z.string().startsWith("/sources/").optional(),
   view: z.object({
     setup: Setup,
     history: z.array(Setup),

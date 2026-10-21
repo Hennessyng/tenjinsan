@@ -53,6 +53,10 @@ const safeFailures = new Set([
   "unsupported-schema",
   "unsupported-model",
   "unsupported-settings",
+  "subscription-unverified",
+  "subscription-connection-changed",
+  "bank-incompatible",
+  "question-revision-conflict",
 ])
 
 export function projectOwnerJobs(storage: Storage, ownerId: string, setupId?: string) {

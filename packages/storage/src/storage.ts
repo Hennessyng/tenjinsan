@@ -20,7 +20,11 @@ import { PublicationOutputs } from "./publication-outputs.ts"
 import { parseInput, readProperty } from "./records.ts"
 import { ReviewRepository } from "./reviews.ts"
 import { RevisionRepository } from "./revisions.ts"
+import { SetupSchedulingRepository } from "./setup-scheduling.ts"
 import { type SourceRepository, SqliteSourceRepository } from "./sources.ts"
+import { SubscriptionConnections } from "./subscription-connections.ts"
+import { SubscriptionLogin } from "./subscription-login.ts"
+import { SubscriptionSessionStore } from "./subscription-session-store.ts"
 import { SqliteWorkflowRepository, type WorkflowRepository } from "./workflow.ts"
 import { AnalysisRepository } from "./workflow-analysis.ts"
 import { PublicationRepository } from "./workflow-publication.ts"
@@ -50,6 +54,10 @@ export type StorageCounts = {
 }
 
 export interface Storage {
+  readonly setupScheduling: SetupSchedulingRepository
+  readonly grokSubscriptionLogin: SubscriptionLogin
+  readonly subscriptionLogin: SubscriptionLogin
+  readonly subscriptionConnections: SubscriptionConnections
   readonly providerConnections: ProviderConnections
   readonly maintenance: MaintenanceAdmission
   readonly revisions: RevisionRepository
@@ -78,6 +86,10 @@ function countRows(context: StorageContext, table: string): number {
 }
 
 class SqliteStorage implements Storage {
+  readonly setupScheduling: SetupSchedulingRepository
+  readonly grokSubscriptionLogin: SubscriptionLogin
+  readonly subscriptionLogin: SubscriptionLogin
+  readonly subscriptionConnections: SubscriptionConnections
   readonly providerConnections: ProviderConnections
   readonly maintenance: MaintenanceAdmission
   readonly revisions: RevisionRepository
@@ -98,6 +110,16 @@ class SqliteStorage implements Storage {
     privateDataRoot: string,
   ) {
     this.providerConnections = new ProviderConnections(privateDataRoot)
+    this.setupScheduling = new SetupSchedulingRepository(context)
+    this.subscriptionConnections = new SubscriptionConnections(context)
+    this.subscriptionLogin = new SubscriptionLogin(
+      new SubscriptionSessionStore(context, this.subscriptionConnections),
+      privateDataRoot,
+    )
+    this.grokSubscriptionLogin = new SubscriptionLogin(
+      new SubscriptionSessionStore(context, this.subscriptionConnections, "grok-subscription"),
+      privateDataRoot,
+    )
     this.maintenance = new MaintenanceAdmission(context)
     const sources = new SqliteSourceRepository(context)
     this.reviews = new ReviewRepository(context)
@@ -151,6 +173,8 @@ class SqliteStorage implements Storage {
   }
 
   close(): void {
+    this.grokSubscriptionLogin.close()
+    this.subscriptionLogin.close()
     this.providerConnections.close()
     try {
       releaseMaintenanceInstance(this.context.sqlite, this.instanceId)

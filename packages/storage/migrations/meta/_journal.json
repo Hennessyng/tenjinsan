@@ -99,6 +99,27 @@
       "when": 1790962038978,
       "tag": "0013_owner_job_decisions",
       "breakpoints": true
+    },
+    {
+      "idx": 14,
+      "version": "6",
+      "when": 1791048438978,
+      "tag": "0014_subscription_fences",
+      "breakpoints": true
+    },
+    {
+      "idx": 15,
+      "version": "6",
+      "when": 1791048438979,
+      "tag": "0015_subscription_sessions",
+      "breakpoints": true
+    },
+    {
+      "idx": 16,
+      "version": "6",
+      "when": 1791048438980,
+      "tag": "0016_setup_scheduling",
+      "breakpoints": true
     }
   ]
 }

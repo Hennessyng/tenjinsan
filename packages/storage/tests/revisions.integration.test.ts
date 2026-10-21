@@ -1,6 +1,7 @@
 import { mkdtempSync, rmSync } from "node:fs"
 import { tmpdir } from "node:os"
 import { join } from "node:path"
+import { NormalizationRevision, wholeBookScope } from "@reading-studio/contracts"
 import { afterEach, beforeEach, expect, it } from "vitest"
 import { openStorage, type Storage } from "../src/index.ts"
 import { approvalContent, approvalGraph as graph, seedApprovalStorage } from "./approval-fixture.ts"
@@ -130,14 +131,25 @@ it("rejects another owner's fork without creating a study", () => {
 
 it.each(["scope", "normalizer"])("uses a new key when %s changes", (kind) => {
   // Given
-  storage.sources.appendNormalization({
-    record: { ...graph.normalization, id: "normalization-2", normalizerVersion: "normalizer-2" },
-    parentRevisionId: graph.normalization.id,
-  })
-  const analysis =
-    kind === "scope"
-      ? { ...graph.setup.analysis, scope: { ...graph.setup.analysis.scope, kind: "partial" } }
-      : { ...graph.setup.analysis, normalizationRevisionId: "normalization-2" }
+  const [resource] = graph.normalization.resources
+  if (resource?.status !== "included") throw new TypeError("Missing included resource")
+  const wider = {
+    ...graph.normalization,
+    id: "normalization-2",
+    normalizerVersion:
+      kind === "normalizer" ? "normalizer-2" : graph.normalization.normalizerVersion,
+    resources: [
+      kind === "scope"
+        ? { ...resource, blocks: [...resource.blocks, { id: "block-2", text: "More text." }] }
+        : resource,
+    ],
+  }
+  storage.sources.appendNormalization({ record: wider, parentRevisionId: graph.normalization.id })
+  const analysis = {
+    ...graph.setup.analysis,
+    normalizationRevisionId: "normalization-2",
+    scope: wholeBookScope(NormalizationRevision.parse(wider)),
+  }
   // When
   const revised = storage.revisions.revise({
     ...identity,
@@ -146,7 +158,55 @@ it.each(["scope", "normalizer"])("uses a new key when %s changes", (kind) => {
   })
   // Then
   expect(revised.analysis).toBeNull()
+  expect(revised.setup.analysis.scope.kind).toBe("whole-document")
   expect(storage.sources.getSetup("setup-1")).toMatchObject({ analysis: graph.setup.analysis })
+})
+
+it("persists only whole-book scope when a revision is requested", () => {
+  // Given: an extraction with two blocks and a request that selects only one
+  storage.sources.appendNormalization({
+    record: {
+      ...graph.normalization,
+      id: "normalization-2",
+      resources: [
+        {
+          path: "text/chapter.xhtml",
+          role: "main-chapter",
+          status: "included",
+          blocks: [
+            { id: "block-1", text: "First." },
+            { id: "block-2", text: "Second." },
+          ],
+        },
+      ],
+    },
+    parentRevisionId: graph.normalization.id,
+  })
+  const subset = {
+    kind: "partial",
+    selected: [{ resourcePath: "text/chapter.xhtml", blockIds: ["block-1"] }],
+    exclusions: [{ resourcePath: "text/chapter.xhtml", blockIds: ["block-2"] }],
+  }
+  const revise = (scope: unknown) =>
+    storage.revisions.revise({
+      ...identity,
+      analysis: { ...graph.setup.analysis, normalizationRevisionId: "normalization-2", scope },
+      generation: graph.setup.generation,
+    })
+  // When / Then
+  expect(() => revise(subset)).toThrow("whole-book")
+  expect(() => revise({ ...subset, kind: "whole-document", exclusions: [] })).toThrow("whole-book")
+  expect(() => revise({ ...subset, selected: [...subset.selected], exclusions: [] })).toThrow(
+    "whole-book",
+  )
+  expect(storage.counts().setups).toBe(1)
+  const accepted = revise({
+    kind: "whole-document",
+    selected: [{ resourcePath: "text/chapter.xhtml", blockIds: ["block-2", "block-1"] }],
+    exclusions: [],
+  })
+  expect(accepted.setup.analysis.scope.kind).toBe("whole-document")
+  expect(storage.counts().setups).toBe(2)
 })
 
 it("rejects old interview completions after a provider switch", () => {

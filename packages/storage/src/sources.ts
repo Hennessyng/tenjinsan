@@ -54,12 +54,17 @@ export interface SourceRepository {
   getNormalization(input: unknown): NormalizationRecord | null
   getSetup(input: unknown): SetupRecord | null
   getGrant(input: unknown): GrantRecord | null
+  listActiveGrants(): readonly GrantRecord[]
   listStudiesByEdition(input: unknown): readonly StudyRecord[]
 }
 
 export class SqliteSourceRepository implements SourceRepository {
   readonly #reader: SourceReader
   readonly #persistence: SourcePersistence
+
+  listActiveGrants(): readonly GrantRecord[] {
+    return this.#reader.listActiveGrants()
+  }
 
   constructor(private readonly context: StorageContext) {
     this.#reader = new SourceReader(context)

@@ -27,18 +27,14 @@ async function session(available = true) {
     },
   }
 }
-it("providers setup persists a draft without granting or enqueuing any cloud work", async () => {
+it("providers setup persists a whole-book draft without granting or enqueuing any cloud work", async () => {
   // Given
   const fixture = await session()
   // When
   const response = await fetch(`${fixture.origin}/sources/revision-fixture/setup`, {
     method: "POST",
     headers: fixture.headers,
-    body: new URLSearchParams({
-      provider: "anthropic",
-      scope: "partial",
-      chapters: "chapter-one.xhtml",
-    }),
+    body: new URLSearchParams({ provider: "anthropic" }),
     redirect: "manual",
   })
   // Then
@@ -55,12 +51,12 @@ it("providers setup persists a draft without granting or enqueuing any cloud wor
   const setupId =
     location === null ? null : new URL(location, fixture.origin).pathname.split("/").at(-1)
   const setup = fixture.storage.sources.getSetup(setupId)
+  expect(setup?.analysis.scope.kind).toBe("whole-document")
   expect(setup?.analysis.scope.selected.map((resource) => resource.resourcePath)).toEqual([
     "chapter-one.xhtml",
-  ])
-  expect(setup?.analysis.scope.exclusions.map((resource) => resource.resourcePath)).toEqual([
     "chapter-two.xhtml",
   ])
+  expect(setup?.analysis.scope.exclusions).toEqual([])
 })
 it("providers setup rejects Send with missing credentials without persisting an active grant", async () => {
   // Given
@@ -68,7 +64,7 @@ it("providers setup rejects Send with missing credentials without persisting an 
   const draft = await fetch(`${fixture.origin}/sources/revision-fixture/setup`, {
     method: "POST",
     headers: fixture.headers,
-    body: new URLSearchParams({ provider: "anthropic", scope: "all-main-chapters" }),
+    body: new URLSearchParams({ provider: "anthropic" }),
     redirect: "manual",
   })
   // When
@@ -81,17 +77,13 @@ it("providers setup rejects Send with missing credentials without persisting an 
   expect(response.status).toBe(503)
   expect(fixture.storage.counts()).toMatchObject({ setups: 1, grants: 0, jobs: 0, attempts: 0 })
 })
-it("providers setup binds Send to the stored draft and consumes the decision once", async () => {
+it("providers setup binds Send to the stored draft and replays its saved status without another grant", async () => {
   // Given
   const fixture = await session()
   const draft = await fetch(`${fixture.origin}/sources/revision-fixture/setup`, {
     method: "POST",
     headers: fixture.headers,
-    body: new URLSearchParams({
-      provider: "anthropic",
-      scope: "partial",
-      chapters: "chapter-two.xhtml",
-    }),
+    body: new URLSearchParams({ provider: "anthropic" }),
     redirect: "manual",
   })
   const location = draft.headers.get("location")
@@ -116,13 +108,14 @@ it("providers setup binds Send to the stored draft and consumes the decision onc
     headers: fixture.headers,
     body: new URLSearchParams({ decision: "send" }),
   })
-  expect(replay.status).toBe(409)
+  expect(replay.status).toBe(200)
+  expect(fixture.storage.counts()).toMatchObject({ grants: 1, jobs: 0, attempts: 0 })
 })
 it.each([
-  { provider: "unlisted", scope: "all-main-chapters" },
-  { provider: "openai", scope: "partial", chapters: "appendix.xhtml" },
-  { provider: "openai", scope: "partial" },
-  { provider: "openai", scope: "all-main-chapters", model: "arbitrary-model" },
+  { provider: "unlisted" },
+  { provider: "openai" },
+  { provider: "openai", model: "arbitrary-model" },
+  { provider: "anthropic", model: "arbitrary-model" },
 ])("providers setup rejects invalid choices %j without a persisted setup", async (choices) => {
   // Given
   const fixture = await session()

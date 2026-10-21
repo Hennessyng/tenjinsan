@@ -53,8 +53,6 @@ createInterface({input:process.stdin}).on('line',line=>{
       body: JSON.stringify({
         provider: "codex",
         model: "offered/model",
-        scope: "partial",
-        chapters: ["chapter-two.xhtml"],
       }),
     })
     const { setupId } = z.object({ setupId: z.string() }).parse(await draft.json())

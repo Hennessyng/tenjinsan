@@ -1,5 +1,9 @@
 import { z } from "zod"
 import { contentDigest } from "./identity.ts"
+import { Provider } from "./provider.ts"
+
+export { Provider } from "./provider.ts"
+
 import {
   AnalysisRevisionId,
   BlockId,
@@ -19,6 +23,15 @@ import {
   uniqueValues,
 } from "./primitives.ts"
 import { SourceSpan } from "./source.ts"
+import { SourceScope } from "./source-scope.ts"
+
+export { SourceScope, wholeBookScope } from "./source-scope.ts"
+
+import {
+  isSubscriptionProvider,
+  SubscriptionDestination,
+  sameSubscriptionDestination,
+} from "./subscriptions.ts"
 
 export const ModelSettings = z
   .strictObject({
@@ -29,44 +42,6 @@ export const ModelSettings = z
     reasoningEffort: z.enum(["default", "low", "medium", "high"]),
   })
   .readonly()
-export const Provider = z.enum(["openai", "anthropic", "openrouter", "codex"])
-const ScopeResource = z
-  .strictObject({
-    resourcePath: ResourcePath,
-    blockIds: uniqueValues(BlockId).refine((ids) => ids.length > 0),
-  })
-  .readonly()
-export const SourceScope = z
-  .discriminatedUnion("kind", [
-    z.strictObject({
-      kind: z.literal("whole-document"),
-      selected: z.array(ScopeResource).min(1).readonly(),
-      exclusions: z.tuple([]).readonly(),
-    }),
-    z.strictObject({
-      kind: z.literal("all-main-chapters"),
-      selected: z.array(ScopeResource).min(1).readonly(),
-      exclusions: z.tuple([]).readonly(),
-    }),
-    z.strictObject({
-      kind: z.literal("partial"),
-      selected: z.array(ScopeResource).min(1).readonly(),
-      exclusions: z.array(ScopeResource).readonly(),
-    }),
-  ])
-  .superRefine((scope, ctx) => {
-    for (const group of [scope.selected, scope.exclusions]) {
-      if (new Set(group.map((resource) => resource.resourcePath)).size !== group.length)
-        ctx.addIssue({ code: "custom", message: "duplicate scope resource" })
-      const blocks = group.flatMap((resource) => resource.blockIds)
-      if (new Set(blocks).size !== blocks.length)
-        ctx.addIssue({ code: "custom", message: "duplicate scope block" })
-    }
-    const selected = new Set(scope.selected.flatMap((resource) => resource.blockIds))
-    if (scope.exclusions.some((resource) => resource.blockIds.some((block) => selected.has(block))))
-      ctx.addIssue({ code: "custom", message: "selected block is excluded" })
-  })
-  .readonly()
 export const AnalysisCacheInput = z
   .strictObject({
     editionHash: Digest,
@@ -74,10 +49,18 @@ export const AnalysisCacheInput = z
     scope: SourceScope,
     provider: Provider,
     model: Text,
+    destination: SubscriptionDestination.optional(),
     analysisPromptVersion: Text,
     analysisSchemaVersion: Text,
     settings: ModelSettings,
   })
+  .refine(
+    (input) =>
+      isSubscriptionProvider(input.provider)
+        ? input.destination?.provider === input.provider
+        : input.destination === undefined,
+    "subscription destination must match provider",
+  )
   .readonly()
 export type AnalysisCacheInput = z.infer<typeof AnalysisCacheInput>
 export function analysisCacheKey(input: AnalysisCacheInput): Digest {
@@ -97,6 +80,25 @@ export function analysisCacheKey(input: AnalysisCacheInput): Digest {
       input.settings.maxOutputTokens,
       input.settings.seed,
       input.settings.reasoningEffort,
+      ...(input.destination
+        ? [
+            [
+              input.destination.provider,
+              input.destination.accountId,
+              input.destination.workspaceId,
+              input.destination.installationId,
+              input.destination.connectionRevision,
+              input.destination.billingRoute,
+              ...(input.destination.executionPolicy
+                ? [
+                    input.destination.executionPolicy,
+                    input.destination.identityBinding,
+                    input.destination.observedAccount,
+                  ]
+                : []),
+            ],
+          ]
+        : []),
     ]),
   )
 }
@@ -124,6 +126,7 @@ const grantFields = {
   ownerId: OwnerId,
   categories: uniqueValues(TransmissionCategory).refine((categories) => categories.length > 0),
   approvedAt: Timestamp,
+  destination: SubscriptionDestination.optional(),
 }
 export const ActiveTransmissionGrant = z
   .strictObject({ kind: z.literal("active"), ...grantFields })
@@ -147,6 +150,8 @@ export const TransmissionAuthorization = z
       setup.id === grant.setupRevisionId &&
       grant.installationId === installationId &&
       grant.ownerId === ownerId &&
+      sameSubscriptionDestination(setup.analysis.destination, grant.destination) &&
+      (grant.destination === undefined || grant.destination.installationId === installationId) &&
       categories.every((category) => grant.categories.includes(category)),
     "grant does not authorize this request",
   )

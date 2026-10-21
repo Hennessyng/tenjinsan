@@ -1,7 +1,13 @@
+import { Provider } from "@reading-studio/contracts/provider"
+import {
+  SetupAnalysisProgress,
+  SetupSchedulingFailure,
+} from "@reading-studio/contracts/setup-progress"
 import { NormalizationRevision } from "@reading-studio/contracts/source"
+import { SubscriptionDestination } from "@reading-studio/contracts/subscriptions"
 import { z } from "zod"
 
-const Provider = z.enum(["openai", "anthropic", "openrouter", "codex"])
+// Stored setups may still carry a historical scope kind; review displays it unchanged.
 const Scope = z.enum(["whole-document", "all-main-chapters", "partial"])
 export const SetupChoices = z.object({
   normalization: NormalizationRevision,
@@ -13,6 +19,7 @@ export const SetupReview = z.object({
     analysis: z.object({
       provider: Provider,
       model: z.string(),
+      destination: SubscriptionDestination.optional(),
       normalizationRevisionId: z.string(),
       scope: z.object({
         kind: Scope,
@@ -25,13 +32,22 @@ export const SetupReview = z.object({
 })
 export const SetupCreated = z.object({ setupId: z.string() })
 export const SetupDecision = z.discriminatedUnion("decision", [
-  z.object({ decision: z.literal("send"), grantId: z.string() }),
+  z.object({
+    decision: z.literal("send"),
+    grantId: z.string(),
+    analysisProgress: SetupAnalysisProgress.default("unknown"),
+    progressUrl: z.string().startsWith("/jobs?setup=").optional(),
+    questionsUrl: z.string().startsWith("/interviews/").optional(),
+    schedulingFailure: SetupSchedulingFailure.nullable().default(null),
+    canResume: z.boolean().default(false),
+  }),
   z.object({ decision: z.literal("revise") }),
   z.object({ decision: z.literal("cancel") }),
 ])
+export const SetupReviewResponse = z.union([SetupReview, SetupDecision])
+export type SavedSetupDecision = Extract<z.infer<typeof SetupDecision>, { decision: "send" }>
+/** A new setup is only a provider and model: it always covers the whole extraction. */
 export type SetupSelection = {
   readonly provider: z.infer<typeof Provider>
   readonly model: string
-  readonly scope: z.infer<typeof Scope>
-  readonly chapters: readonly string[]
 }

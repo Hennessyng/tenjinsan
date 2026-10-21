@@ -1,7 +1,9 @@
 import type { CatalogKey } from "@reading-studio/contracts/i18n"
+import { LocalSubscriptionProvider } from "@reading-studio/contracts/subscriptions"
 import type { ReactElement } from "react"
 import { useState } from "react"
 import { useLanguage } from "../i18n/LanguageProvider.tsx"
+import { ToolManagedNotice } from "../study-setup/ToolManagedNotice.tsx"
 import type { JobStatus } from "./client.ts"
 import { InputCoverage } from "./InputCoverage.tsx"
 
@@ -92,6 +94,7 @@ export function JobEntry({ job, busy, onAction }: Props): ReactElement {
   return (
     <li className="job-entry">
       <article aria-labelledby={`job-${job.id}`}>
+        {LocalSubscriptionProvider.safeParse(job.provider).success && <ToolManagedNotice />}
         <p className="eyebrow">
           {stage} / {state}
         </p>

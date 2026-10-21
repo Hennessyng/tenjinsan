@@ -55,7 +55,7 @@ captured. Native login was performed with Tab, typing and Enter. The manual
 browser pass observed skip activation moving focus to `#studio`.
 
 Keyboard actions observed: skip activation; native radio ArrowDown selection;
-setup submission with no selected chapters focusing its visible error; job
+setup submission refusal focusing its visible error; job
 refresh retaining focus; explicit Publish; Generate approved files; HTML and
 PDF download by Enter. The native file chooser was keyboard-reachable and
 emitted a chooser event in the manual browser; file selection/import completion

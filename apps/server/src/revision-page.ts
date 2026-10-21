@@ -1,5 +1,13 @@
 import { randomUUID } from "node:crypto"
-import { assertNever, SetupRevisionId, StudyId } from "@reading-studio/contracts"
+import {
+  assertNever,
+  isSubscriptionProvider,
+  SetupRevisionId,
+  StudyId,
+  type StudySetupRevision,
+  sameSubscriptionDestination,
+  wholeBookScope,
+} from "@reading-studio/contracts"
 import { translate } from "@reading-studio/contracts/i18n"
 import { configuredCredential } from "@reading-studio/providers"
 import { ContractBoundaryError, type Storage } from "@reading-studio/storage"
@@ -10,6 +18,8 @@ import { html } from "hono/html"
 import { z } from "zod"
 import type { AppEnvironment } from "./middleware/access.ts"
 import { offeredModels } from "./provider-connections.ts"
+import { selectedSubscription, subscriptionChoices } from "./subscription-setup.ts"
+import { hasForwardedHeaders } from "./subscriptions.ts"
 
 const Expected = z.strictObject({ expectedSetupRevisionId: SetupRevisionId })
 const Decision = z.discriminatedUnion("action", [
@@ -23,6 +33,7 @@ const Decision = z.discriminatedUnion("action", [
 ])
 type Options = {
   readonly storage: Storage
+  readonly localSubscriptions?: boolean
   readonly available?: (provider: "openai" | "anthropic" | "openrouter" | "codex") => boolean
 }
 
@@ -45,10 +56,21 @@ export function configureRevisionPage(app: Hono<AppEnvironment>, options: Option
     const id = StudyId.safeParse(context.req.param("study"))
     const ownerId = context.get("ownerId")
     const modelChoices = await offeredModels(storage, ownerId)
-    const available = (provider: "openai" | "anthropic" | "openrouter" | "codex", model: string) =>
-      modelChoices.some((choice) => choice.provider === provider && choice.model === model) &&
-      (provider !== "anthropic" ||
-        (options.available?.(provider) ?? configuredCredential(provider) !== undefined))
+    const localChoices = subscriptionChoices(
+      storage,
+      ownerId,
+      (options.localSubscriptions ?? false) && !hasForwardedHeaders(context.req.raw.headers),
+    )
+    const available = (provider: StudySetupRevision["analysis"]["provider"], model: string) =>
+      isSubscriptionProvider(provider)
+        ? localChoices.some((choice) => choice.provider === provider && choice.model === model) &&
+          sameSubscriptionDestination(
+            selectedSubscription(storage, ownerId, provider) ?? undefined,
+            current().setup.analysis.destination,
+          )
+        : modelChoices.some((choice) => choice.provider === provider && choice.model === model) &&
+          (provider !== "anthropic" ||
+            (options.available?.(provider) ?? configuredCredential(provider) !== undefined))
     const current = () =>
       storage.revisions.current({ studyId: id.success ? id.data : null, ownerId })
     try {
@@ -82,6 +104,11 @@ export function configureRevisionPage(app: Hono<AppEnvironment>, options: Option
       const interview = storage.interviews.latest(view.setup.studyId)
       return {
         view,
+        ...(isSubscriptionProvider(view.setup.analysis.provider)
+          ? {
+              reviewUrl: `/sources/${encodeURIComponent(view.setup.analysis.normalizationRevisionId)}/setup/${encodeURIComponent(view.setup.id)}`,
+            }
+          : {}),
         available: available(view.setup.analysis.provider, view.setup.analysis.model),
         canEdit: interview !== null && interview.analysisRevisionId === view.analysis?.id,
         choices: modelChoices,
@@ -127,14 +154,33 @@ export function configureRevisionPage(app: Hono<AppEnvironment>, options: Option
             return json
               ? context.json({ error: "Unsupported provider" }, 422)
               : context.html(render(true), 422)
+          // Reconfiguring creates a NEW whole-book setup; a historical partial scope is
+          // never carried forward. The stored historical setup stays unchanged.
+          const extracted = storage.sources.getNormalization(
+            view.setup.analysis.normalizationRevisionId,
+          )
+          const scope = extracted ? wholeBookScope(extracted) : null
+          if (!scope) return conflict()
           storage.revisions.revise({
             ...identity,
-            analysis: { ...view.setup.analysis, provider: choice.provider, model: choice.model },
+            analysis: {
+              ...view.setup.analysis,
+              scope,
+              destination: undefined,
+              provider: choice.provider,
+              model: choice.model,
+            },
             generation: view.setup.generation,
           })
           break
         }
         case "consent": {
+          if (isSubscriptionProvider(view.setup.analysis.provider)) {
+            const reviewUrl = `/sources/${encodeURIComponent(view.setup.analysis.normalizationRevisionId)}/setup/${encodeURIComponent(view.setup.id)}`
+            return json
+              ? context.json({ error: "subscription-review-required", reviewUrl }, 409)
+              : context.redirect(reviewUrl, 303)
+          }
           if (view.grant) return conflict()
           if (!available(view.setup.analysis.provider, view.setup.analysis.model))
             return conflict(503)

@@ -18,6 +18,7 @@ export async function uploadHarness(options?: {
   readonly onAccepted?: UploadWithHook["onAccepted"]
   readonly limits?: ArchiveLimits
   readonly queueAnalysis?: boolean
+  readonly localSubscriptions?: boolean
 }) {
   const directory = await mkdtemp(join(tmpdir(), "upload-http-"))
   const root = join(directory, "private")
@@ -34,7 +35,10 @@ export async function uploadHarness(options?: {
     privateDataRoot: root,
   })
   const app = createApp({
-    ...(options?.queueAnalysis ? { onSetupSend: studySetupSend(sourceStorage) } : {}),
+    ...(options?.queueAnalysis
+      ? { onSetupSend: studySetupSend(sourceStorage, true, options.localSubscriptions ?? false) }
+      : {}),
+    ...(options?.localSubscriptions ? { serverHost: "127.0.0.1" } : {}),
     ...(options?.studioAssets
       ? { studioAssets: loadStudioAssets(resolve(import.meta.dirname, "../../../studio/dist")) }
       : {}),

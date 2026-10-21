@@ -1,7 +1,9 @@
+import { LocalSubscriptionProvider } from "@reading-studio/contracts/subscriptions"
 import type { ReactElement } from "react"
 import type { z } from "zod"
 import { useLanguage } from "../i18n/LanguageProvider.tsx"
 import type { SetupReview as ReviewSchema } from "./client.ts"
+import { ToolManagedNotice } from "./ToolManagedNotice.tsx"
 
 type Review = z.infer<typeof ReviewSchema>
 
@@ -16,13 +18,24 @@ export function SetupReview({
 }): ReactElement {
   const { t } = useLanguage()
   const { setup, normalization, available } = value
+  const observed = setup.analysis.destination?.observedAccount
   return (
-    <section className="setup">
+    <section className="setup" aria-busy={busy}>
       <p className="eyebrow">{t("setup.review.eyebrow")}</p>
       <h1>{t("setup.review")}</h1>
       <h2>
         {setup.analysis.provider} / {setup.analysis.model}
       </h2>
+      {observed && (
+        <dl className="subscription-observations setup-connection-details">
+          <dt>{t("subscription.observedAccount")}</dt>
+          <dd>{observed.email ?? observed.accountId ?? t("subscription.observationUnknown")}</dd>
+          <dt>{t("subscription.observedWorkspace")}</dt>
+          <dd>{observed.workspaceId ?? t("subscription.observationUnknown")}</dd>
+          <dt>{t("subscription.observedPlan")}</dt>
+          <dd>{observed.planType}</dd>
+        </dl>
+      )}
       <p>
         {t("setup.review.scope", {
           scope: t(
@@ -79,7 +92,11 @@ export function SetupReview({
             </li>
           ))}
       </ul>
-      <p>{t("setup.review.limits")}</p>
+      {LocalSubscriptionProvider.safeParse(setup.analysis.provider).success ? (
+        <ToolManagedNotice />
+      ) : (
+        <p>{t("setup.review.limits")}</p>
+      )}
       <p>{t("setup.review.timeouts")}</p>
       {available ? (
         <p>{t("setup.review.available")}</p>
@@ -88,7 +105,7 @@ export function SetupReview({
       )}
       <div className="setup-actions">
         <button type="button" disabled={!available || busy} onClick={() => onDecision("send")}>
-          {t("setup.send")}
+          {t(busy ? "setup.sending" : "setup.send")}
         </button>
         <button type="button" disabled={busy} onClick={() => onDecision("revise")}>
           {t("brief.revise")}
@@ -97,6 +114,7 @@ export function SetupReview({
           {t("setup.cancel")}
         </button>
       </div>
+      {busy && <p role="status">{t("setup.sendingNote")}</p>}
       <p>
         <small>{t("setup.revision", { id: setup.id })}</small>
       </p>

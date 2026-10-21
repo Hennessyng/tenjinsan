@@ -1,11 +1,18 @@
+import { wholeBookScope } from "@reading-studio/contracts/source-scope"
+import {
+  isSubscriptionProvider,
+  type SubscriptionSnapshot,
+} from "@reading-studio/contracts/subscriptions"
 import type { FormEvent, ReactElement } from "react"
-import { useState } from "react"
+import { useCallback, useState } from "react"
 import { z } from "zod"
 import { useLanguage } from "../i18n/LanguageProvider.tsx"
 import { SourceRequestError, sourceCommand } from "../source-viewer/client.ts"
 import type { SetupChoices as ChoicesSchema, SetupSelection } from "./client.ts"
+import { SubscriptionConnections } from "./SubscriptionConnections.tsx"
 
 type Choices = z.infer<typeof ChoicesSchema>
+const choiceKey = (choice: Choices["choices"][number]) => `${choice.provider}/${choice.model}`
 
 export function SetupChoices({
   value,
@@ -17,11 +24,32 @@ export function SetupChoices({
   readonly busy: boolean
 }): ReactElement {
   const { t } = useLanguage()
-  const { normalization, choices } = value
-  const main = normalization.resources.filter((resource) => resource.role === "main-chapter")
-  const complete = main.length > 0 && main.every((resource) => resource.status === "included")
+  const { normalization } = value
+  const [localChoices, setLocalChoices] = useState(
+    value.choices.filter((choice) => isSubscriptionProvider(choice.provider)),
+  )
+  const choices = [
+    ...value.choices.filter((choice) => !isSubscriptionProvider(choice.provider)),
+    ...localChoices,
+  ]
+  const updateCatalog = useCallback((snapshot: SubscriptionSnapshot) => {
+    setLocalChoices(
+      snapshot.connections.flatMap((connection) =>
+        connection.canDispatch
+          ? connection.models.map((model) => ({
+              provider: connection.provider,
+              model: model.model,
+              label: `${connection.provider} / ${model.label}`,
+            }))
+          : [],
+      ),
+    )
+  }, [])
+  const extracted = wholeBookScope(normalization) !== null
+  const omitted = normalization.resources.filter((resource) => resource.status === "excluded")
   const codexAvailable = choices.some((choice) => choice.provider === "codex")
-  const [selection, setSelection] = useState("0")
+  const [selection, setSelection] = useState(choices[0] ? choiceKey(choices[0]) : "")
+  const selectedChoice = choices.find((choice) => choiceKey(choice) === selection)
   const [authUrl, setAuthUrl] = useState<string | null>(null)
   const [connectionBusy, setConnectionBusy] = useState(false)
   const [connectionError, setConnectionError] = useState(false)
@@ -43,12 +71,10 @@ export function SetupChoices({
       setConnectionBusy(false)
     }
   }
-  const [scope, setScope] = useState<SetupSelection["scope"]>("whole-document")
-  const [chapters, setChapters] = useState<readonly string[]>([])
   function submit(event: FormEvent<HTMLFormElement>): void {
     event.preventDefault()
-    const choice = choices[Number(selection)]
-    if (choice) onSubmit({ provider: choice.provider, model: choice.model, scope, chapters })
+    const choice = selectedChoice
+    if (choice && extracted) onSubmit({ provider: choice.provider, model: choice.model })
   }
   return (
     <section className="setup">
@@ -66,78 +92,59 @@ export function SetupChoices({
           </label>
           <select
             id="provider"
-            value={selection}
+            value={selectedChoice ? selection : ""}
             onChange={(event) => setSelection(event.target.value)}
           >
-            {choices.map((choice, index) => (
-              <option key={`${choice.provider}/${choice.model}`} value={index}>
+            <option value="" disabled>
+              {t("setup.chooseModel")}
+            </option>
+            {choices.map((choice) => (
+              <option key={choiceKey(choice)} value={choiceKey(choice)}>
                 {choice.label}
               </option>
             ))}
           </select>
         </section>
-        <fieldset>
-          <legend>{t("setup.scope")}</legend>
-          <label>
-            <input
-              type="radio"
-              name="scope"
-              value="whole-document"
-              checked={scope === "whole-document"}
-              onChange={() => setScope("whole-document")}
-            />{" "}
-            {t("setup.scope.whole")}
-          </label>
-          <label>
-            <input
-              type="radio"
-              name="scope"
-              value="all-main-chapters"
-              checked={scope === "all-main-chapters"}
-              disabled={!complete}
-              onChange={() => setScope("all-main-chapters")}
-            />{" "}
-            {t("setup.scope.main")}
-          </label>
-          <label>
-            <input
-              type="radio"
-              name="scope"
-              value="partial"
-              checked={scope === "partial"}
-              onChange={() => setScope("partial")}
-            />{" "}
-            {t("setup.scope.partial")}
-          </label>
-          {!complete && <p>{t("setup.scope.incomplete")}</p>}
-          {normalization.resources.map((resource) =>
-            resource.status === "included" ? (
-              <label key={resource.path}>
-                <input
-                  type="checkbox"
-                  checked={chapters.includes(resource.path)}
-                  onChange={(event) =>
-                    setChapters(
-                      event.target.checked
-                        ? [...chapters, resource.path]
-                        : chapters.filter((path) => path !== resource.path),
-                    )
-                  }
-                />{" "}
-                {resource.path}
-              </label>
-            ) : (
-              <p key={resource.path}>
-                {t("setup.resourceUnavailable", { path: resource.path, reason: resource.reason })}
-              </p>
-            ),
+        <section className="setup-coverage" aria-labelledby="coverage-heading">
+          <h2 id="coverage-heading">{t("setup.review.selected")}</h2>
+          {extracted ? (
+            <>
+              <p>{t("setup.coverage.whole")}</p>
+              <ul data-included>
+                {normalization.resources.map((resource) =>
+                  resource.status === "included" ? (
+                    <li key={resource.path}>
+                      {t("revision.blocks", { path: resource.path, count: resource.blocks.length })}
+                    </li>
+                  ) : null,
+                )}
+              </ul>
+            </>
+          ) : (
+            <p role="status">{t("setup.coverage.empty")}</p>
           )}
-        </fieldset>
+          {omitted.length > 0 && (
+            <>
+              <p>{t("setup.coverage.omitted")}</p>
+              <ul data-omitted>
+                {omitted.map((resource) => (
+                  <li key={resource.path}>
+                    {t("setup.resourceUnavailable", {
+                      path: resource.path,
+                      reason: resource.reason,
+                    })}
+                  </li>
+                ))}
+              </ul>
+            </>
+          )}
+        </section>
         <p>{t("setup.caps")}</p>
-        <button type="submit" disabled={busy || !choices[Number(selection)]}>
+        <button type="submit" disabled={busy || !selectedChoice || !extracted}>
           {t("setup.review")}
         </button>
       </form>
+      <SubscriptionConnections onCatalog={updateCatalog} />
       <section className="setup-connection-slip" aria-labelledby="connection-heading">
         <p className="eyebrow">{t("setup.connection.eyebrow")}</p>
         <h2 id="connection-heading">{t("setup.connection.title")}</h2>

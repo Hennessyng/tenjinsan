@@ -1,5 +1,14 @@
-import { analysisCacheKey, type Job } from "@reading-studio/contracts"
-import { DiscoveryDraft, generateQuestions } from "@reading-studio/generation/questions"
+import { analysisCacheKey, type Job, type Question } from "@reading-studio/contracts"
+import {
+  DiscoveryDraft,
+  DiscoveryError,
+  generateQuestions,
+} from "@reading-studio/generation/questions"
+import {
+  QuestionsHandoffError,
+  questionBankStatus,
+} from "@reading-studio/generation/queue-questions"
+import { z } from "zod"
 
 export { queueQuestions } from "@reading-studio/generation/queue-questions"
 
@@ -10,6 +19,7 @@ import {
   selectedEvidence,
 } from "@reading-studio/providers"
 import type { Storage } from "@reading-studio/storage"
+import { persistedQuestionIdentity } from "./persisted-question-identity.ts"
 
 export function questionsStage(storage: Storage, job: Job): StructuredStage {
   const setup = storage.sources.getSetup(job.setupRevisionId)
@@ -45,6 +55,28 @@ export function questionsStage(storage: Storage, job: Job): StructuredStage {
   if (!source) throw new TypeError("Approved source window required")
   return {
     schema: DiscoveryDraft.superRefine((draft, context) => {
+      try {
+        generateQuestions(
+          {
+            analysis,
+            context: {
+              revisionId: job.inputRevisionId,
+              studyId: setup.studyId,
+              preferredGoalKeys: [],
+              customQuestion: null,
+            },
+            expected: {
+              analysisRevisionId: analysis.id,
+              contextRevisionId: job.inputRevisionId,
+              studyId: setup.studyId,
+            },
+          },
+          draft,
+        )
+      } catch (error) {
+        if (!(error instanceof DiscoveryError || error instanceof z.ZodError)) throw error
+        context.addIssue({ code: "custom", message: "unusable question choices" })
+      }
       if (
         draft.analysisRevisionId !== analysis.id ||
         draft.contextRevisionId !== job.inputRevisionId
@@ -76,16 +108,31 @@ export function saveQuestions(storage: Storage, job: Job): void {
     storage.sources.getGrant(job.grant.id)?.kind !== "active"
   )
     throw new ProviderError("unauthorized")
-  const current = storage.interviews.latest(setup.studyId)
-  if (current) {
-    if (current.analysisRevisionId !== analysis.id) throw new TypeError("Interview lineage changed")
-    return
+  if (
+    job.inputRevisionId !== storage.workflow.ensureAnalysisInput(setup.id) ||
+    job.stage !== "questions" ||
+    job.provider !== setup.analysis.provider ||
+    job.model !== setup.analysis.model ||
+    job.grant.setupRevisionId !== setup.id
+  )
+    throw new QuestionsHandoffError("unauthorized")
+  const bankStatus = questionBankStatus(storage, setup, analysis)
+  switch (bankStatus) {
+    case "compatible":
+      return
+    case "incompatible":
+      throw new ProviderError("bank-incompatible")
+    case "missing":
+      break
+    default:
+      assertNever(bankStatus)
   }
   const attempt = storage.execution.listAttempts(job.runId).at(-1)
   const body = attempt && storage.execution.getAttemptReceipt(attempt.id)
   if (!body) throw new TypeError("Missing durable questions receipt")
   const receipt = ProviderReceipt.parse(JSON.parse(new TextDecoder().decode(body)))
   if (receipt.kind !== "output") throw new TypeError("Questions output unavailable")
+  const output = questionsStage(storage, job).schema.parse(JSON.parse(receipt.text))
   const context = {
     revisionId: job.inputRevisionId,
     studyId: setup.studyId,
@@ -102,26 +149,48 @@ export function saveQuestions(storage: Storage, job: Job): void {
         studyId: setup.studyId,
       },
     },
-    JSON.parse(receipt.text),
+    output,
   )
-  for (const lens of bank.lenses) {
+  const lensIds = new Map<string, string>()
+  const materialized = bank.lenses.map((lens, index) => {
+    const identity = persistedQuestionIdentity({
+      setup,
+      analysisRevisionId: analysis.id,
+      contextRevisionId: job.inputRevisionId,
+      position: index,
+    })
+    const question: Question = { ...lens.question, ...identity }
+    const existing = storage.workflow.getQuestion(question.revisionId)
+    if (existing && JSON.stringify(existing) !== JSON.stringify(question))
+      throw new ProviderError("question-revision-conflict")
+    lensIds.set(lens.id, identity.id)
+    return { ...lens, ...identity, question }
+  })
+  for (const lens of materialized) {
     const existing = storage.workflow.getQuestion(lens.question.revisionId)
-    if (existing && JSON.stringify(existing) !== JSON.stringify(lens.question))
-      throw new TypeError("Question revision collision")
     if (!existing)
       storage.workflow.appendQuestion({ record: lens.question, parentRevisionId: null })
   }
+  const shortlist = bank.shortlist.map((id) => {
+    const persisted = lensIds.get(id)
+    if (!persisted) throw new TypeError("Generated shortlist does not reference a current question")
+    return persisted
+  })
   storage.interviews.create({
     id: `interview-${job.id}`,
     studyId: setup.studyId,
     analysisRevisionId: analysis.id,
     contextRevisionId: job.inputRevisionId,
     groups: bank.groups,
-    steps: bank.lenses.map((lens) => ({
+    steps: materialized.map((lens) => ({
       groupId: lens.groupId,
       purpose: "preference",
       question: lens.question,
     })),
-    shortlist: bank.shortlist,
+    shortlist,
   })
+}
+
+function assertNever(value: never): never {
+  throw new TypeError(`Unknown question bank status: ${value}`)
 }

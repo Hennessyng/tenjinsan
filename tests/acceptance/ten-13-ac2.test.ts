@@ -32,10 +32,15 @@ async function workspace(check: (page: Page, origin: string) => Promise<void>): 
   }
 }
 
-it("TEN-13 AC2 focuses the validation error when a keyboard submission omits chapters", async () => {
+it("TEN-13 AC2 focuses the creation error when a keyboard submission is refused", async () => {
   await workspace(async (page, origin) => {
+    await page.route("**/api/study-setup/revision-fixture", async (route) =>
+      route.request().method() === "POST"
+        ? route.fulfill({ status: 422, json: { error: "No extracted text" } })
+        : route.continue(),
+    )
     await page.goto(`${origin}/sources/revision-fixture/setup`)
-    await page.getByRole("radio", { name: "Choose specific chapters" }).check()
+    await visible(page.getByRole("radio")).toHaveCount(0)
     const submit = page.getByRole("button", { name: "Review transmission", exact: true })
     await visible(submit).toBeEnabled()
     await tabTo(page, submit)
@@ -43,7 +48,9 @@ it("TEN-13 AC2 focuses the validation error when a keyboard submission omits cha
     await page.keyboard.press("Enter")
 
     await visible(page.getByRole("alert")).toBeFocused()
-    await visible(page.getByRole("alert")).toHaveText("Select available chapters explicitly.")
+    await visible(page.getByRole("alert")).toHaveText(
+      "No text could be extracted from this document, so a study cannot be created from it.",
+    )
     await page.keyboard.press("Tab")
     await visible(page.getByRole("link", { name: "Back to source preview" })).toBeFocused()
   })
@@ -52,7 +59,6 @@ it("TEN-13 AC2 focuses the validation error when a keyboard submission omits cha
 it("TEN-13 AC2 focuses the result when cancellation removes the active control", async () => {
   await workspace(async (page, origin) => {
     await page.goto(`${origin}/sources/revision-fixture/setup`)
-    await page.getByRole("checkbox", { name: "chapter-two.xhtml", exact: true }).check()
     await page.getByRole("button", { name: "Review transmission", exact: true }).click()
     await page.waitForURL(/\/setup\/[^/]+$/)
     await tabTo(page, page.getByRole("button", { name: "Cancel", exact: true }))

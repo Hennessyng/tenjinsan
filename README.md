@@ -1,7 +1,7 @@
 # Question-led Reading Studio
 
 A single-library reading workspace for document study. The reader imports a supported
-EPUB, DOCX, UTF-8 TXT or selectable-text PDF, chooses reading questions and source scope, reviews a brief and outline, approves
+EPUB, DOCX, UTF-8 TXT or selectable-text PDF, chooses reading questions and a provider (the whole extracted document is always included), reviews a brief and outline, approves
 privacy and publication, then downloads bilingual HTML and PDF. Local operation and
 private Compose hosting are supported. A synthetic-fixture journey is reproducible
 without an AI account; that does **not** establish live provider success or authorize
@@ -85,6 +85,19 @@ both modes without `STUDIO_SYNTHETIC_TEST_MODE`. Run it with
 `bun run test:e2e task-31-normal-matrix --workers=1`.
 
 ## Boundaries and operations
+
+TEN-21 adds managed local ChatGPT/Grok sign-in and tool-reported model discovery through official Codex/Grok Build,
+destination-bound consent contracts and fail-closed API/worker guards. Local ChatGPT/Grok
+use provider-managed account billing, which may consume existing credits or automatic
+reload; Tenjinsan never buys credits or falls back to API keys. Claude remains unverified.
+Local Send now uses the official tools with supported restrictive settings and
+destination-bound consent. Budgets count Tenjinsan-issued attempts, not every internal
+tool request; no full-isolation or hard cost/generation guarantee is made. See
+[local subscription execution](docs/LOCAL-SUBSCRIPTIONS.md). Live provider studies remain unverified;
+no live completed study is established. Hosted
+deployments retain explicitly configured OpenRouter, and existing explicitly
+selected legacy routes are unchanged. See the provider guide below. TEN-21 and
+TEN-1's separate two-book F4 verification remain incomplete.
 
 - [Consent, providers and costs](docs/CONSENT-PROVIDERS.md): OpenRouter/Anthropic
   server keys and official Codex subscription sign-in. Models are rechecked at Send;

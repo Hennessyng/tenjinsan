@@ -33,6 +33,7 @@ import {
   studioResponse,
 } from "./studio-assets.ts"
 import { configureStudySetup } from "./study-setup.ts"
+import { configureSubscriptions, localSubscriptionAccess } from "./subscriptions.ts"
 import { configureUpload, type UploadWithHook } from "./upload.ts"
 
 export type { SecurityEvent } from "./middleware/access.ts"
@@ -43,6 +44,7 @@ type LegacyAuthFixture = {
 }
 
 export type AppDependencies = {
+  readonly serverHost?: string
   readonly studioAssets?: StudioAssets
   readonly reviewStorage?: Storage
   readonly auth?: LegacyAuthFixture
@@ -80,6 +82,7 @@ export type AppDependencies = {
 }
 
 export function createApp({
+  serverHost,
   studioAssets,
   reviewStorage,
   libraryOwnerId: configuredOwnerId,
@@ -173,8 +176,14 @@ export function createApp({
   if (reviewStorage) configureInterviewReadiness(app, reviewStorage)
   if (reviewStorage) configureProviderConnections(app, reviewStorage)
   if (reviewStorage)
+    configureSubscriptions(app, {
+      storage: reviewStorage,
+      local: localSubscriptionAccess(serverHost, security),
+    })
+  if (reviewStorage)
     configureRevisionPage(app, {
       storage: reviewStorage,
+      localSubscriptions: localSubscriptionAccess(serverHost, security),
       ...(providerAvailable ? { available: providerAvailable } : {}),
     })
   if (reviewStorage) configureEvidence(app, reviewStorage)
@@ -195,6 +204,7 @@ export function createApp({
   if (sources !== undefined) configureSourceViewer(app, sources, upload?.root)
   if (sources !== undefined)
     configureStudySetup(app, {
+      localSubscriptions: localSubscriptionAccess(serverHost, security),
       sources,
       ...(reviewStorage ? { storage: reviewStorage } : {}),
       ...(providerAvailable ? { available: providerAvailable } : {}),

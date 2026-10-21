@@ -60,7 +60,7 @@ export async function runMatrix(deployment: MatrixDeployment): Promise<readonly 
   results.push(await recordCase(deployment, { name: "corrupt-epub", http: corrupt.status() }))
 
   const expired = await page.request.post(`${origin}/api/study-setup/absent`, {
-    data: { provider: "openrouter", model: "gpt-4.1-mini", scope: "all-main-chapters" },
+    data: { provider: "openrouter", model: "gpt-4.1-mini" },
     headers: { origin, cookie: "better-auth.session_token=expired" },
   })
   expect(expired.status()).toBe(401)
@@ -96,7 +96,6 @@ export async function runMatrix(deployment: MatrixDeployment): Promise<readonly 
     const created = await post(`/api/study-setup/${revision}`, {
       provider,
       model: provider === "openrouter" ? "gpt-4.1-mini" : "claude-sonnet-4-6",
-      scope: "all-main-chapters",
     })
     expect(created.status()).toBe(201)
     const setupId = z.object({ setupId: z.string() }).parse(await created.json()).setupId

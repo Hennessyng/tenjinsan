@@ -82,8 +82,6 @@ createInterface({input:process.stdin}).on('line', line => {
         body: JSON.stringify({
           provider: "codex",
           model: "offered/model",
-          scope: "partial",
-          chapters: ["chapter-two.xhtml"],
         }),
       })
       expect(draft.status).toBe(201)

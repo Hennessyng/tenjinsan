@@ -40,6 +40,11 @@ export function RevisionRoutes(): ReactElement {
   async function decide(action: "fork" | "provider" | "consent"): Promise<void> {
     const committed = captureEditSave()
     if (!state) return
+    const reviewUrl = state.reviewUrl
+    if (action === "consent" && reviewUrl) {
+      requestDeparture(() => window.location.assign(reviewUrl))
+      return
+    }
     setBusy(true)
     setError(false)
     const input = {

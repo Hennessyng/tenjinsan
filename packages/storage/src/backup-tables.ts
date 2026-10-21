@@ -47,6 +47,7 @@ export const TABLES: readonly Table[] = [
     columns: "id setup_revision_id installation_id owner_id kind record_json",
     record: C.TransmissionGrant,
   },
+  { name: "setup_scheduling", columns: "grant_id failure_code?" },
   {
     name: "analysis_revisions",
     columns:

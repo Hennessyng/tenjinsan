@@ -44,7 +44,7 @@ it.each(["loaded-null", "persisted-A"] as const)(
       expect(
         (
           await page.request.post(`${origin}/api/study-setup/${original.normalizationId}`, {
-            data: { provider: "openrouter", model: "gpt-4.1-mini", scope: "all-main-chapters" },
+            data: { provider: "openrouter", model: "gpt-4.1-mini" },
             headers: { origin },
           })
         ).status(),
