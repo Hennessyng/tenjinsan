@@ -1,4 +1,4 @@
-import { analysisCacheKey, type Job } from "@reading-studio/contracts"
+import { analysisCacheKey, type Job, type Question } from "@reading-studio/contracts"
 import {
   DiscoveryDraft,
   DiscoveryError,
@@ -19,6 +19,7 @@ import {
   selectedEvidence,
 } from "@reading-studio/providers"
 import type { Storage } from "@reading-studio/storage"
+import { persistedQuestionIdentity } from "./persisted-question-identity.ts"
 
 export function questionsStage(storage: Storage, job: Job): StructuredStage {
   const setup = storage.sources.getSetup(job.setupRevisionId)
@@ -120,7 +121,7 @@ export function saveQuestions(storage: Storage, job: Job): void {
     case "compatible":
       return
     case "incompatible":
-      throw new QuestionsHandoffError("bank-incompatible")
+      throw new ProviderError("bank-incompatible")
     case "missing":
       break
     default:
@@ -150,25 +151,43 @@ export function saveQuestions(storage: Storage, job: Job): void {
     },
     output,
   )
-  for (const lens of bank.lenses) {
+  const lensIds = new Map<string, string>()
+  const materialized = bank.lenses.map((lens, index) => {
+    const identity = persistedQuestionIdentity({
+      setup,
+      analysisRevisionId: analysis.id,
+      contextRevisionId: job.inputRevisionId,
+      position: index,
+    })
+    const question: Question = { ...lens.question, ...identity }
+    const existing = storage.workflow.getQuestion(question.revisionId)
+    if (existing && JSON.stringify(existing) !== JSON.stringify(question))
+      throw new ProviderError("question-revision-conflict")
+    lensIds.set(lens.id, identity.id)
+    return { ...lens, ...identity, question }
+  })
+  for (const lens of materialized) {
     const existing = storage.workflow.getQuestion(lens.question.revisionId)
-    if (existing && JSON.stringify(existing) !== JSON.stringify(lens.question))
-      throw new TypeError("Question revision collision")
     if (!existing)
       storage.workflow.appendQuestion({ record: lens.question, parentRevisionId: null })
   }
+  const shortlist = bank.shortlist.map((id) => {
+    const persisted = lensIds.get(id)
+    if (!persisted) throw new TypeError("Generated shortlist does not reference a current question")
+    return persisted
+  })
   storage.interviews.create({
     id: `interview-${job.id}`,
     studyId: setup.studyId,
     analysisRevisionId: analysis.id,
     contextRevisionId: job.inputRevisionId,
     groups: bank.groups,
-    steps: bank.lenses.map((lens) => ({
+    steps: materialized.map((lens) => ({
       groupId: lens.groupId,
       purpose: "preference",
       question: lens.question,
     })),
-    shortlist: bank.shortlist,
+    shortlist,
   })
 }
 

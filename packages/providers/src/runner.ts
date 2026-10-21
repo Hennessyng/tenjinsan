@@ -2,14 +2,19 @@ import { randomUUID } from "node:crypto"
 import { contentDigest, type Job, RunBudget } from "@reading-studio/contracts"
 import { MaintenancePausedError } from "@reading-studio/storage"
 import { z } from "zod"
-import {
-  MAX_PROVIDER_REQUEST_BYTES,
-  type ProviderAdapter,
-  type StructuredRequest,
-} from "./adapter.ts"
-import { authorizeSource, type ProviderAuthority } from "./authorization.ts"
-import { ProviderError, type ProviderName } from "./catalog.ts"
+import { MAX_PROVIDER_REQUEST_BYTES, type StructuredRequest } from "./adapter.ts"
+import { authorizeSource } from "./authorization.ts"
+import { ProviderError } from "./catalog.ts"
+import type {
+  ProviderRunnerOptions,
+  RunningProviderJob,
+  StructuredStage,
+} from "./execution-contracts.ts"
+
+export type { StructuredStage } from "./execution-contracts.ts"
+
 import { measureRequest } from "./request-measurement.ts"
+import { preparedSchemaRepair, receivedOutputCount, validateStageOutput } from "./schema-repair.ts"
 import {
   inputCoverage,
   RecordedProviderReceipt as ProviderReceipt,
@@ -18,29 +23,9 @@ import {
 import { structuredRequest } from "./structured-request.ts"
 import { preflightSubscription } from "./subscription-preflight.ts"
 
-type RunningJob = Extract<Job, { readonly state: "running" }>
-type Options = ProviderAuthority & {
-  readonly clock: () => Date
-  readonly adapters: Readonly<
-    Partial<
-      Record<
-        ProviderName,
-        Pick<ProviderAdapter, "dispatch"> & Partial<Pick<ProviderAdapter, "measure">>
-      >
-    >
-  >
-}
-export type StructuredStage = {
-  readonly schema: z.ZodType
-  readonly instruction: string
-  readonly signal?: AbortSignal
-  readonly sourceWindow?: { readonly blockId: string; readonly start: number; readonly end: number }
-  readonly onValidated?: (job: RunningJob) => void
-}
-
 export class ProviderRunner {
-  constructor(private readonly options: Options) {}
-  async execute(job: RunningJob, stage: StructuredStage): Promise<Job> {
+  constructor(private readonly options: ProviderRunnerOptions) {}
+  async execute(job: RunningProviderJob, stage: StructuredStage): Promise<Job> {
     const execution = this.options.storage.execution
     const lease = () => ({
       jobId: job.id,
@@ -121,18 +106,26 @@ export class ProviderRunner {
             .maxOutputTokens > run.budget.maxOutputTokens
         )
           throw new ProviderError("input-limit")
-        const request: StructuredRequest = structuredRequest({
+        const attempts = execution.listAttempts(job.runId)
+        const latest = attempts.at(-1)
+        const feedback = preparedSchemaRepair({
+          execution,
+          attempts,
+          schema: stage.schema,
+          wireSchema: schema,
+        })
+        const requestInput = {
           model: job.model,
           settings: job.stage === "analysis" ? setup.analysis.settings : setup.generation.settings,
           instruction: stage.instruction,
           blocks,
           schema,
           signal: stage.signal ?? new AbortController().signal,
-        })
+          ...(feedback ? { schemaRepair: feedback } : {}),
+        }
+        const request: StructuredRequest = structuredRequest(requestInput)
         const bytes = await measureRequest(request, adapter)
         if (bytes > MAX_PROVIDER_REQUEST_BYTES) throw new ProviderError("input-limit")
-        const attempts = execution.listAttempts(job.runId)
-        const latest = attempts.at(-1)
         if (latest?.state === "dispatching") return execution.pauseUnknownProviderJob(lease())
         let receipt: ProviderReceipt
         if (latest?.state === "response-received" && !latest.retryApproved) {
@@ -202,13 +195,12 @@ export class ProviderRunner {
               receipt.code === "rate-limited" || receipt.code === "unavailable",
             )
           case "output": {
-            let value: unknown
-            try {
-              value = JSON.parse(receipt.text)
-            } catch (error) {
-              if (!(error instanceof SyntaxError)) throw error
-            }
-            const parsed = stage.schema.safeParse(value)
+            const validation = validateStageOutput({
+              schema: stage.schema,
+              wireSchema: schema,
+              text: receipt.text,
+            })
+            const parsed = validation.parsed
             if (parsed.success) {
               stage.onValidated?.(job)
               return execution.completeJob({
@@ -216,15 +208,17 @@ export class ProviderRunner {
                 resultHash: contentDigest(JSON.stringify(parsed.data)),
               })
             }
-            const outputs = execution.listAttempts(job.runId).filter((attempt) => {
-              if (attempt.state !== "response-received") return false
-              const body = execution.getAttemptReceipt(attempt.id)
-              return (
-                body !== null &&
-                ProviderReceipt.parse(JSON.parse(new TextDecoder().decode(body))).kind === "output"
-              )
+            if (
+              receivedOutputCount(execution, execution.listAttempts(job.runId)) >
+              run.budget.maxSchemaRepairs
+            )
+              return fail("malformed-output")
+            const repairRequest = structuredRequest({
+              ...requestInput,
+              ...(validation.repair ? { schemaRepair: validation.repair } : {}),
             })
-            if (outputs.length > run.budget.maxSchemaRepairs) return fail("malformed-output")
+            if ((await measureRequest(repairRequest, adapter)) > MAX_PROVIDER_REQUEST_BYTES)
+              return fail("input-limit")
             const prepared = execution.reserveAttempt({
               ...lease(),
               attemptId: randomUUID(),
@@ -242,7 +236,11 @@ export class ProviderRunner {
         }
       }
     } catch (error) {
-      if (error instanceof ProviderError) return fail(error.code)
+      if (error instanceof ProviderError) {
+        if (execution.getJob(job.id)?.cancellationRequested)
+          return execution.cancelClaimedJob(lease())
+        return fail(error.code)
+      }
       throw error
     }
   }

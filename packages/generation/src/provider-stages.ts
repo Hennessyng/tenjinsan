@@ -15,6 +15,7 @@ import type { Storage } from "@reading-studio/storage"
 import { lessonJobId, loadSectionDraft } from "./lesson-checkpoints.ts"
 import { LessonFixtureDraft, LessonGenerationError } from "./lesson-contracts.ts"
 import { validateLessonDraft } from "./lesson-validation.ts"
+import { outlineStage } from "./outline-stage.ts"
 
 export { advanceLessonStage } from "./lesson-checkpoints.ts"
 
@@ -76,59 +77,7 @@ export function generationStage(storage: Storage, job: JobRecord): StructuredSta
       : undefined
   if (!block) throw new TypeError("Approved source window required")
   const sourceWindow = { blockId: block.id, start: 0, end: Math.min(block.text.length, 12_000) }
-  if (job.stage === "outline") {
-    const brief = storage.briefs.approved(job.inputRevisionId)
-    if (!brief || brief.setupRevisionId !== setup.id)
-      throw new TypeError("Current approved brief required")
-    const requestId = job.id.slice("outline-".length)
-    const request = storage.outlines.request(requestId)
-    const currentOutline = storage.outlines.current(brief.studyId)
-    if (
-      request &&
-      (request.briefRevisionId !== brief.id ||
-        (currentOutline?.draft.id !== request.id &&
-          !storage.outlines.follows(currentOutline?.draft.id ?? "", request.id)))
-    )
-      throw new ProviderError("unauthorized")
-    const analysis = storage.workflow.getAnalysis(brief.analysisRevisionId)
-    if (analysis?.status !== "successful") throw new TypeError("Successful analysis required")
-    const known = new Set(
-      [...analysis.claims, ...analysis.concepts, ...analysis.qualifications].flatMap((finding) =>
-        finding.sources.map((span) => JSON.stringify(span)),
-      ),
-    )
-    const findings = [...analysis.claims, ...analysis.concepts, ...analysis.qualifications]
-    const selected = selectedEvidence(
-      storage,
-      findings.flatMap((finding) => finding.sources),
-    )
-    const evidence = findings.map((finding) => ({
-      id: finding.id,
-      text: finding.text,
-      sources: finding.sources.map(selected.reference),
-    }))
-    return {
-      sourceWindow,
-      schema: OutlineContent.superRefine((draft, context) => {
-        if (
-          JSON.stringify(draft.qualifications) !== JSON.stringify(analysis.qualifications) ||
-          JSON.stringify(draft.excludedAreas) !== JSON.stringify(brief.exclusions)
-        )
-          context.addIssue({ code: "custom", message: "retained brief/analysis fields differ" })
-        for (const section of draft.sections)
-          if (
-            [...section.sources, ...section.visualEvidence].some(
-              (span) => !known.has(JSON.stringify(span)),
-            )
-          )
-            context.addIssue({
-              code: "custom",
-              message: "outline citation outside approved evidence",
-            })
-      }),
-      instruction: `Write a bilingual teaching outline from this approved reader brief and retrieved book evidence. Copy exact citations from the citation table into the output schema. Keep the exact qualifications and exclusions. No unsupported visual claims. ${request ? `Revision: ${JSON.stringify({ previous: request.content, feedback: request.feedback })}. ` : ""}Citations: ${JSON.stringify(selected.citations)} Passages: ${JSON.stringify(selected.passages)} Brief: ${JSON.stringify(brief)} Evidence: ${JSON.stringify(evidence)}`,
-    }
-  }
+  if (job.stage === "outline") return outlineStage(storage, job, sourceWindow)
   const outline = storage.outlines.approved(job.inputRevisionId)
   const current = outline && storage.outlines.current(outline.studyId)
   if (

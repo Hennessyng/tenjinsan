@@ -4,25 +4,20 @@ import { isSubscriptionProvider } from "@reading-studio/contracts"
 import type { Storage } from "@reading-studio/storage"
 import { generateText, jsonSchema, NoObjectGeneratedError, Output } from "ai"
 import { z } from "zod"
-import { ProviderError, type ProviderName, type Settings, validateModel } from "./catalog.ts"
+import { ProviderError, type ProviderName, validateModel } from "./catalog.ts"
 import { codexPayload, dispatchCodex } from "./codex-dispatch.ts"
 import { ProviderReceipt } from "./provider-receipt.ts"
+import type { StructuredRequest } from "./structured-request.ts"
 
 export { ProviderError } from "./catalog.ts"
 export { ProviderReceipt } from "./provider-receipt.ts"
+export type { StructuredRequest } from "./structured-request.ts"
 export type AdapterConfig = {
   readonly provider: ProviderName
   readonly apiKey?: string
   readonly baseURL?: string
   readonly timeoutMs?: number
   readonly codex?: ReturnType<Storage["providerConnections"]["codex"]>
-}
-export type StructuredRequest = {
-  readonly model: string
-  readonly settings: Settings
-  readonly prompt: string
-  readonly schema: Record<string, unknown>
-  readonly signal: AbortSignal
 }
 export const MAX_PROVIDER_REQUEST_BYTES = 32_000
 

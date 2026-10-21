@@ -16,7 +16,9 @@ export class ProviderError extends Error {
       | "unauthorized"
       | "input-limit"
       | "subscription-unverified"
-      | "subscription-connection-changed",
+      | "subscription-connection-changed"
+      | "bank-incompatible"
+      | "question-revision-conflict",
   ) {
     super(code)
   }

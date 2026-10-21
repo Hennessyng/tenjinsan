@@ -46,7 +46,9 @@ export const DiscoveryInput = z
 const Lens = z
   .strictObject({
     id: QuestionId,
-    revisionId: QuestionRevisionId,
+    revisionId: QuestionRevisionId.describe(
+      "Use a distinct question revision ID for every lens in this response; never reuse another lens revision ID.",
+    ),
     groupId: Text,
     learningGoalKey: Text,
     label: Bilingual,
@@ -93,9 +95,17 @@ export const DiscoveryDraft = z
     const options = draft.lenses.flatMap((lens) => lens.options.map((option) => option.id))
     if (new Set(options).size !== options.length)
       ctx.addIssue({ code: "custom", message: "duplicate option IDs" })
-    const revisions = draft.lenses.map((lens) => lens.revisionId)
-    if (new Set(revisions).size !== revisions.length)
-      ctx.addIssue({ code: "custom", message: "duplicate question revision IDs" })
+    const revisions = new Set<string>()
+    draft.lenses.forEach((lens, index) => {
+      if (revisions.has(lens.revisionId))
+        ctx.addIssue({
+          code: "custom",
+          path: ["lenses", index, "revisionId"],
+          message: "duplicate question revision IDs",
+          params: { rule: "unique-question-revision-id" },
+        })
+      revisions.add(lens.revisionId)
+    })
     for (const lens of draft.lenses) {
       if (!draft.groups.some((group) => group.id === lens.groupId))
         ctx.addIssue({ code: "custom", message: "unknown lens group" })
