@@ -61,6 +61,19 @@ export function safeRecord(
   redactionKey: Uint8Array = randomBytes(32),
 ): Row {
   if (table === "studies") return { ...row, owner_id: OWNER_HANDLE }
+  if (table === "full_book_imports") return { ...row, owner_id: OWNER_HANDLE }
+  if (table === "live_study_adoption_barriers") return { ...row, owner_id: OWNER_HANDLE }
+  if (table === "live_study_budgets") {
+    const adoption = z
+      .record(z.string(), z.json())
+      .parse(JSON.parse(z.string().parse(row["adoption_json"])))
+    return {
+      ...row,
+      owner_id: OWNER_HANDLE,
+      kind: "restored",
+      adoption_json: JSON.stringify({ ...adoption, ownerId: OWNER_HANDLE }),
+    }
+  }
   if (table === "owner_job_decisions") return { ...row, owner_id: OWNER_HANDLE }
   if (typeof row["record_json"] !== "string") return row
   const input: unknown = JSON.parse(row["record_json"])

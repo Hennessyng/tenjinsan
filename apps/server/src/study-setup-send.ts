@@ -13,6 +13,7 @@ import {
   questionBankStatus,
   queueQuestions,
 } from "@reading-studio/generation/queue-questions"
+import type { ProviderAuthority } from "@reading-studio/providers"
 import { ImmutableRecordError, type SourceRepository, type Storage } from "@reading-studio/storage"
 import { z } from "zod"
 
@@ -42,7 +43,10 @@ export function setupAnalysisProgress(
   grantId: string,
 ): SetupAnalysisProgress {
   if (!storage) return "unknown"
-  const analysis = storage.workflow.findSuccessfulAnalysis(analysisCacheKey(setup.analysis))
+  const analysis = storage.workflow.findSuccessfulAnalysis(analysisCacheKey(setup.analysis), {
+    setupId: setup.id,
+    grantId,
+  })
   const bankStatus = questionBankStatus(storage, setup, analysis)
   switch (bankStatus) {
     case "compatible":
@@ -88,9 +92,18 @@ export function savedSetupDecision(
     progressUrl: setupProgressUrl(setup.id),
     schedulingFailure,
     canResume:
+      !(setup.analysis.purpose && analysisProgress === "analysis-ready") &&
       (analysisProgress === "not-scheduled" || analysisProgress === "analysis-ready") &&
       (schedulingFailure === null || schedulingFailure === "scheduling-interrupted"),
-    ...(analysisProgress === "questions-ready"
+    ...(setup.analysis.purpose
+      ? {
+          purpose: setup.analysis.purpose,
+          ...(analysisProgress === "analysis-ready"
+            ? { terminal: "verified-analysis" as const }
+            : {}),
+        }
+      : {}),
+    ...(!setup.analysis.purpose && analysisProgress === "questions-ready"
       ? { questionsUrl: `/interviews/${encodeURIComponent(setup.studyId)}` }
       : {}),
   }
@@ -151,7 +164,12 @@ export function scheduleApprovedSetup(
   }
 }
 
-export function studySetupSend(storage: Storage, queueFollowup = true, localSubscriptions = false) {
+export function studySetupSend(
+  storage: Storage,
+  queueFollowup = true,
+  access: boolean | Pick<ProviderAuthority, "localSubscriptions" | "capacity"> = false,
+) {
+  const providerAccess = typeof access === "boolean" ? { localSubscriptions: access } : access
   return (input: {
     readonly setupId: string
     readonly grantId: string
@@ -164,7 +182,10 @@ export function studySetupSend(storage: Storage, queueFollowup = true, localSubs
       questionBankStatus(
         storage,
         setup,
-        storage.workflow.findSuccessfulAnalysis(analysisCacheKey(setup.analysis)),
+        storage.workflow.findSuccessfulAnalysis(analysisCacheKey(setup.analysis), {
+          setupId: setup.id,
+          grantId: input.grantId,
+        }),
       ) === "incompatible"
     )
       throw new QuestionsHandoffError("bank-incompatible")
@@ -172,8 +193,9 @@ export function studySetupSend(storage: Storage, queueFollowup = true, localSubs
       storage,
       ownerId: input.ownerId,
       installationId: input.installationId,
-      localSubscriptions,
+      ...providerAccess,
     }).prepare(input.setupId, input.grantId)
-    if (queueFollowup) queueQuestions(storage, input.setupId, input.grantId, analysis)
+    if (queueFollowup && !setup?.analysis.purpose)
+      queueQuestions(storage, input.setupId, input.grantId, analysis)
   }
 }

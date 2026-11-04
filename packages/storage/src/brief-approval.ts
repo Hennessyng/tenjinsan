@@ -18,6 +18,12 @@ export function requireBriefApproval(context: StorageContext, id: string): void 
 }
 
 export function jobBriefCurrent(context: StorageContext, job: Job): boolean {
+  try {
+    context.liveStudyGuard.assertJob(job)
+  } catch (error) {
+    if (error instanceof ContractBoundaryError) return false
+    throw error
+  }
   const currentSetup = context.sqlite
     .prepare(`
     SELECT id FROM setup_revisions WHERE study_id =

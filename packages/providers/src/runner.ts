@@ -1,9 +1,7 @@
 import { randomUUID } from "node:crypto"
-import { contentDigest, type Job, RunBudget } from "@reading-studio/contracts"
+import { contentDigest, type Job } from "@reading-studio/contracts"
 import { MaintenancePausedError } from "@reading-studio/storage"
 import { z } from "zod"
-import { MAX_PROVIDER_REQUEST_BYTES, type StructuredRequest } from "./adapter.ts"
-import { authorizeSource } from "./authorization.ts"
 import { ProviderError } from "./catalog.ts"
 import type {
   ProviderRunnerOptions,
@@ -15,12 +13,9 @@ export type { StructuredStage } from "./execution-contracts.ts"
 
 import { measureRequest } from "./request-measurement.ts"
 import { preparedSchemaRepair, receivedOutputCount, validateStageOutput } from "./schema-repair.ts"
-import {
-  inputCoverage,
-  RecordedProviderReceipt as ProviderReceipt,
-  sourceInput,
-} from "./source-input.ts"
-import { structuredRequest } from "./structured-request.ts"
+import { inputCoverage, RecordedProviderReceipt as ProviderReceipt } from "./source-input.ts"
+import { authorizeStage, currentProviderJob } from "./stage-authorization.ts"
+import { prepareStageRequest, withinDefaultRunBudget } from "./stage-request.ts"
 import { preflightSubscription } from "./subscription-preflight.ts"
 
 export class ProviderRunner {
@@ -34,6 +29,8 @@ export class ProviderRunner {
       now: this.options.clock().toISOString(),
     })
     const fail = (code: string, retryable = false) => {
+      if (execution.getJob(job.id)?.cancellationRequested)
+        return execution.cancelClaimedJob(lease())
       const result = execution.failProviderJob({ lease: lease(), code, retryable })
       const pause = execution.providerPause(job.id)
       if (pause) console.info(JSON.stringify({ event: "provider-paused", jobId: job.id, ...pause }))
@@ -42,29 +39,13 @@ export class ProviderRunner {
     try {
       let schema: Record<string, unknown>
       try {
-        schema = z.toJSONSchema(stage.schema, { reused: "ref" })
+        schema = stage.wireSchema ?? z.toJSONSchema(stage.schema, { reused: "ref" })
       } catch (error) {
         if (error instanceof Error) return fail("unsupported-schema")
         throw error
       }
       while (true) {
-        const current = execution.getJob(job.id)
-        if (current?.state !== "running") throw new ProviderError("unauthorized")
-        const identityFields = [
-          "runId",
-          "inputRevisionId",
-          "setupRevisionId",
-          "provider",
-          "model",
-          "promptVersion",
-          "schemaVersion",
-          "stage",
-        ] as const
-        if (
-          identityFields.some((field) => current[field] !== job[field]) ||
-          current.grant.id !== job.grant.id
-        )
-          throw new ProviderError("unauthorized")
+        const current = currentProviderJob(this.options, job)
         if (stage.signal?.aborted && !current.cancellationRequested)
           execution.requestCancellation({ jobId: job.id })
         if (current.cancellationRequested || stage.signal?.aborted)
@@ -74,40 +55,18 @@ export class ProviderRunner {
           setup,
           blocks: approvedBlocks,
           normalization,
-        } = authorizeSource(this.options, current)
-        const currentGrant = this.options.storage.sources.getGrant(current.grant.id)
-        if (
-          job.stage !== "analysis" &&
-          (currentGrant?.kind !== "active" ||
-            !currentGrant.categories.includes("derived-study-material") ||
-            (job.stage !== "questions" && !currentGrant.categories.includes("reader-context")) ||
-            job.promptVersion !== setup.generation.promptVersion ||
-            job.schemaVersion !== setup.generation.schemaVersion)
-        )
-          throw new ProviderError("unauthorized")
-        const window = stage.sourceWindow
-        const blocks = sourceInput(approvedBlocks, window)
-        if (blocks.length === 0) throw new ProviderError("unauthorized")
+        } = authorizeStage(this.options, job, stage)
         const adapter = this.options.adapters[job.provider]
         if (!adapter) throw new ProviderError("missing-credentials")
         const run = execution.getRun(job.runId)
         if (run?.state !== "running") throw new ProviderError("unauthorized")
-        const approvedLimits = RunBudget.parse({})
+        if (!withinDefaultRunBudget(run.budget)) return fail("budget-limit")
         if (
-          run.budget.maxCalls > approvedLimits.maxCalls ||
-          run.budget.maxSourceCharacters > approvedLimits.maxSourceCharacters ||
-          run.budget.maxOutputTokens > approvedLimits.maxOutputTokens
-        )
-          return fail("budget-limit")
-        if (
-          blocks.reduce((total, block) => total + block.text.length, 0) >
-            run.budget.maxSourceCharacters ||
           (job.stage === "analysis" ? setup.analysis.settings : setup.generation.settings)
             .maxOutputTokens > run.budget.maxOutputTokens
         )
           throw new ProviderError("input-limit")
         const attempts = execution.listAttempts(job.runId)
-        const latest = attempts.at(-1)
         const feedback = preparedSchemaRepair({
           execution,
           attempts,
@@ -118,14 +77,22 @@ export class ProviderRunner {
           model: job.model,
           settings: job.stage === "analysis" ? setup.analysis.settings : setup.generation.settings,
           instruction: stage.instruction,
-          blocks,
           schema,
           signal: stage.signal ?? new AbortController().signal,
           ...(feedback ? { schemaRepair: feedback } : {}),
         }
-        const request: StructuredRequest = structuredRequest(requestInput)
-        const bytes = await measureRequest(request, adapter)
-        if (bytes > MAX_PROVIDER_REQUEST_BYTES) throw new ProviderError("input-limit")
+        const { request, blocks, strategy } = await prepareStageRequest({
+          sourceCharacterLimit: run.budget.maxSourceCharacters,
+          setup,
+          stage: {
+            ...stage,
+            ...(this.options.capacity ? { capacity: this.options.capacity } : {}),
+          },
+          approved: approvedBlocks,
+          request: requestInput,
+          measure: (request) => measureRequest(request, adapter),
+        })
+        const latest = attempts.at(-1)
         if (latest?.state === "dispatching") return execution.pauseUnknownProviderJob(lease())
         let receipt: ProviderReceipt
         if (latest?.state === "response-received" && !latest.retryApproved) {
@@ -170,6 +137,13 @@ export class ProviderRunner {
             responseBody: new TextEncoder().encode(
               JSON.stringify({
                 ...receipt,
+                ...(strategy ? { processingStrategy: strategy } : {}),
+                ...(stage.processingStep ? { processingStep: stage.processingStep } : {}),
+                ...(stage.batchTarget ? { batchTarget: stage.batchTarget } : {}),
+                ...(stage.batchManifestHash ? { batchManifestHash: stage.batchManifestHash } : {}),
+                ...(stage.verificationTarget
+                  ? { verificationTarget: stage.verificationTarget }
+                  : {}),
                 inputCoverage: inputCoverage({
                   normalization,
                   approved: approvedBlocks,
@@ -183,6 +157,7 @@ export class ProviderRunner {
         }
         if (execution.getJob(job.id)?.cancellationRequested)
           return execution.cancelClaimedJob(lease())
+        authorizeStage(this.options, job, stage)
         if (
           receipt.usage.kind === "known" &&
           receipt.usage.outputTokens > Math.min(6000, run.budget.maxOutputTokens)
@@ -202,7 +177,13 @@ export class ProviderRunner {
             })
             const parsed = validation.parsed
             if (parsed.success) {
+              if (this.options.storage.liveStudyGuard.target)
+                this.options.storage.liveStudyGuard.used()
+              authorizeStage(this.options, job, stage)
               stage.onValidated?.(job)
+              if (execution.getJob(job.id)?.cancellationRequested)
+                return execution.cancelClaimedJob(lease())
+              authorizeStage(this.options, job, stage)
               return execution.completeJob({
                 ...lease(),
                 resultHash: contentDigest(JSON.stringify(parsed.data)),
@@ -213,12 +194,20 @@ export class ProviderRunner {
               run.budget.maxSchemaRepairs
             )
               return fail("malformed-output")
-            const repairRequest = structuredRequest({
-              ...requestInput,
-              ...(validation.repair ? { schemaRepair: validation.repair } : {}),
+            await prepareStageRequest({
+              sourceCharacterLimit: run.budget.maxSourceCharacters,
+              setup,
+              stage: {
+                ...stage,
+                ...(this.options.capacity ? { capacity: this.options.capacity } : {}),
+              },
+              approved: approvedBlocks,
+              request: {
+                ...requestInput,
+                ...(validation.repair ? { schemaRepair: validation.repair } : {}),
+              },
+              measure: (request) => measureRequest(request, adapter),
             })
-            if ((await measureRequest(repairRequest, adapter)) > MAX_PROVIDER_REQUEST_BYTES)
-              return fail("input-limit")
             const prepared = execution.reserveAttempt({
               ...lease(),
               attemptId: randomUUID(),

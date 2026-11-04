@@ -1,6 +1,21 @@
 import { z } from "zod"
-import { contentDigest } from "./identity.ts"
-import { Provider } from "./provider.ts"
+import {
+  AnalysisCacheInput,
+  analysisCacheKey,
+  baseAnalysisCacheKey,
+  ModelSettings,
+} from "./analysis-cache.ts"
+import { AnalysisEvaluationPurpose } from "./analysis-purpose.ts"
+import { BATCHED_VERIFICATION_VERSION, BatchedVerificationReserve } from "./batched-verification.ts"
+import { bookMapProjection, WholeBookPreparation } from "./book-preparation.ts"
+import { ExperimentalCoverageOptIn } from "./experimental-coverage.ts"
+
+export {
+  AnalysisCacheInput,
+  analysisCacheKey,
+  baseAnalysisCacheKey,
+  ModelSettings,
+} from "./analysis-cache.ts"
 
 export { Provider } from "./provider.ts"
 
@@ -12,7 +27,6 @@ import {
   EditionId,
   GrantId,
   InstallationId,
-  NormalizationRevisionId,
   OwnerId,
   ResourcePath,
   SetupRevisionId,
@@ -23,94 +37,52 @@ import {
   uniqueValues,
 } from "./primitives.ts"
 import { SourceSpan } from "./source.ts"
-import { SourceScope } from "./source-scope.ts"
 
 export { SourceScope, wholeBookScope } from "./source-scope.ts"
 
-import {
-  isSubscriptionProvider,
-  SubscriptionDestination,
-  sameSubscriptionDestination,
-} from "./subscriptions.ts"
+import { SubscriptionDestination, sameSubscriptionDestination } from "./subscriptions.ts"
 
-export const ModelSettings = z
-  .strictObject({
-    temperature: z.number().min(0).max(2),
-    topP: z.number().min(0).max(1),
-    maxOutputTokens: z.number().int().positive().max(1_000_000),
-    seed: z.number().int().nullable(),
-    reasoningEffort: z.enum(["default", "low", "medium", "high"]),
-  })
-  .readonly()
-export const AnalysisCacheInput = z
-  .strictObject({
-    editionHash: Digest,
-    normalizationRevisionId: NormalizationRevisionId,
-    scope: SourceScope,
-    provider: Provider,
-    model: Text,
-    destination: SubscriptionDestination.optional(),
-    analysisPromptVersion: Text,
-    analysisSchemaVersion: Text,
-    settings: ModelSettings,
-  })
-  .refine(
-    (input) =>
-      isSubscriptionProvider(input.provider)
-        ? input.destination?.provider === input.provider
-        : input.destination === undefined,
-    "subscription destination must match provider",
-  )
-  .readonly()
-export type AnalysisCacheInput = z.infer<typeof AnalysisCacheInput>
-export function analysisCacheKey(input: AnalysisCacheInput): Digest {
-  return contentDigest(
-    JSON.stringify([
-      input.editionHash,
-      input.normalizationRevisionId,
-      input.scope.kind,
-      input.scope.selected.map((resource) => [resource.resourcePath, resource.blockIds]),
-      input.scope.exclusions.map((resource) => [resource.resourcePath, resource.blockIds]),
-      input.provider,
-      input.model,
-      input.analysisPromptVersion,
-      input.analysisSchemaVersion,
-      input.settings.temperature,
-      input.settings.topP,
-      input.settings.maxOutputTokens,
-      input.settings.seed,
-      input.settings.reasoningEffort,
-      ...(input.destination
-        ? [
-            [
-              input.destination.provider,
-              input.destination.accountId,
-              input.destination.workspaceId,
-              input.destination.installationId,
-              input.destination.connectionRevision,
-              input.destination.billingRoute,
-              ...(input.destination.executionPolicy
-                ? [
-                    input.destination.executionPolicy,
-                    input.destination.identityBinding,
-                    input.destination.observedAccount,
-                  ]
-                : []),
-            ],
-          ]
-        : []),
-    ]),
-  )
-}
 export const StudySetupRevision = z
   .strictObject({
     id: SetupRevisionId,
     studyId: StudyId,
     editionId: EditionId,
     analysis: AnalysisCacheInput,
+    experimentalCoverageOptIn: ExperimentalCoverageOptIn.optional(),
+    batchedVerificationReserve: BatchedVerificationReserve.optional(),
     generation: z
       .strictObject({ promptVersion: Text, schemaVersion: Text, settings: ModelSettings })
       .readonly(),
+  })
+  .superRefine((setup, ctx) => {
+    const reserve = setup.batchedVerificationReserve,
+      processing = setup.analysis.processing
+    if (!reserve && !processing?.batchReserveId) return
+    if (
+      !reserve ||
+      processing?.synthesisVersion !== BATCHED_VERIFICATION_VERSION ||
+      (processing.preprocessingVersion !== "batched-capacity-4" &&
+        processing.preprocessingVersion !== "batched-room-5") ||
+      processing.batchReserveId !== reserve.id ||
+      reserve.analysisKey !== baseAnalysisCacheKey(setup.analysis) ||
+      reserve.windowHashes.length !== processing.plan?.length ||
+      reserve.capacityId !== processing.capacityId
+    )
+      ctx.addIssue({ code: "custom", message: "foreign or circular verification reserve" })
+    if (
+      reserve &&
+      JSON.stringify(setup.analysis.purpose) !==
+        JSON.stringify("purpose" in reserve ? reserve.purpose : undefined)
+    )
+      ctx.addIssue({ code: "custom", message: "foreign reserve purpose" })
+    if (
+      setup.analysis.purpose &&
+      reserve &&
+      (processing?.preprocessingVersion !== "batched-room-5" ||
+        setup.analysis.analysisPromptVersion !== "whole-book-2" ||
+        setup.analysis.analysisSchemaVersion !== "whole-book-2")
+    )
+      ctx.addIssue({ code: "custom", message: "evaluation requires current fixed room policy" })
   })
   .readonly()
 export type StudySetupRevision = z.infer<typeof StudySetupRevision>
@@ -127,6 +99,7 @@ const grantFields = {
   categories: uniqueValues(TransmissionCategory).refine((categories) => categories.length > 0),
   approvedAt: Timestamp,
   destination: SubscriptionDestination.optional(),
+  purpose: AnalysisEvaluationPurpose.optional(),
 }
 export const ActiveTransmissionGrant = z
   .strictObject({ kind: z.literal("active"), ...grantFields })
@@ -150,6 +123,12 @@ export const TransmissionAuthorization = z
       setup.id === grant.setupRevisionId &&
       grant.installationId === installationId &&
       grant.ownerId === ownerId &&
+      JSON.stringify(setup.analysis.purpose) === JSON.stringify(grant.purpose) &&
+      (!setup.analysis.purpose ||
+        (grant.id === `grant-${setup.id}` &&
+          grant.categories.length === 2 &&
+          grant.categories.includes("book-text") &&
+          grant.categories.includes("derived-study-material"))) &&
       sameSubscriptionDestination(setup.analysis.destination, grant.destination) &&
       (grant.destination === undefined || grant.destination.installationId === installationId) &&
       categories.every((category) => grant.categories.includes(category)),
@@ -181,8 +160,50 @@ export const AnalysisRevision = z
     claims: uniqueItems(Finding),
     concepts: uniqueItems(Finding),
     qualifications: uniqueItems(Finding),
+    wholeBook: WholeBookPreparation.optional(),
   })
   .superRefine((analysis, ctx) => {
+    if (analysis.cacheInput.analysisPromptVersion === "whole-book-2") {
+      const preparation = analysis.wholeBook
+      if (
+        JSON.stringify(preparation?.terminal) !==
+        JSON.stringify(
+          analysis.cacheInput.purpose && analysis.status === "successful"
+            ? "verified-analysis"
+            : undefined,
+        )
+      )
+        ctx.addIssue({ code: "custom", message: "foreign analysis terminal purpose" })
+      if (preparation) {
+        const projection = bookMapProjection(preparation)
+        if (
+          JSON.stringify([analysis.claims, analysis.concepts, analysis.qualifications]) !==
+          JSON.stringify([projection.claims, projection.concepts, projection.qualifications])
+        )
+          ctx.addIssue({
+            code: "custom",
+            message: "downstream findings differ from complete maps and synthesis",
+          })
+      }
+      if (
+        !preparation ||
+        preparation.capacityId !== analysis.cacheInput.processing?.capacityId ||
+        preparation.preprocessingVersion !== analysis.cacheInput.processing.preprocessingVersion ||
+        preparation.synthesisVersion !== analysis.cacheInput.processing.synthesisVersion ||
+        (analysis.status === "successful" &&
+          (preparation.phase !== "complete" ||
+            preparation.parts.some((part) => part.status !== "complete") ||
+            preparation.maps.length !== preparation.parts.length ||
+            preparation.maps.some((map) => !map.complete) ||
+            !preparation.synthesis?.complete ||
+            (preparation.synthesisVersion !== BATCHED_VERIFICATION_VERSION &&
+              preparation.verification.length !== preparation.maps.length + 1)))
+      )
+        ctx.addIssue({
+          code: "custom",
+          message: "whole-book preparation is incomplete or incompatible",
+        })
+    }
     if (analysis.cacheKey !== analysisCacheKey(analysis.cacheInput))
       ctx.addIssue({ code: "custom", message: "analysis cache key mismatch" })
     if (

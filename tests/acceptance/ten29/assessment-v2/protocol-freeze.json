@@ -1,0 +1,22 @@
+{
+  "protocol": "TEN29-offline-assessment-2",
+  "frozenAt": "2026-10-30T03:21:42.997Z",
+  "files": [
+    {
+      "path": "tests/acceptance/ten29/assessment-v2/POLICY.md",
+      "sha256": "2caed37bdcd2f75db3f92c74232e817ba4aa288d65ab22cef980a47242878887"
+    },
+    {
+      "path": "tests/acceptance/ten29/assessment-v2/rubric.json",
+      "sha256": "1e6c55a8f1608e8c73a20c42d32253ffbf0f1471fd8c5a98dda5de0f4bc233af"
+    },
+    {
+      "path": "tests/acceptance/ten29/assessment-v2/forms.json",
+      "sha256": "48f8508ee63d84de65de68a4817c36cf6936aa05b79a6b05ac5b0f1c76c187af"
+    }
+  ],
+  "filesCommitment": "78c71e9b07168ec2767cdb8a129b0cbc920688c4e87a942b0c8e76c410042991",
+  "seedCommitment": "a9d1741e425503601942a2a1cae93120c48c8d1b8b00f7d898ab5457b41e025b",
+  "humanScoring": "NOT STARTED",
+  "reference": "Run-local protocol-freeze.json committed before candidate authorship; this portable copy does not expose the seed."
+}

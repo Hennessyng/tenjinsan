@@ -8,6 +8,8 @@
     "deploy/**/*.ts",
     "scripts/**/*.ts",
     "packages/storage/src/backup-tables.ts",
+    "packages/storage/src/backup-row.ts",
+    "packages/storage/src/full-book-portable-schema.ts",
     "tests/deployment/**/*.ts",
     "tests/e2e/**/*.ts",
     "tests/exports/**/*.ts",

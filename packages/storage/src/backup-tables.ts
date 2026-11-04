@@ -1,5 +1,6 @@
 import * as C from "@reading-studio/contracts"
 import type { z } from "zod"
+import { FULL_BOOK_IMPORT_TABLE } from "./full-book-portable-schema.ts"
 
 export type Table = {
   readonly name: string
@@ -9,7 +10,7 @@ export type Table = {
 }
 
 // This is deliberately a column allowlist, never a database dump or SELECT *.
-export const TABLES: readonly Table[] = [
+export const LEGACY_TABLES: readonly Table[] = [
   {
     name: "book_editions",
     columns: "id original_hash original_blob_hash title record_json",
@@ -193,3 +194,35 @@ export const TABLES: readonly Table[] = [
     historical: true,
   },
 ]
+const BUDGET_TABLES: readonly Table[] = [
+  {
+    name: "live_study_guards",
+    columns:
+      "authorization_id study_id setup_revision_id target_json setup_hash attempt_limit# reserved_calls#",
+  },
+  {
+    name: "live_study_budgets",
+    columns: "id owner_id source_hash total_limit# reserved_total# kind adoption_json",
+  },
+  { name: "live_study_budget_members", columns: "authorization_id budget_id" },
+  { name: "live_study_retirements", columns: "authorization_id budget_id reason" },
+  { name: "live_study_adoption_barriers", columns: "authorization_id owner_id" },
+  {
+    name: "live_study_budget_approvals",
+    columns:
+      "authorization_id budget_id study_id setup_revision_id target_json setup_hash attempt_limit#",
+  },
+]
+export const TABLES: readonly Table[] = [...LEGACY_TABLES, ...BUDGET_TABLES, FULL_BOOK_IMPORT_TABLE]
+export function archiveTables(version: 10 | 11 | 12): readonly Table[] {
+  switch (version) {
+    case 10:
+      return LEGACY_TABLES
+    case 11:
+      return [...LEGACY_TABLES, ...BUDGET_TABLES]
+    case 12:
+      return TABLES
+    default:
+      return C.assertNever(version)
+  }
+}

@@ -1,0 +1,29 @@
+{
+  "status": {
+    "method": "thread/status/changed",
+    "params": { "threadId": "owned-thread", "status": { "type": "idle" } }
+  },
+  "queue": { "method": "thread/queue/changed", "params": { "threadId": "owned-thread" } },
+  "settings": {
+    "method": "thread/settings/updated",
+    "params": {
+      "threadId": "owned-thread",
+      "threadSettings": {
+        "approvalPolicy": "never",
+        "approvalsReviewer": "user",
+        "collaborationMode": {
+          "mode": "default",
+          "settings": {
+            "model": "synthetic-model",
+            "developer_instructions": "PRIVATE_PAYLOAD_SENTINEL"
+          }
+        },
+        "cwd": "/tmp/synthetic-owned",
+        "model": "synthetic-model",
+        "modelProvider": "openai",
+        "sandboxPolicy": { "type": "readOnly", "networkAccess": false },
+        "effort": "medium"
+      }
+    }
+  }
+}

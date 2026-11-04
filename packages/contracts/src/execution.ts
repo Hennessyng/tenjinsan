@@ -1,4 +1,5 @@
 import { z } from "zod"
+import { BatchedVerificationManifest } from "./batched-verification-manifest.ts"
 import { Provider, TransmissionGrant } from "./lineage.ts"
 import {
   AttemptId,
@@ -119,6 +120,17 @@ const job = {
   checkpoint: Digest.nullable(),
   cancellationRequested: z.boolean(),
   usage: Usage,
+  foundationTask: z
+    .discriminatedUnion("kind", [
+      z.strictObject({ kind: z.literal("map"), index: Natural }),
+      z.strictObject({ kind: z.literal("synthesis") }),
+      z.strictObject({
+        kind: z.literal("verification"),
+        index: Natural,
+        manifest: BatchedVerificationManifest,
+      }),
+    ])
+    .optional(),
 }
 export const Job = z
   .discriminatedUnion("state", [

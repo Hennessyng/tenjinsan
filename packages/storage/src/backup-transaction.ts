@@ -10,6 +10,7 @@ import {
   TABLES,
   tableNamed,
 } from "./backup-schema.ts"
+import { validateBudgetGraph } from "./live-budget-restore.ts"
 
 export type DestinationIdentity = {
   readonly owner: string
@@ -26,6 +27,9 @@ export function assertEmpty(sqlite: Database.Database): void {
 
 function remap(row: Row, table: string, identity: DestinationIdentity): Row {
   if (table === "studies") return { ...row, owner_id: identity.owner }
+  if (table === "full_book_imports") return { ...row, owner_id: identity.owner }
+  if (table === "live_study_adoption_barriers") return { ...row, owner_id: identity.owner }
+  if (table === "live_study_budgets") return { ...row, owner_id: identity.owner }
   if (table === "transmission_grants") {
     const grant = TransmissionGrant.parse(JSON.parse(z.string().parse(row["record_json"])))
     return {
@@ -129,6 +133,7 @@ export function insertPayload(
     WHERE json_extract(j.record_json, '$.grant') != json(g.record_json) LIMIT 1`)
     .get()
   if (mismatchedGrant) throw new BackupError("job historical grant mismatch")
+  validateBudgetGraph(sqlite)
 }
 
 export const stagingIdentity: DestinationIdentity = {

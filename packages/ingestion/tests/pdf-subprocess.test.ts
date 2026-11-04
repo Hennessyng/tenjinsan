@@ -76,3 +76,21 @@ it("passes the real V8 heap ceiling to the child", async () => {
   // Then
   expect(JSON.parse(output)).toContain("--max-old-space-size=128")
 })
+it("passes a WASM linear-memory ceiling distinct from the V8 heap ceiling", async () => {
+  // Given
+  const script = await worker("process.stdout.write(JSON.stringify(process.execArgv))")
+  // When
+  const output = await runPdfProcess(Buffer.from("synthetic"), script)
+  // Then
+  expect(JSON.parse(output)).toContain("--wasm-max-mem-pages=2048")
+})
+it("rejects actual WASM growth above the ceiling without touching allocated pages", async () => {
+  // Given
+  const script = await worker(
+    "const memory = new WebAssembly.Memory({ initial: 1, maximum: 65536 }); let accepted = true; try { memory.grow(2048) } catch (error) { if (!(error instanceof RangeError)) throw error; accepted = false } process.stdout.write(JSON.stringify({ accepted }))",
+  )
+  // When
+  const output = await runPdfProcess(Buffer.from("synthetic"), script)
+  // Then
+  expect(JSON.parse(output)).toEqual({ accepted: false })
+})

@@ -1,7 +1,14 @@
-import { contentDigest, InputCoverage, type Job } from "@reading-studio/contracts"
+import {
+  BATCHED_VERIFICATION_VERSION,
+  COVERAGE_VERIFICATION_VERSION,
+  contentDigest,
+  InputCoverage,
+  type Job,
+} from "@reading-studio/contracts"
 import { ProviderReceipt } from "@reading-studio/providers"
 import type { Storage } from "@reading-studio/storage"
 import { z } from "zod"
+import { sourceSemanticSupport } from "./job-source-support.ts"
 
 const Usage = z.discriminatedUnion("kind", [
   z.strictObject({
@@ -28,6 +35,8 @@ export const OwnerJob = z.strictObject({
   attempts: z.number().int().nonnegative(),
   retryRemaining: z.number().int().nonnegative(),
   callBudgetRemaining: z.number().int().nonnegative(),
+  callBudgetLimit: z.number().int().positive().default(64),
+  retired: z.boolean().default(false),
   runBudgetRemaining: z.number().int().nonnegative(),
   usage: Usage,
   failureCode: z.string().nullable(),
@@ -36,6 +45,9 @@ export const OwnerJob = z.strictObject({
   provider: z.string(),
   model: z.string(),
   inputCoverage: z.array(InputCoverage).optional(),
+  processingStep: z.enum(["chapter-map", "book-synthesis", "original-verification"]).optional(),
+  processingStrategy: z.enum(["complete-maps", "complete-maps-and-original"]).optional(),
+  semanticSupport: z.enum(["supported", "attention", "not-established"]).optional(),
 })
 export const OwnerJobs = z.strictObject({
   jobs: z.array(OwnerJob),
@@ -57,6 +69,12 @@ const safeFailures = new Set([
   "subscription-connection-changed",
   "bank-incompatible",
   "question-revision-conflict",
+  "route-re-review-required",
+  "capacity-unknown",
+  "capacity-limit",
+  "attempt-budget-limit",
+  "analysis-incomplete",
+  "unsupported-version",
 ])
 
 export function projectOwnerJobs(storage: Storage, ownerId: string, setupId?: string) {
@@ -92,6 +110,7 @@ export function projectOwnerJobs(storage: Storage, ownerId: string, setupId?: st
 }
 
 function projectOwnerJob(storage: Storage, job: Job, setupCalls: number) {
+  const shared = storage.liveStudyGuard.sharedStatus(job.setupRevisionId)
   const pause = storage.execution.providerPause(job.id)
   const setup = storage.sources.getSetup(job.setupRevisionId)
   if (!setup) throw new TypeError("Job setup missing")
@@ -108,6 +127,11 @@ function projectOwnerJob(storage: Storage, job: Job, setupCalls: number) {
         .length,
   )
   const last = attempts.at(-1)
+  const lastBody = last && storage.execution.getAttemptReceipt(last.id)
+  const lastReceipt = lastBody
+    ? ProviderReceipt.safeParse(receiptJson(new TextDecoder().decode(lastBody)))
+    : null
+  const metadata = lastReceipt?.success ? lastReceipt.data : null
   const coverage = attempts.flatMap((attempt) => {
     const body = storage.execution.getAttemptReceipt(attempt.id)
     if (!body) return []
@@ -142,6 +166,26 @@ function projectOwnerJob(storage: Storage, job: Job, setupCalls: number) {
     ? { kind: "unknown" as const }
     : job.usage
   return {
+    ...(metadata?.processingStep
+      ? {
+          processingStep: metadata.processingStep,
+          semanticSupport:
+            metadata.kind === "output" && metadata.processingStep === "original-verification"
+              ? sourceSemanticSupport({
+                  target: metadata.verificationTarget,
+                  batchTarget: metadata.batchTarget,
+                  output: receiptJson(metadata.text),
+                  requiredCoverage:
+                    (setup.analysis.processing?.synthesisVersion ===
+                      COVERAGE_VERIFICATION_VERSION ||
+                      setup.analysis.processing?.synthesisVersion ===
+                        BATCHED_VERIFICATION_VERSION) &&
+                    job.id.startsWith("wb-"),
+                })
+              : "not-established",
+        }
+      : {}),
+    ...(metadata?.processingStrategy ? { processingStrategy: metadata.processingStrategy } : {}),
     id: job.id,
     studyId: setup.studyId,
     sourceRevisionId: setup.analysis.normalizationRevisionId,
@@ -164,7 +208,9 @@ function projectOwnerJob(storage: Storage, job: Job, setupCalls: number) {
     cancellationRequested: job.cancellationRequested,
     attempts: attempts.length,
     retryRemaining,
-    callBudgetRemaining: Math.max(0, 64 - setupCalls),
+    callBudgetRemaining: shared ? shared.remaining : Math.max(0, 64 - setupCalls),
+    callBudgetLimit: shared?.limit ?? 64,
+    retired: shared?.retired ?? false,
     runBudgetRemaining: Math.max(0, run.budget.maxCalls - run.reservedCalls),
     usage,
     failureCode:
@@ -181,11 +227,19 @@ function projectOwnerJob(storage: Storage, job: Job, setupCalls: number) {
       last?.state === "response-received" &&
       !last.retryApproved &&
       run.state === "running" &&
-      setupCalls < 64 &&
+      (shared ? shared.remaining > 0 && !shared.retired : setupCalls < 64) &&
       run.reservedCalls < run.budget.maxCalls,
     unknownAttemptId: job.provider === "openai" ? null : (unknown?.id ?? null),
     provider: job.provider,
     model: job.model,
     ...(coverage.length ? { inputCoverage: coverage } : {}),
+  }
+}
+function receiptJson(text: string): unknown {
+  try {
+    return JSON.parse(text)
+  } catch (error) {
+    if (error instanceof SyntaxError) return null
+    throw error
   }
 }

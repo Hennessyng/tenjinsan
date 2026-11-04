@@ -1,0 +1,35 @@
+{
+  "version": "ten29-format-only-v1",
+  "formatOnly": true,
+  "formatterExitCode": 0,
+  "originalManifestSha256": "3b572a4f4619ea7698bcd41dd63f0abe55a9dd2853d958ec3751cd46ce152e0d",
+  "canonicalAlgorithm": "SHA256 of UTF-8 JSON.stringify(JSON.parse(bytes)); key order preserved; no Unicode normalization",
+  "deepParsedIdentity": true,
+  "decomposedAccentPreserved": true,
+  "entries": [
+    {
+      "path": "tests/acceptance/ten29/corpus.json",
+      "originalPath": "tests/acceptance/ten29/frozen-v1/corpus.json.original",
+      "oldSha256": "3adc2be3d858e682e8ba2e70ae787452c0721ccd7afe5312b629b0ff15e387c1",
+      "newSha256": "f7177b08bbd061db050fd7d61a41a48773ce1bd178a2ada3cbc2e980f8be2825",
+      "oldCanonicalSha256": "fbb4ef881d0c26c58ceefd48e2c7268ca44cef2d7491be421ed5fc6ed1a6bf12",
+      "newCanonicalSha256": "fbb4ef881d0c26c58ceefd48e2c7268ca44cef2d7491be421ed5fc6ed1a6bf12"
+    },
+    {
+      "path": "tests/acceptance/ten29/inventory.json",
+      "originalPath": "tests/acceptance/ten29/frozen-v1/inventory.json.original",
+      "oldSha256": "89eb8fcb79cf2a7f2cd4d65e6f933aeb15a1fc5a4e4bc46815b11e95f59a2410",
+      "newSha256": "424b98f264dd1713e0de6c09aae55c9020f0f935b68af71fa19bdcd552003da7",
+      "oldCanonicalSha256": "bf52c6093f89e9f84892e4ee8b9f0f6898b2fb41654cf2722ec89aa4cc850d82",
+      "newCanonicalSha256": "bf52c6093f89e9f84892e4ee8b9f0f6898b2fb41654cf2722ec89aa4cc850d82"
+    },
+    {
+      "path": "tests/acceptance/ten29/answers.json",
+      "originalPath": "tests/acceptance/ten29/frozen-v1/answers.json.original",
+      "oldSha256": "978119bbbd34028b3920d487326797643e62b01301ba0f54331efa43729f9f40",
+      "newSha256": "45ed7bf1535e9f07f77006c3216653659be3f4d09ee6ec313b8ee84ced0f3467",
+      "oldCanonicalSha256": "85cf01d9418a36fa9acd3f7722b00ec33d115e089327bbf08b5bec1e047dbe84",
+      "newCanonicalSha256": "85cf01d9418a36fa9acd3f7722b00ec33d115e089327bbf08b5bec1e047dbe84"
+    }
+  ]
+}

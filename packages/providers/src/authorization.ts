@@ -11,14 +11,28 @@ import {
 } from "@reading-studio/contracts"
 import type { Storage } from "@reading-studio/storage"
 import { ProviderError, validateModel } from "./catalog.ts"
+import { requireManagedChatGPT } from "./inference-policy.ts"
+import type { VerifiedRouteCapacity } from "./request-capacity.ts"
 
 export type ProviderAuthority = {
   readonly storage: Storage
   readonly installationId: string
   readonly ownerId: string
   readonly localSubscriptions?: boolean
+  readonly capacity?: VerifiedRouteCapacity
 }
 export function authorizeSource(authority: ProviderAuthority, job: Job) {
+  const result = authorizeSetupSource(authority, job)
+  try {
+    authority.storage.liveStudyGuard.assertJob(job)
+  } catch (error) {
+    if (error instanceof Error) throw new ProviderError("unauthorized")
+    throw error
+  }
+  return result
+}
+export function authorizeSetupSource(authority: ProviderAuthority, job: Job) {
+  authority.storage.liveStudyGuard.assertActive(job.setupRevisionId)
   if (job.provider === "openai") throw new ProviderError("unauthorized")
   const sources = authority.storage.sources
   const setup = sources.getSetup(job.setupRevisionId)
@@ -36,6 +50,8 @@ export function authorizeSource(authority: ProviderAuthority, job: Job) {
   )
     throw new ProviderError("unauthorized")
   const approved = authorization.data.setup
+  if (approved.analysis.analysisPromptVersion === "whole-book-2")
+    requireManagedChatGPT(job.provider)
   if (isSubscriptionProvider(job.provider)) {
     const destination = approved.analysis.destination
     if (

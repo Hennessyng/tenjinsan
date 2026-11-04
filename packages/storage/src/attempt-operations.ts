@@ -9,6 +9,7 @@ import {
 } from "@reading-studio/contracts"
 import { asc, eq } from "drizzle-orm"
 import { z } from "zod"
+import { batchedAttemptBudget } from "./batched-attempt-budget.ts"
 import { requireJobBrief } from "./brief-approval.ts"
 import { ExecutionTransitionError, MaintenancePausedError, StoredRecordError } from "./errors.ts"
 import {
@@ -30,6 +31,9 @@ export class AttemptOperations {
     const parsed = parseInput(PrepareAttemptInput, input, "attempt preparation")
     return this.state.immediate("attempt preparation", parsed.attemptId, () => {
       const claim = this.state.requireClaim(parsed)
+      const liveLimit = this.state.context.liveStudyGuard.limit(claim.job.setupRevisionId)
+      const batched = batchedAttemptBudget(this.state.context, claim.job)
+      const limit = Math.min(liveLimit, batched?.totalLimit ?? liveLimit)
       requireJobBrief(this.state.context, claim.job)
       if (claim.job.cancellationRequested) {
         throw new ExecutionTransitionError("job", claim.job.id, "active without cancellation")
@@ -43,7 +47,12 @@ export class AttemptOperations {
           JOIN jobs j ON j.run_id = a.run_id WHERE j.setup_revision_id = ?`)
         .get(claim.job.setupRevisionId)
       const total = z.object({ calls: z.number().int().nonnegative() }).parse(aggregate).calls
-      if (run.reservedCalls >= run.budget.maxCalls || total >= 64) {
+      if (
+        run.reservedCalls >=
+          Math.min(run.budget.maxCalls, batched?.perRunLimit ?? run.budget.maxCalls) ||
+        total >= limit ||
+        (batched && batched.phaseUsed >= batched.phaseLimit)
+      ) {
         this.state.writeRun(parseInput(GenerationRun, { ...run, state: "paused" }, "run pause"))
         this.state.writeJob(
           transitionJob(claim.job, { state: "paused", reason: "budget-exhausted" }),
@@ -82,6 +91,7 @@ export class AttemptOperations {
           recordJson: encodeRecord(attempt),
         })
         .run()
+      this.state.context.liveStudyGuard.recordReservation(claim.job.setupRevisionId)
       return { kind: "prepared", attempt }
     })
   }
@@ -91,6 +101,7 @@ export class AttemptOperations {
     return this.state.immediate("attempt dispatch", parsed.attemptId, () => {
       if (maintenanceActive(this.state.context.sqlite)) throw new MaintenancePausedError()
       const claim = this.state.requireClaim(parsed)
+      this.state.context.liveStudyGuard.limit(claim.job.setupRevisionId)
       requireJobBrief(this.state.context, claim.job)
       if (claim.job.cancellationRequested) {
         throw new ExecutionTransitionError("job", claim.job.id, "active without cancellation")
@@ -112,6 +123,7 @@ export class AttemptOperations {
     const parsed = parseInput(ReceiptAttemptInput, input, "attempt receipt")
     return this.state.immediate("attempt receipt", parsed.attemptId, () => {
       const claim = this.state.requireClaim(parsed)
+      this.state.context.liveStudyGuard.assertJob(claim.job)
       const attempt = this.state.loadAttempt(parsed.attemptId)
       if (attempt.state !== "dispatching" || attempt.runId !== claim.job.runId) {
         throw new ExecutionTransitionError("attempt", attempt.id, "dispatching for claimed run")
@@ -170,6 +182,8 @@ export class AttemptOperations {
       if (jobRow === undefined)
         throw new ExecutionTransitionError("job", attempt.runId, "persisted")
       const loaded = this.state.loadJob(jobRow.id)
+      if (parsed.resolution === "retry-approved")
+        this.state.context.liveStudyGuard.assertUnknownResolution(loaded.record)
       const run = this.state.loadRun(attempt.runId)
       if (
         loaded.record.state === "cancelled" ||

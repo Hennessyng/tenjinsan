@@ -33,6 +33,10 @@ export type SourceWindow = {
   readonly end: number
   readonly text: string
   readonly pageLabel?: string
+  readonly ranges?: readonly SourceWindow[]
+  readonly groupId?: string
+  readonly heading?: number
+  readonly structure?: "paragraph" | "list-item" | "table-cell"
 }
 export class BookMapError extends Error {
   override readonly name = "BookMapError"

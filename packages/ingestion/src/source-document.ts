@@ -26,14 +26,17 @@ const Options = z.strictObject({
   parserVersion: Text.optional(),
   normalizerVersion: Text.optional(),
 })
+const normalizerVersions = { epub: 2, docx: 3, txt: 2, pdf: 5 } as const
 
 export async function prepareSourceDocument(file: FileHandle, input: unknown) {
   const parsed = Options.parse(input)
   const options = {
     ...parsed,
-    parserVersion: parsed.parserVersion ?? `${parsed.format}-parser-2`,
+    parserVersion:
+      parsed.parserVersion ?? `${parsed.format}-parser-${parsed.format === "pdf" ? 3 : 2}`,
     normalizerVersion:
-      parsed.normalizerVersion ?? `${parsed.format}-normalizer-${parsed.format === "docx" ? 3 : 2}`,
+      parsed.normalizerVersion ??
+      `${parsed.format}-normalizer-${normalizerVersions[parsed.format]}`,
   }
   const hash = createHash("sha256")
   const textBytes: Buffer[] = []

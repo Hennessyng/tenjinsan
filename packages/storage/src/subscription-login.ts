@@ -50,6 +50,9 @@ export class SubscriptionLogin {
       throw error
     }
   }
+  storedStatus(installation: string): LocalSubscriptionSession {
+    return this.store.status(installation)
+  }
   canDispatch(installation: string): boolean {
     const state = this.status(installation)
     return (
@@ -68,7 +71,7 @@ export class SubscriptionLogin {
       this.store.provider,
     )
   }
-  private open(installation: string, existing?: LocalSubscriptionSession) {
+  private open(installation: string, existing?: LocalSubscriptionSession, syntheticOnly = false) {
     if (this.closed) throw new SubscriptionLoginError("tool-unavailable")
     const lock = this.slot.lock(installation)
     try {
@@ -80,6 +83,7 @@ export class SubscriptionLogin {
       const rpc = new SubscriptionToolRpc(
         join(this.slot.directory(installation), state.generation),
         this.store.provider,
+        syntheticOnly,
       )
       this.processes.add(rpc)
       return { state, rpc, lock }
@@ -201,10 +205,11 @@ export class SubscriptionLogin {
   async withSession<T>(
     installation: string,
     operation: (session: LocalToolSession) => Promise<T>,
+    syntheticOnly = false,
   ): Promise<T> {
     const current = this.status(installation)
     if (current.status !== "connected") throw new SubscriptionLoginError("login-failed")
-    const { rpc, lock } = this.open(installation, current)
+    const { rpc, lock } = this.open(installation, current, syntheticOnly)
     let guard: ReturnType<typeof setInterval> | undefined
     let verified = false
     try {

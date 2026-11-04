@@ -13,7 +13,13 @@ export async function runPdfProcess(
   return new Promise<string>((resolve, reject) => {
     const child = execFile(
       process.execPath,
-      ["--max-old-space-size=128", fileURLToPath(worker), JSON.stringify(limits)],
+      [
+        "--wasm-max-mem-pages=2048",
+        "--max-old-space-size=128",
+        "--experimental-transform-types",
+        fileURLToPath(worker),
+        JSON.stringify(limits),
+      ],
       {
         timeout: limits.milliseconds,
         maxBuffer: limits.outputBytes,

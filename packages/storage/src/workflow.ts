@@ -11,12 +11,17 @@ import type {
   StudyOutline,
 } from "@reading-studio/contracts"
 import type { AnalysisRepository } from "./workflow-analysis.ts"
+export type SuccessfulAnalysisBinding = { readonly setupId: string; readonly grantId?: string }
+
 import type { PublicationRepository } from "./workflow-publication.ts"
 import type { StudyWorkflowRepository } from "./workflow-study.ts"
 
 export interface WorkflowRepository {
   ensureAnalysisInput(input: unknown): InputRevisionId
-  findSuccessfulAnalysis(input: unknown): AnalysisRevision | null
+  findSuccessfulAnalysis(
+    input: unknown,
+    binding?: SuccessfulAnalysisBinding,
+  ): AnalysisRevision | null
   appendAnalysis(input: unknown): AnalysisRevision
   appendQuestion(input: unknown): Question
   appendAnswer(input: unknown): AnswerSubmission
@@ -27,6 +32,7 @@ export interface WorkflowRepository {
   appendPrivacyReview(input: unknown): PrivacyReview
   appendPublication(input: unknown): PublicationRevision
   getAnalysis(input: unknown): AnalysisRevision | null
+  findBatchedAnalysis(cacheKey: string, setupId: string, grantId: string): AnalysisRevision | null
   getQuestion(input: unknown): Question | null
   getOutline(input: unknown): StudyOutline | null
   getLesson(input: unknown): LessonRevision | null
@@ -45,8 +51,14 @@ export class SqliteWorkflowRepository implements WorkflowRepository {
     return this.analyses.ensureSetupInput(input)
   }
 
-  findSuccessfulAnalysis(input: unknown): AnalysisRevision | null {
-    return this.analyses.findSuccessful(input)
+  findSuccessfulAnalysis(
+    input: unknown,
+    binding?: SuccessfulAnalysisBinding,
+  ): AnalysisRevision | null {
+    return this.analyses.findSuccessful(input, binding)
+  }
+  findBatchedAnalysis(cacheKey: string, setupId: string, grantId: string): AnalysisRevision | null {
+    return this.analyses.latestBatched(cacheKey, setupId, grantId)
   }
 
   getQuestion(input: unknown): Question | null {

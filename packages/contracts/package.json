@@ -13,7 +13,9 @@
     "./provider": "./src/provider.ts",
     "./subscriptions": "./src/subscriptions.ts",
     "./setup-progress": "./src/setup-progress.ts",
-    "./i18n": "./src/i18n/index.ts"
+    "./i18n": "./src/i18n/index.ts",
+    "./export-ui": "./src/export-ui.ts",
+    "./primitives": "./src/primitives.ts"
   },
   "scripts": {
     "build": "tsc --noEmit -p tsconfig.json",

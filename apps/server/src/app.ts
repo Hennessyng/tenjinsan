@@ -1,5 +1,6 @@
 import type { OutlineFixtureProvider } from "@reading-studio/generation/outline"
 import { DEFAULT_ARCHIVE_LIMITS } from "@reading-studio/ingestion/archive"
+import type { VerifiedRouteCapacity } from "@reading-studio/providers"
 import type {
   BriefRepository,
   InterviewRepository,
@@ -11,6 +12,8 @@ import type {
 import { Hono } from "hono"
 import { configureBrief } from "./brief.ts"
 import { configureEvidence } from "./evidence.ts"
+import { configureFullBookPreparation } from "./full-book-preparation-api.ts"
+import type { FullBookServerRuntime } from "./full-book-runtime.ts"
 import { configureInterview } from "./interview.ts"
 import { configureInterviewReadiness } from "./interview-readiness.ts"
 import { configureJobs } from "./jobs.ts"
@@ -44,6 +47,8 @@ type LegacyAuthFixture = {
 }
 
 export type AppDependencies = {
+  readonly bookMapCapacity?: VerifiedRouteCapacity
+  readonly fullBookRuntime?: FullBookServerRuntime
   readonly serverHost?: string
   readonly studioAssets?: StudioAssets
   readonly reviewStorage?: Storage
@@ -82,6 +87,8 @@ export type AppDependencies = {
 }
 
 export function createApp({
+  bookMapCapacity,
+  fullBookRuntime,
   serverHost,
   studioAssets,
   reviewStorage,
@@ -103,6 +110,13 @@ export function createApp({
   renderOutputsInWorker,
 }: AppDependencies) {
   const app = new Hono<AppEnvironment>()
+  app.onError((error, context) => {
+    if (isAnalysisPurposeFailure(error))
+      return context.json({ error: "analysis-purpose-forbidden", transmission: "not-sent" }, 409)
+    if (error instanceof HTTPException) return error.getResponse()
+    console.error(error)
+    return context.text("Internal Server Error", 500)
+  })
   const access = createAccessMiddleware(security)
   const libraryOwnerId = configuredOwnerId ?? reviewStorage?.libraryOwnerId()
   app.use("*", access.requestBoundary)
@@ -173,6 +187,11 @@ export function createApp({
     })
   if (reviewStorage) configureRevisions(app, reviewStorage)
   if (reviewStorage) configureJobs(app, reviewStorage)
+  if (reviewStorage)
+    configureFullBookPreparation(app, reviewStorage, {
+      local: localSubscriptionAccess(serverHost, security),
+      runtime: fullBookRuntime,
+    })
   if (reviewStorage) configureInterviewReadiness(app, reviewStorage)
   if (reviewStorage) configureProviderConnections(app, reviewStorage)
   if (reviewStorage)
@@ -204,6 +223,7 @@ export function createApp({
   if (sources !== undefined) configureSourceViewer(app, sources, upload?.root)
   if (sources !== undefined)
     configureStudySetup(app, {
+      ...(bookMapCapacity ? { bookMapCapacity } : {}),
       localSubscriptions: localSubscriptionAccess(serverHost, security),
       sources,
       ...(reviewStorage ? { storage: reviewStorage } : {}),
@@ -223,3 +243,6 @@ export function createApp({
   configurePrivateApi?.(app)
   return app
 }
+
+import { isAnalysisPurposeFailure } from "@reading-studio/storage"
+import { HTTPException } from "hono/http-exception"

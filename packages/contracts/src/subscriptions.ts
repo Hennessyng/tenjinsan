@@ -1,6 +1,8 @@
 import { z } from "zod"
 import { InstallationId, Text } from "./primitives.ts"
 
+export const LOCAL_CHATGPT_INFERENCE_POLICY = "local-chatgpt-exclusive-1"
+
 export const SubscriptionProvider = z.enum([
   "chatgpt-subscription",
   "claude-subscription",

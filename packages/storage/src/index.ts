@@ -1,3 +1,4 @@
+export { isAnalysisPurposeFailure } from "./analysis-purpose-mutations.ts"
 export {
   AuthStorage,
   AuthStorageReadError,
@@ -22,11 +23,20 @@ export {
 } from "./errors.ts"
 export type { ExecutionRepository } from "./execution.ts"
 export type { ReserveAttemptResult } from "./execution-inputs.ts"
+export { FullBookExecutionError, FullBookLease } from "./full-book-execution-contract.ts"
+export { fullBookNativeReleased, fullBookNativeScope } from "./full-book-release.ts"
 export type { InterviewRepository } from "./interviews.ts"
 export { deleteLibraryItem } from "./library-deletion.ts"
+export { configuredLiveStudyTarget, LiveStudyGuardError } from "./live-study-contract.ts"
 export { maintenanceStatus, recoverMaintenance, withMaintenance } from "./maintenance.ts"
 export type { OutlineRepository } from "./outlines.ts"
 export type { ReviewRepository } from "./reviews.ts"
+export {
+  type PreparedRpcFrame,
+  RpcFrameWriter,
+  rpcFrameObservation,
+  serializeRpcFrame,
+} from "./rpc-frame.ts"
 export { authSchema } from "./schema/auth.ts"
 export type { SourceRepository, StudyRecord } from "./sources.ts"
 export { openStorage, type Storage, type StorageCounts } from "./storage.ts"

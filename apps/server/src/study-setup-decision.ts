@@ -102,7 +102,10 @@ export function configureSetupDecision(
       setupRevisionId: setup.id,
       installationId,
       ownerId: source.study.ownerId,
-      categories: ["book-text", "derived-study-material", "reader-context"],
+      categories: setup.analysis.purpose
+        ? ["book-text", "derived-study-material"]
+        : ["book-text", "derived-study-material", "reader-context"],
+      ...(setup.analysis.purpose ? { purpose: setup.analysis.purpose } : {}),
       approvedAt: new Date().toISOString(),
       ...(setup.analysis.destination ? { destination: setup.analysis.destination } : {}),
       ...(sending ? {} : { revokedAt: new Date().toISOString() }),

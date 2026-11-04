@@ -7,7 +7,9 @@
     "./source-document": "./src/source-document.ts",
     "./normalize": "./src/normalize.ts",
     "./archive": "./src/archive.ts",
-    "./test-support": "./tests/fixtures.ts"
+    "./test-support": "./tests/fixtures.ts",
+    "./pdf-test-support": "./tests/pdf-test-support.ts",
+    "./pdf-dependency-policy": "./src/pdf/dependency-policy.ts"
   },
   "scripts": {
     "build": "tsc --noEmit -p tsconfig.json"
@@ -15,8 +17,13 @@
   "dependencies": {
     "@reading-studio/contracts": "workspace:*",
     "@zip.js/zip.js": "2.8.26",
-    "pdfjs-dist": "6.4.299",
     "saxes": "6.0.0",
-    "zod": "4.6.5"
+    "zod": "4.6.5",
+    "@embedpdf/engine-runtime": "3.0.0-next.16",
+    "@embedpdf/engine-runtime-wasm32": "3.0.0-next.16",
+    "detect-libc": "2.1.2"
+  },
+  "devDependencies": {
+    "pdfjs-dist": "6.4.299"
   }
 }

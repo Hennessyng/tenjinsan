@@ -1,4 +1,5 @@
 import { analysisCacheKey, type Job, type Question } from "@reading-studio/contracts"
+import { interpretationVerified } from "@reading-studio/generation"
 import {
   DiscoveryDraft,
   DiscoveryError,
@@ -30,7 +31,10 @@ export function questionsStage(storage: Storage, job: Job): StructuredStage {
     job.model !== setup.analysis.model
   )
     throw new TypeError("Foreign questions job")
-  const analysis = storage.workflow.findSuccessfulAnalysis(analysisCacheKey(setup.analysis))
+  const analysis = storage.workflow.findSuccessfulAnalysis(analysisCacheKey(setup.analysis), {
+    setupId: setup.id,
+    grantId: job.grant.id,
+  })
   if (!analysis) throw new TypeError("Successful analysis required")
   const findings = [...analysis.claims, ...analysis.concepts, ...analysis.qualifications]
   const known = new Set(
@@ -101,7 +105,11 @@ export function questionsStage(storage: Storage, job: Job): StructuredStage {
 export function saveQuestions(storage: Storage, job: Job): void {
   const setup = storage.sources.getSetup(job.setupRevisionId)
   const analysis =
-    setup && storage.workflow.findSuccessfulAnalysis(analysisCacheKey(setup.analysis))
+    setup &&
+    storage.workflow.findSuccessfulAnalysis(analysisCacheKey(setup.analysis), {
+      setupId: setup.id,
+      grantId: job.grant.id,
+    })
   if (!setup || !analysis) throw new TypeError("Current questions analysis missing")
   if (
     storage.sources.getLatestSetup(setup.studyId)?.id !== setup.id ||
@@ -133,6 +141,11 @@ export function saveQuestions(storage: Storage, job: Job): void {
   const receipt = ProviderReceipt.parse(JSON.parse(new TextDecoder().decode(body)))
   if (receipt.kind !== "output") throw new TypeError("Questions output unavailable")
   const output = questionsStage(storage, job).schema.parse(JSON.parse(receipt.text))
+  if (
+    setup.analysis.analysisPromptVersion === "whole-book-2" &&
+    !interpretationVerified(storage, job)
+  )
+    return
   const context = {
     revisionId: job.inputRevisionId,
     studyId: setup.studyId,

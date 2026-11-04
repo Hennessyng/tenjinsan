@@ -1,12 +1,46 @@
 import { fork } from "node:child_process"
-import { mkdirSync, mkdtempSync, realpathSync, writeFileSync } from "node:fs"
-import { dirname, join } from "node:path"
+import {
+  accessSync,
+  constants,
+  mkdirSync,
+  mkdtempSync,
+  realpathSync,
+  statSync,
+  writeFileSync,
+} from "node:fs"
+import { basename, delimiter, dirname, isAbsolute, join } from "node:path"
 import type { LocalSubscriptionProvider } from "@reading-studio/contracts"
+import { z } from "zod"
 import { hasCustomSubscriptionProfile, ownedPolicyStamp } from "./subscription-profile.ts"
 import { SubscriptionLoginError } from "./subscription-session-store.ts"
+import { assertSyntheticSubscriptionTool } from "./synthetic-transport.ts"
 
-export function launchSubscriptionTool(home: string, provider: LocalSubscriptionProvider) {
+export function launchSubscriptionTool(
+  home: string,
+  provider: LocalSubscriptionProvider,
+  syntheticOnly = false,
+) {
   if (process.platform === "win32") throw new SubscriptionLoginError("tool-unavailable")
+  const runtime = z
+    .object({
+      execPath: z.string().min(1).refine(isAbsolute),
+      release: z.object({ name: z.literal("node") }),
+    })
+    .safeParse(process)
+  if (!runtime.success) throw new SubscriptionLoginError("tool-unavailable")
+  let executable: string
+  try {
+    executable = realpathSync(runtime.data.execPath)
+    if (basename(executable) !== "node" || !statSync(executable).isFile())
+      throw new SubscriptionLoginError("tool-unavailable")
+    accessSync(executable, constants.X_OK)
+  } catch (error) {
+    if (z.object({ code: z.string() }).safeParse(error).success)
+      throw new SubscriptionLoginError("tool-unavailable")
+    throw error
+  }
+  const nodeDirectory = dirname(executable)
+  const inheritedPath = process.env["PATH"]
   if (hasCustomSubscriptionProfile(home, provider))
     throw new SubscriptionLoginError("custom-configuration")
   mkdirSync(home, { recursive: true, mode: 0o700 })
@@ -73,16 +107,18 @@ export function launchSubscriptionTool(home: string, provider: LocalSubscription
     default:
       return assertNever(provider)
   }
+  if (syntheticOnly) assertSyntheticSubscriptionTool(binary)
   const stamp = ownedPolicyStamp(home, provider)
   const child = fork(
     new URL("./subscription-tool-supervisor.ts", import.meta.url),
     [join(dirname(home), "session-process-lock.sqlite"), binary, ...args],
     {
       cwd,
+      execPath: executable,
       execArgv: [],
       stdio: ["pipe", "pipe", "ignore", "ipc"],
       env: {
-        PATH: process.env["PATH"],
+        PATH: inheritedPath ? `${nodeDirectory}${delimiter}${inheritedPath}` : nodeDirectory,
         HOME: home,
         CODEX_HOME: home,
         GROK_HOME: home,

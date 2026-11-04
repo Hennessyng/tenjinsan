@@ -20,10 +20,29 @@ import {
   linkedFindings,
 } from "./book-map-output.ts"
 import { prepareBookMapScope, WINDOW_CHARACTERS } from "./book-map-scope.ts"
+import { interpretationCheckStage } from "./interpretation-check.ts"
+import { WholeBookPipeline } from "./whole-book-pipeline.ts"
+import { WHOLE_BOOK_VERSION } from "./whole-book-scope.ts"
 
+export { ADAPTIVE_PREPROCESSING_VERSION, storedBookPlan } from "./adaptive-book-plan.ts"
+export { planBatchedVerification } from "./batched-verification-packing.ts"
+export { approveBatchedVerification } from "./batched-verification-plan.ts"
+export { batchVerificationRequest } from "./batched-verification-request.ts"
 export { type BookMapDefinition, bookMapDefinition } from "./book-map-output.ts"
 export { bookMapRequest, bookMapRequestsFit } from "./book-map-request.ts"
 export { prepareBookMapScope } from "./book-map-scope.ts"
+export { interpretationVerified } from "./interpretation-check.ts"
+export { proposeNormalBatchedDraft } from "./normal-batched-draft.ts"
+export { verificationRoomAssessment } from "./verification-room.ts"
+export { WholeBookContext } from "./whole-book-context.ts"
+export {
+  coverageTargetStage,
+  coverageVerificationStage,
+  coverageVerificationTargets,
+} from "./whole-book-coverage.ts"
+export { wholeBookAllowance, wholeBookFeasibility } from "./whole-book-feasibility.ts"
+export { ChapterOutput, SynthesisOutput } from "./whole-book-output.ts"
+export { WHOLE_BOOK_VERSION } from "./whole-book-scope.ts"
 
 export class BookMapPipeline {
   constructor(
@@ -74,6 +93,13 @@ export class BookMapPipeline {
   }
 
   prepare(setupId: string, grantId: string): AnalysisRevision {
+    if (
+      this.authority.storage.sources.getSetup(setupId)?.analysis.analysisPromptVersion ===
+      WHOLE_BOOK_VERSION
+    ) {
+      if (this.definition !== bookMapDefinition) throw new BookMapError("unsupported-version")
+      return new WholeBookPipeline(this.authority).prepare(setupId, grantId)
+    }
     const context = this.context(setupId, grantId)
     const { workflow, execution } = this.authority.storage
     const cached = workflow.findSuccessfulAnalysis(context.key)
@@ -155,6 +181,14 @@ export class BookMapPipeline {
   }
 
   stage(job: Job): StructuredStage {
+    if (
+      this.authority.storage.sources.getSetup(job.setupRevisionId)?.analysis
+        .analysisPromptVersion === WHOLE_BOOK_VERSION
+    ) {
+      if (this.definition !== bookMapDefinition) throw new BookMapError("unsupported-version")
+      if (job.id.startsWith("check-")) return interpretationCheckStage(this.authority, job)
+      return new WholeBookPipeline(this.authority).stage(job)
+    }
     const context = this.context(job.setupRevisionId, job.grant.id)
     const index = context.windows.findIndex((_, index) => `${context.identity}-${index}` === job.id)
     const window = context.windows[index]

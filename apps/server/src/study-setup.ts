@@ -1,6 +1,12 @@
 import { randomUUID } from "node:crypto"
-import { isSubscriptionProvider, StudySetupRevision } from "@reading-studio/contracts"
-import { defaultSettings } from "@reading-studio/providers"
+import {
+  ANALYSIS_EVALUATION_PURPOSE,
+  BATCHED_VERIFICATION_VERSION,
+  isSubscriptionProvider,
+  StudySetupRevision,
+} from "@reading-studio/contracts"
+import { proposeNormalBatchedDraft } from "@reading-studio/generation"
+import { defaultSettings, LOCAL_CHATGPT_INFERENCE_POLICY } from "@reading-studio/providers"
 import type { Context, Hono } from "hono"
 import type { AppEnvironment } from "./middleware/access.ts"
 import { subscriptionSendRefusal } from "./study-send-guards.ts"
@@ -37,6 +43,7 @@ export function configureStudySetup(app: Hono<AppEnvironment>, options: SetupDec
       const refusal = subscriptionSendRefusal(context, options, setup)
       return refusal ? { ...saved, schedulingFailure: refusal, canResume: false } : saved
     },
+    options,
   )
   async function createDraft(context: Context<AppEnvironment>) {
     const locale = context.req.query("lang") === "ja" ? "ja" : "en"
@@ -55,7 +62,18 @@ export function configureStudySetup(app: Hono<AppEnvironment>, options: SetupDec
       return json
         ? context.json({ error: "Invalid setup choices" }, 400)
         : context.text("Invalid setup choices", 400)
+    const latest = sources.getLatestSetup(source.study.id)
+    if (latest?.analysis.purpose || (parsed.data.purpose && latest))
+      return context.json(
+        { error: "analysis-purpose-requires-fresh-study", transmission: "not-sent" },
+        409,
+      )
     const { provider } = parsed.data
+    if (parsed.data.purpose && provider !== "chatgpt-subscription")
+      return context.json({ error: "route-re-review-required", transmission: "not-sent" }, 409)
+    const versioned =
+      provider === "chatgpt-subscription" &&
+      (parsed.data.purpose !== undefined || options.bookMapCapacity !== undefined)
     if (
       isSubscriptionProvider(provider) &&
       (!options.localSubscriptions ||
@@ -86,7 +104,7 @@ export function configureStudySetup(app: Hono<AppEnvironment>, options: SetupDec
       return json
         ? context.json({ error: "Unsupported model" }, 400)
         : context.text("Unsupported model", 400)
-    const setup = StudySetupRevision.parse({
+    let setup = StudySetupRevision.parse({
       id: randomUUID(),
       studyId: source.study.id,
       editionId: source.normalization.editionId,
@@ -96,9 +114,20 @@ export function configureStudySetup(app: Hono<AppEnvironment>, options: SetupDec
         scope: selection.scope,
         provider,
         model: choice.model,
+        ...(parsed.data.purpose ? { purpose: ANALYSIS_EVALUATION_PURPOSE } : {}),
         ...(destination ? { destination } : {}),
-        analysisPromptVersion: "analysis-1",
-        analysisSchemaVersion: "analysis-1",
+        analysisPromptVersion: versioned ? "whole-book-2" : "analysis-1",
+        analysisSchemaVersion: versioned ? "whole-book-2" : "analysis-1",
+        ...(versioned
+          ? {
+              processing: {
+                inferencePolicyVersion: LOCAL_CHATGPT_INFERENCE_POLICY,
+                preprocessingVersion: "batched-room-5",
+                synthesisVersion: BATCHED_VERIFICATION_VERSION,
+                capacityId: options.bookMapCapacity?.id ?? "unverified",
+              },
+            }
+          : {}),
         settings: defaultSettings,
       },
       generation: {
@@ -107,6 +136,21 @@ export function configureStudySetup(app: Hono<AppEnvironment>, options: SetupDec
         settings: defaultSettings,
       },
     })
+    if (versioned) {
+      const preparation = await proposeNormalBatchedDraft({
+        setup,
+        normalization: source.normalization,
+        ...(options.bookMapCapacity ? { capacity: options.bookMapCapacity } : {}),
+        cap: parsed.data.purpose
+          ? (options.storage?.liveStudyBudget.analysisAllowance(
+              source.study.ownerId,
+              source.normalization.editionHash,
+            ) ?? 0)
+          : 64,
+        used: 0,
+      })
+      if (preparation.kind === "ready") setup = preparation.setup
+    }
     sources.appendSetup({
       record: setup,
       parentRevisionId: sources.getLatestSetup(source.study.id)?.id ?? null,

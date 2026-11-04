@@ -5,12 +5,14 @@ import { tmpdir } from "node:os"
 import { join, resolve } from "node:path"
 import { getRequestListener } from "@hono/node-server"
 import type { ArchiveLimits } from "@reading-studio/ingestion/archive"
+import type { VerifiedRouteCapacity } from "@reading-studio/providers"
 import { openAuthStorage, openStorage } from "@reading-studio/storage"
 import { createApp } from "../app.ts"
 import { productionIntake } from "../intake.ts"
 import { loadStudioAssets } from "../studio-assets.ts"
 import { studySetupSend } from "../study-setup-send.ts"
 import type { UploadWithHook } from "../upload.ts"
+import { managedServerSession } from "./managed-server-session.ts"
 
 export async function uploadHarness(options?: {
   readonly studioAssets?: boolean
@@ -19,6 +21,9 @@ export async function uploadHarness(options?: {
   readonly limits?: ArchiveLimits
   readonly queueAnalysis?: boolean
   readonly localSubscriptions?: boolean
+  readonly managedChatGPT?: boolean
+  readonly managedCapacity?: boolean
+  readonly bookMapCapacity?: VerifiedRouteCapacity
 }) {
   const directory = await mkdtemp(join(tmpdir(), "upload-http-"))
   const root = join(directory, "private")
@@ -34,9 +39,20 @@ export async function uploadHarness(options?: {
     databasePath: join(directory, "auth.sqlite"),
     privateDataRoot: root,
   })
+  const managed = options?.managedChatGPT
+    ? managedServerSession(sourceStorage, storage.ensureLibraryOwner(), origin)
+    : undefined
+  const capacity =
+    options?.bookMapCapacity ?? (options?.managedCapacity ? managed?.capacity : undefined)
   const app = createApp({
+    ...(capacity ? { bookMapCapacity: capacity } : {}),
     ...(options?.queueAnalysis
-      ? { onSetupSend: studySetupSend(sourceStorage, true, options.localSubscriptions ?? false) }
+      ? {
+          onSetupSend: studySetupSend(sourceStorage, true, {
+            localSubscriptions: options.localSubscriptions ?? false,
+            ...(capacity ? { capacity } : {}),
+          }),
+        }
       : {}),
     ...(options?.localSubscriptions ? { serverHost: "127.0.0.1" } : {}),
     ...(options?.studioAssets
@@ -71,16 +87,20 @@ export async function uploadHarness(options?: {
   return {
     root,
     sourceStorage,
+    managed,
     directory,
     origin,
     headers: { origin, "content-type": "application/epub+zip" },
     close: async () => {
-      await new Promise<void>((resolve, reject) =>
+      const closed = new Promise<void>((resolve, reject) =>
         server.close((error) => (error ? reject(error) : resolve())),
       )
+      server.closeAllConnections()
+      await closed
       storage.close()
       sourceStorage.close()
       await rm(directory, { recursive: true, force: true })
+      managed?.assertOffline()
     },
   }
 }

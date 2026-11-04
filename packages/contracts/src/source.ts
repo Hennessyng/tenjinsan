@@ -102,15 +102,45 @@ export type NormalizationRevision = z.infer<typeof NormalizationRevision>
 const InputRange = z
   .strictObject({ resourcePath: ResourcePath, blockId: BlockId, start: Natural, end: Natural })
   .readonly()
+export const UnsentSourceRange = z
+  .strictObject({
+    resourcePath: ResourcePath,
+    blockId: BlockId,
+    start: Natural,
+    end: Natural,
+    locator: FormatLocator.optional(),
+    pageLabel: Text.optional(),
+    originalFragment: Text.optional(),
+  })
+  .readonly()
 export const SourcePreparationFailure = z
   .strictObject({
     error: z.literal("scope-limit"),
     coverage: z
       .strictObject({
         transmission: z.literal("not-sent"),
-        reason: z.enum(["analysis-window-limit", "empty-text-scope", "request-byte-limit"]),
+        reason: z.enum([
+          "analysis-window-limit",
+          "empty-text-scope",
+          "request-byte-limit",
+          "capacity-unknown",
+          "capacity-limit",
+          "attempt-budget-limit",
+          "unsupported-version",
+        ]),
         requiredWindows: Natural,
         maxWindows: z.literal(128),
+        allowance: z
+          .strictObject({
+            cap: Natural,
+            used: Natural,
+            remaining: Natural,
+            plannedAttempts: Natural,
+            reservedLaterAttempts: Natural,
+            uncertainCounts: z.literal(true),
+          })
+          .readonly()
+          .optional(),
         unsentRanges: z
           .array(
             z

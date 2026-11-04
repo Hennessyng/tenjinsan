@@ -23,6 +23,17 @@ IDPF/Adobe font-only obfuscation is allowed for existing font paths. XML is read
 locally with DTD/entities forbidden, without resource requests. ZIP64 and split
 archives are unsupported. HTTP errors expose codes, not filenames or paths.
 
+EPUB compatibility is narrowly extended for a verified archive variant: exactly
+one trailing NUL after a comment-free end-of-central-directory record. The full
+central directory must still end exactly at that record and all usual entry,
+path, encryption, CRC, overlap and size checks apply. Only the ZIP reader's logical
+view excludes that byte; the original file, upload-byte limit, retained bytes and
+SHA-256 include it unchanged. Two NULs, any non-NUL trailer, data/polyglot suffixes,
+padding after a ZIP comment, and padded DOCX are rejected. Valid declared ZIP
+comments (including a NUL within a comment) keep their existing behavior. This is
+a fixture-backed interoperability exception, not general ZIP padding support or
+a claim that an arbitrary trailer is standards-conforming.
+
 Success (202) returns a generated ID, original hash, byte counts, entry count,
 and `state: "queued"`. The private `queued.json` receipt includes the owner ID;
 it is synced and atomically published only after validation. This is an intake

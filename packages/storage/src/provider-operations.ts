@@ -90,6 +90,7 @@ export class ProviderOperations {
     const id = JobId.parse(input)
     return this.state.immediate("provider retry", id, () => {
       const loaded = this.state.loadJob(id)
+      this.state.context.liveStudyGuard.assertJob(loaded.record)
       const run = this.state.loadRun(loaded.record.runId)
       const attempts = this.attempts.list(run.id)
       const latest = attempts.at(-1)

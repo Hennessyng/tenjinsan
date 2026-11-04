@@ -4,7 +4,9 @@ import { fileURLToPath } from "node:url"
 import Database from "better-sqlite3"
 import { type BetterSQLite3Database, drizzle } from "drizzle-orm/better-sqlite3"
 import { migrate } from "drizzle-orm/better-sqlite3/migrator"
+import { installAnalysisPurposeMutationGuards } from "./analysis-purpose-mutations.ts"
 import { TABLES } from "./backup-tables.ts"
+import { LiveStudyGuard } from "./live-study-guard.ts"
 import * as schema from "./schema/index.ts"
 
 export type StorageDatabase = BetterSQLite3Database<typeof schema>
@@ -12,6 +14,7 @@ export type StorageDatabase = BetterSQLite3Database<typeof schema>
 export type StorageContext = {
   readonly sqlite: Database.Database
   readonly db: StorageDatabase
+  readonly liveStudyGuard: LiveStudyGuard
 }
 
 export type StorageDiagnostics = {
@@ -21,7 +24,7 @@ export type StorageDiagnostics = {
   readonly busyTimeoutMs: 5000
 }
 
-export function openDatabase(databasePath: string): StorageContext {
+export function openDatabase(databasePath: string, liveStudyTarget?: unknown): StorageContext {
   mkdirSync(dirname(databasePath), { recursive: true })
   const sqlite = new Database(databasePath)
   sqlite.pragma("foreign_keys = ON")
@@ -32,6 +35,7 @@ export function openDatabase(databasePath: string): StorageContext {
   const migrationsFolder = fileURLToPath(new URL("../migrations", import.meta.url))
   try {
     migrate(db, { migrationsFolder })
+    installAnalysisPurposeMutationGuards(sqlite)
     for (const table of [
       "owners",
       "installations",
@@ -39,6 +43,25 @@ export function openDatabase(databasePath: string): StorageContext {
       "auth_sessions",
       "subscription_connections",
       "subscription_sessions",
+      "live_study_guards",
+      "live_study_budgets",
+      "live_study_budget_members",
+      "live_study_budget_approvals",
+      "live_study_retirements",
+      "full_book_consents",
+      "full_book_consent_closures",
+      "full_book_jobs",
+      "full_book_wires",
+      "full_book_output_receipts",
+      "full_book_attempt_events",
+      "full_book_reply_metadata",
+      "full_book_managed_consents",
+      "full_book_managed_revocations",
+      "full_book_managed_frames",
+      "full_book_managed_threads",
+      "full_book_managed_failures",
+      "full_book_recoveries",
+      "full_book_recovery_uses",
       ...TABLES.map((entry) => entry.name),
     ]) {
       for (const action of ["INSERT", "UPDATE", "DELETE"] as const) {
@@ -48,7 +71,7 @@ export function openDatabase(databasePath: string): StorageContext {
           BEGIN SELECT RAISE(ABORT, 'library maintenance frozen'); END`)
       }
     }
-    return { sqlite, db }
+    return { sqlite, db, liveStudyGuard: new LiveStudyGuard({ sqlite }, liveStudyTarget) }
   } catch (error) {
     sqlite.close()
     throw error

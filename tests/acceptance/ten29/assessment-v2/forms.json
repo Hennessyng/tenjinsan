@@ -1,0 +1,60 @@
+{
+  "version": "TEN29-offline-assessment-2",
+  "sourceFirst": {
+    "documentCode": null,
+    "humanName": null,
+    "exposureAndConflicts": null,
+    "sourceOnlyOpenedAt": null,
+    "chapterRecordTemplate": {
+      "partOrdinal": null,
+      "materialContribution": null,
+      "question": null,
+      "independentlyAuthoredAnswer": null,
+      "originalGrounding": null,
+      "uncertainties": null
+    },
+    "chapters": [],
+    "crossBookQuestionsAndAnswers": [],
+    "humanAuthorshipAttestation": null,
+    "lockedBeforeCandidatesAt": null,
+    "recordCommitment": null
+  },
+  "candidateFirstPass": {
+    "documentCode": null,
+    "candidateCode": null,
+    "humanName": null,
+    "sourceOnlyRecordCommitment": null,
+    "languagesProvided": [],
+    "enJaApplicability": null,
+    "languageApplicabilityReason": null,
+    "dimensionScores": null,
+    "criticalFlags": null,
+    "chapterDecisionTemplate": {
+      "partOrdinal": null,
+      "decision": null,
+      "allowedDecisions": [
+        "faithfully-represented",
+        "appropriately-absent",
+        "misrepresented",
+        "materially-omitted",
+        "unresolved"
+      ],
+      "originalGrounding": null,
+      "reason": null
+    },
+    "chapters": [],
+    "firstPassCompletedAt": null,
+    "humanAuthorshipAttestation": null
+  },
+  "postUnblindingAdjudication": {
+    "candidateCode": null,
+    "humanName": null,
+    "firstPassCommitment": null,
+    "corroboratedReferenceLabel": null,
+    "agreementWithProvisionalIntention": null,
+    "originalGroundedReason": null,
+    "unresolvedIssue": null,
+    "completedAt": null
+  },
+  "status": "EMPTY TEMPLATES ONLY; no answers, scores, labels or human attestations supplied"
+}

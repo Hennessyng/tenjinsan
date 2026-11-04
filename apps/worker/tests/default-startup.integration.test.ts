@@ -7,6 +7,8 @@ import { analysisCacheKey, contentDigest } from "@reading-studio/contracts"
 import { BookMapPipeline } from "@reading-studio/generation"
 import { afterEach, expect, it } from "vitest"
 import { bookMapFixture } from "./book-map-fixture.ts"
+import { runManagedProduction, useManagedBookReplies } from "./managed-startup-fixture.ts"
+import { managedWorkflowFixture } from "./managed-workflow-fixture.ts"
 
 const fixtures: ReturnType<typeof bookMapFixture>[] = []
 afterEach(() => {
@@ -64,5 +66,19 @@ it("ordinary worker launch claims a consented persisted analysis job", async () 
   } finally {
     worker.kill("SIGTERM")
     await once(worker, "exit")
+  }
+})
+
+it("normal process entry uses an explicit synthetic certificate to finish the managed semantic-gated handoff", async () => {
+  const flow = await managedWorkflowFixture({ queueStages: false })
+  const automatic = useManagedBookReplies(flow)
+  try {
+    await runManagedProduction(flow, { processEntry: true, capacity: flow.capacity })
+    expect(flow.storage.interviews.latest(flow.studyId)?.steps[0]?.question.options).toHaveLength(2)
+    expect(await flow.requests()).toHaveLength(7)
+    expect(flow.network).not.toHaveBeenCalled()
+  } finally {
+    automatic.mockRestore()
+    await flow.close()
   }
 })

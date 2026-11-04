@@ -1,6 +1,9 @@
 import { Digest, EditionId, StudyId } from "@reading-studio/contracts"
 import { z } from "zod"
+import { Row } from "./backup-row.ts"
 import { TABLES, type Table } from "./backup-tables.ts"
+
+export { Cell, Row } from "./backup-row.ts"
 
 export { TABLES } from "./backup-tables.ts"
 export class BackupError extends Error {
@@ -11,9 +14,6 @@ export class BackupError extends Error {
 }
 export const OWNER_HANDLE = "historical-owner"
 export const INSTALLATION_HANDLE = "historical-installation"
-export const Cell = z.union([z.string(), z.number().int().safe(), z.null()])
-export const Row = z.record(z.string(), Cell)
-export type Row = z.infer<typeof Row>
 export const History = z.strictObject({
   table: z.string(),
   row: Row,
@@ -24,7 +24,7 @@ export const History = z.strictObject({
 export type History = z.infer<typeof History>
 export const Payload = z.strictObject({
   version: z.literal(1),
-  schemaVersion: z.literal(10),
+  schemaVersion: z.union([z.literal(10), z.literal(11), z.literal(12)]),
   ownerHandle: z.literal(OWNER_HANDLE),
   tables: z.array(z.strictObject({ name: z.string(), rows: z.array(Row) })),
   history: z.array(History),

@@ -1,4 +1,5 @@
 import { pathToFileURL } from "node:url"
+import type { VerifiedRouteCapacity } from "@reading-studio/providers"
 
 export * from "./runtime.ts"
 
@@ -7,7 +8,9 @@ export const workerBootstrap = {
   mode: "persisted-jobs",
 } as const
 
-export async function runWorkerProcess(): Promise<void> {
+export async function runWorkerProcess(
+  options: { readonly signal?: AbortSignal; readonly capacity?: VerifiedRouteCapacity } = {},
+): Promise<void> {
   process.stdout.write(`Reading studio worker ready: ${JSON.stringify(workerBootstrap)}\n`)
   if (process.env["STUDIO_SYNTHETIC_TEST_MODE"] === "enabled") {
     const controller = new AbortController()
@@ -29,7 +32,10 @@ export async function runWorkerProcess(): Promise<void> {
   process.once("SIGTERM", stop)
   try {
     const { runProductionWorker } = await import("./production-runtime.ts")
-    await runProductionWorker(controller.signal)
+    await runProductionWorker(
+      options.signal ? AbortSignal.any([controller.signal, options.signal]) : controller.signal,
+      options.capacity,
+    )
   } finally {
     process.off("SIGINT", stop)
     process.off("SIGTERM", stop)

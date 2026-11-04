@@ -1,3 +1,4 @@
+import { structuredPrompt } from "@reading-studio/contracts"
 import type { Settings } from "./catalog.ts"
 import type { SchemaRepair } from "./schema-repair.ts"
 
@@ -22,7 +23,7 @@ export function structuredRequest(input: {
   return {
     model: input.model,
     settings: input.settings,
-    prompt: `${input.schemaRepair ? `${JSON.stringify({ schemaRepair: input.schemaRepair })}\n` : ""}${input.instruction}\n${JSON.stringify(input.blocks)}`,
+    prompt: structuredPrompt(input),
     schema: input.schema,
     signal: input.signal,
     ...(input.schemaRepair ? { schemaRepair: input.schemaRepair } : {}),

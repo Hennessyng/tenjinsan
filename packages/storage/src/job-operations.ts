@@ -1,5 +1,6 @@
 import { GenerationRun, type Job as JobRecord } from "@reading-studio/contracts"
 import { and, desc, eq, lte, or } from "drizzle-orm"
+import { requireAnalysisPurposeCompletion } from "./analysis-purpose-completion.ts"
 import { jobBriefCurrent, requireJobBrief } from "./brief-approval.ts"
 import { ExecutionTransitionError } from "./errors.ts"
 import {
@@ -29,15 +30,20 @@ export class JobOperations {
 
   claimNext(input: unknown): JobRecord | null {
     const parsed = parseInput(ClaimJobInput, input, "job claim")
+    const guard = this.state.context.liveStudyGuard
+    if (guard.target && guard.used() >= guard.limit(guard.target.setupRevisionId)) return null
     if (maintenanceActive(this.state.context.sqlite)) return null
     const eligible = () =>
       this.state.context.db
         .select({ id: jobs.id })
         .from(jobs)
         .where(
-          or(
-            eq(jobs.state, "queued"),
-            and(eq(jobs.state, "running"), lte(jobs.leaseExpiresAt, parsed.now)),
+          and(
+            guard.claimFilter(),
+            or(
+              eq(jobs.state, "queued"),
+              and(eq(jobs.state, "running"), lte(jobs.leaseExpiresAt, parsed.now)),
+            ),
           ),
         )
         .get()
@@ -45,6 +51,7 @@ export class JobOperations {
     return this.state.immediate("job claim", parsed.token, () => {
       if (maintenanceActive(this.state.context.sqlite)) return null
       while (true) {
+        if (guard.target && guard.used() >= guard.limit(guard.target.setupRevisionId)) return null
         const row = eligible()
         if (row === undefined) return null
         const loaded = this.state.loadJob(row.id)
@@ -83,6 +90,7 @@ export class JobOperations {
             ),
             loaded.fence,
           )
+          if (guard.target) return null
           continue
         }
         if (loaded.record.provider === "openai") {
@@ -170,6 +178,7 @@ export class JobOperations {
     return this.state.immediate("job completion", parsed.jobId, () => {
       const claim = this.state.requireClaim(parsed)
       requireJobBrief(this.state.context, claim.job)
+      requireAnalysisPurposeCompletion(this.state.context, claim.job, parsed.resultHash)
       if (claim.job.cancellationRequested) {
         throw new ExecutionTransitionError("job", claim.job.id, "active without cancellation")
       }

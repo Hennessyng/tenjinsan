@@ -11,7 +11,7 @@ import { authorizeSource, type ProviderAuthority } from "./authorization.ts"
 import { ProviderError, validateModel } from "./catalog.ts"
 import { dispatchLocalCodex } from "./local-codex-dispatch.ts"
 import { dispatchLocalGrok } from "./local-grok-dispatch.ts"
-import { localRequestBytes } from "./local-tool-request.ts"
+import { legacyLocalReservationBytes as localRequestBytes } from "./local-tool-request.ts"
 import type { ProviderReceipt } from "./provider-receipt.ts"
 
 export class LocalSubscriptionAdapter {
