@@ -1,6 +1,6 @@
 import { randomUUID } from "node:crypto"
 import { contentDigest, type Job } from "@reading-studio/contracts"
-import { MaintenancePausedError } from "@reading-studio/storage"
+import { ExecutionTransitionError, MaintenancePausedError } from "@reading-studio/storage"
 import { z } from "zod"
 import { ProviderError } from "./catalog.ts"
 import type {
@@ -225,6 +225,13 @@ export class ProviderRunner {
         }
       }
     } catch (error) {
+      if (
+        error instanceof ExecutionTransitionError &&
+        error.entity === "job" &&
+        error.id === job.id &&
+        execution.getJob(job.id)?.cancellationRequested
+      )
+        return execution.cancelClaimedJob(lease())
       if (error instanceof ProviderError) {
         if (execution.getJob(job.id)?.cancellationRequested)
           return execution.cancelClaimedJob(lease())
