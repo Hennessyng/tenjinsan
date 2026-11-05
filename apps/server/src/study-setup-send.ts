@@ -68,6 +68,13 @@ export function setupAnalysisProgress(
     return "questions-unknown"
   if (questions.some((job) => job.state === "queued" || job.state === "running"))
     return "questions-queued"
+  if (
+    questions.some((job) => job.state === "completed") &&
+    jobs.some(
+      (job) => job.id.startsWith("check-") && (job.state === "queued" || job.state === "running"),
+    )
+  )
+    return "questions-queued"
   if (questions.length > 0) return "questions-attention"
   if (analysis) return "analysis-ready"
   if (jobs.some((job) => job.state === "queued" || job.state === "running")) return "queued"
