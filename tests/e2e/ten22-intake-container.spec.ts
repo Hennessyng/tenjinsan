@@ -26,6 +26,7 @@ for (const language of ["en", "ja"] as const) {
             throw new TypeError("Missing intake")
           const a = paper.getBoundingClientRect()
           const b = note.getBoundingClientRect()
+          const pane = parent.getBoundingClientRect()
           return {
             overflow: Math.max(
               book.scrollWidth - book.clientWidth,
@@ -40,16 +41,24 @@ for (const language of ["en", "ja"] as const) {
             bookWidth: book.getBoundingClientRect().width,
             paperWidth: a.width,
             parentWidth: parent.clientWidth,
+            edgesFit:
+              a.left >= pane.left - 1 &&
+              a.right <= pane.right + 1 &&
+              b.left >= pane.left - 1 &&
+              b.right <= pane.right + 1,
           }
         })
         // Then
         expect(dimensions.overflow).toBeLessThanOrEqual(1)
         expect(dimensions.overlaps).toBe(false)
+        expect(dimensions.edgesFit).toBe(true)
         expect(dimensions.bookWidth).toBeGreaterThan(dimensions.parentWidth * 0.75)
         if (dimensions.bookWidth <= 640)
           expect(dimensions.paperWidth).toBeGreaterThan(dimensions.bookWidth * 0.75)
         await input.scrollIntoViewIfNeeded()
         await page.screenshot({ path: testInfo.outputPath("import.png") })
+        await page.locator(".intake-note").scrollIntoViewIfNeeded()
+        await page.screenshot({ path: testInfo.outputPath("note.png") })
       } finally {
         await harness.close()
       }
