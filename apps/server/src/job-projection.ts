@@ -210,7 +210,7 @@ function projectOwnerJob(storage: Storage, job: Job, setupCalls: number) {
     retryRemaining,
     callBudgetRemaining: shared ? shared.remaining : Math.max(0, 64 - setupCalls),
     callBudgetLimit: shared?.limit ?? 64,
-    retired: shared?.retired ?? false,
+    retired: shared?.retired === true || shared?.kind === "restored",
     runBudgetRemaining: Math.max(0, run.budget.maxCalls - run.reservedCalls),
     usage,
     failureCode:
@@ -227,7 +227,9 @@ function projectOwnerJob(storage: Storage, job: Job, setupCalls: number) {
       last?.state === "response-received" &&
       !last.retryApproved &&
       run.state === "running" &&
-      (shared ? shared.remaining > 0 && !shared.retired : setupCalls < 64) &&
+      (shared
+        ? shared.remaining > 0 && !shared.retired && shared.kind !== "restored"
+        : setupCalls < 64) &&
       run.reservedCalls < run.budget.maxCalls,
     unknownAttemptId: job.provider === "openai" ? null : (unknown?.id ?? null),
     provider: job.provider,
