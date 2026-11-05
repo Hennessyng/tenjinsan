@@ -19,7 +19,7 @@ import {
   type StructuredStage,
   selectedEvidence,
 } from "@reading-studio/providers"
-import type { Storage } from "@reading-studio/storage"
+import { ImmutableRecordError, type Storage } from "@reading-studio/storage"
 import { persistedQuestionIdentity } from "./persisted-question-identity.ts"
 
 export function questionsStage(storage: Storage, job: Job): StructuredStage {
@@ -181,8 +181,22 @@ export function saveQuestions(storage: Storage, job: Job): void {
   })
   for (const lens of materialized) {
     const existing = storage.workflow.getQuestion(lens.question.revisionId)
-    if (!existing)
-      storage.workflow.appendQuestion({ record: lens.question, parentRevisionId: null })
+    if (!existing) {
+      try {
+        storage.workflow.appendQuestion({ record: lens.question, parentRevisionId: null })
+      } catch (error) {
+        if (
+          !(error instanceof ImmutableRecordError) ||
+          error.entity !== "question revision" ||
+          error.id !== lens.question.revisionId
+        )
+          throw error
+        const retained = storage.workflow.getQuestion(lens.question.revisionId)
+        if (!retained) throw error
+        if (JSON.stringify(retained) !== JSON.stringify(lens.question))
+          throw new ProviderError("question-revision-conflict")
+      }
+    }
   }
   const shortlist = bank.shortlist.map((id) => {
     const persisted = lensIds.get(id)
