@@ -164,12 +164,14 @@ export function JobEntry({ job, busy, onAction }: Props): ReactElement {
             <p>{t("jobs.unknown.body")}</p>
             <div className="job-decisions">
               <UnknownDecision job={job} busy={busy} onAction={onAction} choice="stop-approved" />
-              <UnknownDecision
-                job={job}
-                busy={busy || job.callBudgetRemaining === 0 || job.runBudgetRemaining === 0}
-                onAction={onAction}
-                choice="retry-approved"
-              />
+              {!job.retired && (
+                <UnknownDecision
+                  job={job}
+                  busy={busy || job.callBudgetRemaining === 0 || job.runBudgetRemaining === 0}
+                  onAction={onAction}
+                  choice="retry-approved"
+                />
+              )}
             </div>
           </div>
         ) : (
