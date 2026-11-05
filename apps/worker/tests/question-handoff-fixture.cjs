@@ -15,40 +15,47 @@ readline.createInterface = (...args) => {
             const request = JSON.parse(line)
             if (request.method === "turn/start") {
               const prompt = request.params.input[0].text
-              const lineage = /Exact analysisRevisionId=([^,]+), contextRevisionId=([^.]+)\./u.exec(
-                prompt,
-              )
+              const packet = prompt
+                .split("\n")
+                .map((line) => {
+                  try {
+                    return JSON.parse(line)
+                  } catch {
+                    return null
+                  }
+                })
+                .find((item) => item?.task === "question-evidence-refs-v1")
               const excludedSentinelPresent = prompt.includes("WITHHELD_FIXTURE_PASSAGE")
               appendFileSync(
                 join(control, "prompt-inspections.jsonl"),
                 `${JSON.stringify({
-                  stage: lineage ? "questions" : "analysis",
+                  stage: packet ? "questions" : "analysis",
                   excludedSentinelPresent,
                 })}\n`,
               )
               if (excludedSentinelPresent)
                 throw new TypeError("Excluded synthetic content reached the tool")
-              if (lineage) {
-                const table = /Citations: (.*?) Passages:/u.exec(prompt)
-                if (!table) throw new TypeError("Synthetic citation table missing")
-                const source = JSON.parse(table[1])[0].span
+              if (packet) {
+                const reference = packet.citations[0]?.id
+                if (!reference) throw new TypeError("Synthetic citation reference missing")
                 const paired = (en) => ({ en, ja: `日本語 ${en}` })
                 writeFileSync(
                   join(control, "questions-output.json"),
                   JSON.stringify({
-                    analysisRevisionId: lineage[1],
-                    contextRevisionId: lineage[2],
+                    version: "question-evidence-refs-v1",
+                    binding: packet.binding,
                     groups: [{ id: "focus", label: paired("Focus") }],
                     lenses: [
                       {
                         id: "attention",
-                        revisionId: `question-${lineage[2]}`,
                         groupId: "focus",
                         learningGoalKey: "attention",
                         label: paired("Attention"),
                         rationale: paired("Explore attention"),
-                        sources: [source],
-                        complications: [{ label: paired("Consider limits"), sources: [source] }],
+                        evidenceRefs: [reference],
+                        complications: [
+                          { label: paired("Consider limits"), evidenceRefs: [reference] },
+                        ],
                         prompt: paired("Which practice?"),
                         mode: "single",
                         minSelections: 1,

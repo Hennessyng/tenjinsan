@@ -165,10 +165,17 @@ it("does not admit output whose deduplicated choice bounds are unusable", async 
   const body = attempts[0] && storage.execution.getAttemptReceipt(attempts[0].id)
   if (!body) throw new TypeError("Synthetic receipt missing")
   const { ProviderReceipt } = await import("@reading-studio/providers")
-  const { DiscoveryDraft } = await import("@reading-studio/generation/questions")
+  const { z } = await import("zod")
   const receipt = ProviderReceipt.parse(JSON.parse(new TextDecoder().decode(body)))
   if (receipt.kind !== "output") throw new TypeError("Synthetic output missing")
-  const valid = DiscoveryDraft.parse(JSON.parse(receipt.text))
+  const valid = z
+    .object({
+      version: z.string(),
+      binding: z.string(),
+      groups: z.array(z.unknown()),
+      lenses: z.array(z.looseObject({ options: z.array(z.looseObject({ id: z.string() })) })),
+    })
+    .parse(JSON.parse(receipt.text))
   const lens = valid.lenses[0]
   const option = lens?.options[0]
   if (!lens || !option) throw new TypeError("Synthetic lens missing")

@@ -1,105 +1,20 @@
 import { analysisCacheKey, type Job, type Question } from "@reading-studio/contracts"
 import { interpretationVerified } from "@reading-studio/generation"
-import {
-  DiscoveryDraft,
-  DiscoveryError,
-  generateQuestions,
-} from "@reading-studio/generation/questions"
+import { generateQuestions } from "@reading-studio/generation/questions"
 import {
   QuestionsHandoffError,
   questionBankStatus,
 } from "@reading-studio/generation/queue-questions"
-import { z } from "zod"
 
 export { queueQuestions } from "@reading-studio/generation/queue-questions"
 
-import {
-  ProviderError,
-  ProviderReceipt,
-  type StructuredStage,
-  selectedEvidence,
-} from "@reading-studio/providers"
+import { ProviderError, ProviderReceipt, type StructuredStage } from "@reading-studio/providers"
 import { ImmutableRecordError, type Storage } from "@reading-studio/storage"
 import { persistedQuestionIdentity } from "./persisted-question-identity.ts"
+import { questionStageContract } from "./question-stage-contract.ts"
 
 export function questionsStage(storage: Storage, job: Job): StructuredStage {
-  const setup = storage.sources.getSetup(job.setupRevisionId)
-  if (
-    !setup ||
-    job.stage !== "questions" ||
-    job.provider !== setup.analysis.provider ||
-    job.model !== setup.analysis.model
-  )
-    throw new TypeError("Foreign questions job")
-  const analysis = storage.workflow.findSuccessfulAnalysis(analysisCacheKey(setup.analysis), {
-    setupId: setup.id,
-    grantId: job.grant.id,
-  })
-  if (!analysis) throw new TypeError("Successful analysis required")
-  const findings = [...analysis.claims, ...analysis.concepts, ...analysis.qualifications]
-  const known = new Set(
-    findings.flatMap((finding) => finding.sources.map((span) => JSON.stringify(span))),
-  )
-  const selectedEvidenceSet = selectedEvidence(
-    storage,
-    findings.flatMap((finding) => finding.sources),
-  )
-  const evidence = findings.map((finding) => ({
-    text: finding.text,
-    sources: finding.sources.map((span) => ({
-      reference: selectedEvidenceSet.reference(span),
-    })),
-  }))
-  const selected = setup.analysis.scope.selected[0]
-  const block = selected?.blockIds[0]
-  const normalization = storage.sources.getNormalization(setup.analysis.normalizationRevisionId)
-  const text = normalization?.resources.find((item) => item.path === selected?.resourcePath)
-  const source =
-    text?.status === "included" ? text.blocks.find((item) => item.id === block) : undefined
-  if (!source) throw new TypeError("Approved source window required")
-  return {
-    schema: DiscoveryDraft.superRefine((draft, context) => {
-      try {
-        generateQuestions(
-          {
-            analysis,
-            context: {
-              revisionId: job.inputRevisionId,
-              studyId: setup.studyId,
-              preferredGoalKeys: [],
-              customQuestion: null,
-            },
-            expected: {
-              analysisRevisionId: analysis.id,
-              contextRevisionId: job.inputRevisionId,
-              studyId: setup.studyId,
-            },
-          },
-          draft,
-        )
-      } catch (error) {
-        if (!(error instanceof DiscoveryError || error instanceof z.ZodError)) throw error
-        context.addIssue({ code: "custom", message: "unusable question choices" })
-      }
-      if (
-        draft.analysisRevisionId !== analysis.id ||
-        draft.contextRevisionId !== job.inputRevisionId
-      )
-        context.addIssue({ code: "custom", message: "wrong question lineage" })
-      for (const lens of draft.lenses)
-        if (
-          [...lens.sources, ...lens.complications.flatMap((entry) => entry.sources)].some(
-            (span) => !known.has(JSON.stringify(span)),
-          )
-        )
-          context.addIssue({
-            code: "custom",
-            message: "question evidence is not in the approved analysis",
-          })
-    }),
-    sourceWindow: { blockId: source.id, start: 0, end: Math.min(source.text.length, 12_000) },
-    instruction: `Create distinct book-grounded bilingual choice lenses; use only cited evidence and copy exact citations from the citation table into the output schema. Include a complication and multiple selectable options for every lens. Exact analysisRevisionId=${analysis.id}, contextRevisionId=${job.inputRevisionId}. Citations: ${JSON.stringify(selectedEvidenceSet.citations)} Passages: ${JSON.stringify(selectedEvidenceSet.passages)} Evidence: ${JSON.stringify(evidence)}`,
-  }
+  return questionStageContract(storage, job).request
 }
 
 export function saveQuestions(storage: Storage, job: Job): void {
@@ -140,7 +55,7 @@ export function saveQuestions(storage: Storage, job: Job): void {
   if (!body) throw new TypeError("Missing durable questions receipt")
   const receipt = ProviderReceipt.parse(JSON.parse(new TextDecoder().decode(body)))
   if (receipt.kind !== "output") throw new TypeError("Questions output unavailable")
-  const output = questionsStage(storage, job).schema.parse(JSON.parse(receipt.text))
+  const output = questionStageContract(storage, job).parseText(receipt.text)
   if (
     setup.analysis.analysisPromptVersion === "whole-book-2" &&
     !interpretationVerified(storage, job)

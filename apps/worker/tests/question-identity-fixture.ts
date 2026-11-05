@@ -12,6 +12,7 @@ import { vi } from "vitest"
 import { questionsStage, saveQuestions } from "../src/production-questions.ts"
 import { WorkerRuntime } from "../src/runtime.ts"
 import { questionIdentityScope } from "./question-identity-scope.ts"
+import { referenceDraft } from "./question-reference-fixture.ts"
 
 export function questionIdentityFixture() {
   const directory = mkdtempSync(join(tmpdir(), "question-identity-"))
@@ -28,7 +29,7 @@ export function questionIdentityFixture() {
   type Scope = ReturnType<typeof scope>
   function capture(
     current: Scope,
-    output: unknown = current.draft,
+    output: unknown = referenceDraft(storage, current),
     options: { readonly clock?: () => Date; readonly alternate?: string } = {},
   ) {
     const now = (options.clock ?? (() => new Date()))().toISOString()

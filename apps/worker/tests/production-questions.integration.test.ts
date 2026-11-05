@@ -3,6 +3,7 @@ import { rmSync } from "node:fs"
 import { ProviderAdapter, ProviderRunner } from "@reading-studio/providers"
 import { afterEach, expect, it } from "vitest"
 import { questionsStage, queueQuestions, saveQuestions } from "../src/production-questions.ts"
+import { questionReferenceCatalog } from "../src/question-reference-catalog.ts"
 import { WorkerRuntime } from "../src/runtime.ts"
 import { bookMapFixture, FixtureAdapter, fixtureWorker } from "./book-map-fixture.ts"
 import { protocolOutput, providerWire } from "./providers-wire.ts"
@@ -25,20 +26,29 @@ it("persists selectable book-cited model questions from the real SDK wire after 
   const source = analysis.claims[0]?.sources[0]
   if (!source) throw new TypeError("Missing mapped source")
   const revisionId = fixture.storage.workflow.ensureAnalysisInput("setup-1")
-  const draft = {
-    analysisRevisionId: analysis.id,
+  const setup = fixture.storage.sources.getSetup("setup-1")
+  const normalization = fixture.storage.sources.getNormalization("normalization-1")
+  if (!setup || !normalization) throw new TypeError("Missing synthetic source")
+  const catalog = questionReferenceCatalog({
+    setup,
+    analysis,
+    normalization,
     contextRevisionId: revisionId,
+  })
+  const reference = catalog.reference(source)
+  const draft = {
+    version: "question-evidence-refs-v1",
+    binding: catalog.binding,
     groups: [{ id: "focus", label: { en: "Focus", ja: "焦点" } }],
     lenses: [
       {
         id: "lens-1",
-        revisionId: "question-1",
         groupId: "focus",
         learningGoalKey: "practice-attention",
         label: { en: "Attention", ja: "注意" },
         rationale: { en: "Explore attention", ja: "注意を考える" },
-        sources: [source],
-        complications: [{ label: { en: "Limit", ja: "限界" }, sources: [source] }],
+        evidenceRefs: [reference],
+        complications: [{ label: { en: "Limit", ja: "限界" }, evidenceRefs: [reference] }],
         prompt: { en: "Which attention skill?", ja: "どの注意力？" },
         mode: "single",
         minSelections: 1,

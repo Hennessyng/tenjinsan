@@ -2,6 +2,7 @@ import { generateQuestions } from "@reading-studio/generation/questions"
 import { ProviderError } from "@reading-studio/providers"
 import { afterEach, beforeEach, expect, it, vi } from "vitest"
 import { questionIdentityFixture } from "./question-identity-fixture.ts"
+import { referenceDraft } from "./question-reference-fixture.ts"
 
 const fixtures: ReturnType<typeof questionIdentityFixture>[] = []
 beforeEach(() => {
@@ -33,7 +34,7 @@ it("marks an incompatible-bank refusal nonretryable and continues other work wit
   // Given
   const { storage, scope, capture, local, worker, dispatch } = given()
   const current = scope("current")
-  const { job } = capture(current, current.draft, { clock: expired })
+  const { job } = capture(current, referenceDraft(storage, current), { clock: expired })
   const model = generateQuestions(current.input, current.draft)
   const bank = storage.interviews.create({
     id: "preserved-incompatible-bank",
@@ -67,7 +68,7 @@ it("honors cancellation of an orphan with a known receipt without persisting or 
   // Given
   const { storage, scope, capture, worker, dispatch } = given()
   const current = scope("current")
-  const { job } = capture(current, current.draft, { clock: expired })
+  const { job } = capture(current, referenceDraft(storage, current), { clock: expired })
   const attempts = storage.execution.listAttempts(job.runId)
   storage.execution.requestCancellation({ jobId: job.id })
   // When
@@ -83,7 +84,7 @@ it("lets cancellation win if it arrives before an expected persistence refusal",
   // Given
   const { storage, scope, capture, worker, dispatch } = given()
   const current = scope("current")
-  const { job } = capture(current, current.draft, { clock: expired })
+  const { job } = capture(current, referenceDraft(storage, current), { clock: expired })
   const runtime = worker((store, currentJob) => {
     store.execution.requestCancellation({ jobId: currentJob.id })
     throw new ProviderError("bank-incompatible")
@@ -99,9 +100,9 @@ it("lets cancellation win if it arrives before an expected persistence refusal",
 
 it("does not swallow unexpected persistence errors", async () => {
   // Given
-  const { scope, capture, worker, dispatch } = given()
+  const { storage, scope, capture, worker, dispatch } = given()
   const current = scope("current")
-  capture(current, current.draft, { clock: expired })
+  capture(current, referenceDraft(storage, current), { clock: expired })
   // When / Then
   await expect(
     worker(() => {
