@@ -9,6 +9,9 @@ const RepairRule = z.enum([
   "retain-outline-qualifications",
   "retain-outline-exclusions",
   "approved-outline-question-index",
+  "approved-question-reference",
+  "approved-question-binding",
+  "question-choice-contract",
 ])
 
 type RepairIssue = {
