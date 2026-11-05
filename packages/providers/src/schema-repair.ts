@@ -89,31 +89,35 @@ export function preparedSchemaRepair(input: {
   switch (latest?.state) {
     case undefined:
     case "dispatching":
-    case "response-received":
     case "outcome_unknown":
       return undefined
+    case "response-received":
+      if (!latest.retryApproved) return undefined
+      break
     case "prepared":
       break
     default:
       return assertNever(latest)
   }
-  const previous = input.attempts.findLast((attempt) => attempt.state === "response-received")
-  if (!previous) return undefined
-  const body = input.execution.getAttemptReceipt(previous.id)
-  if (!body) throw new ProviderError("outcome-unknown")
-  const receipt = RecordedProviderReceipt.parse(JSON.parse(new TextDecoder().decode(body)))
-  switch (receipt.kind) {
-    case "error":
-      return undefined
-    case "output":
-      return validateStageOutput({
-        schema: input.schema,
-        wireSchema: input.wireSchema,
-        text: receipt.text,
-      }).repair
-    default:
-      return assertNever(receipt)
+  for (const previous of input.attempts.toReversed()) {
+    if (previous.state !== "response-received") continue
+    const body = input.execution.getAttemptReceipt(previous.id)
+    if (!body) throw new ProviderError("outcome-unknown")
+    const receipt = RecordedProviderReceipt.parse(JSON.parse(new TextDecoder().decode(body)))
+    switch (receipt.kind) {
+      case "error":
+        break
+      case "output":
+        return validateStageOutput({
+          schema: input.schema,
+          wireSchema: input.wireSchema,
+          text: receipt.text,
+        }).repair
+      default:
+        return assertNever(receipt)
+    }
   }
+  return undefined
 }
 
 function assertNever(value: never): never {
