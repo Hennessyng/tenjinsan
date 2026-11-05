@@ -76,6 +76,33 @@ export function deleteLibraryItem(paths: LibraryPaths, input: unknown) {
       sqlite.pragma("foreign_keys = OFF")
       sqlite
         .transaction(() => {
+          const protectedTarget =
+            target.kind === "project"
+              ? sqlite
+                  .prepare(
+                    "SELECT 1 FROM studies s JOIN book_editions e ON e.id=s.edition_id JOIN live_study_budgets b ON b.owner_id=s.owner_id AND b.source_hash=e.original_hash WHERE s.id=?",
+                  )
+                  .get(target.id)
+              : sqlite
+                  .prepare(
+                    "SELECT 1 FROM book_editions e JOIN live_study_budgets b ON b.source_hash=e.original_hash WHERE e.id=?",
+                  )
+                  .get(target.id)
+          if (protectedTarget)
+            throw new BackupError("deletion blocked by retained shared budget policy")
+          const pending =
+            target.kind === "project"
+              ? sqlite
+                  .prepare(
+                    "SELECT 1 FROM studies s JOIN live_study_pending_adoption p ON p.owner_id=s.owner_id WHERE s.id=?",
+                  )
+                  .get(target.id)
+              : sqlite
+                  .prepare(
+                    "SELECT 1 FROM studies s JOIN live_study_pending_adoption p ON p.owner_id=s.owner_id WHERE s.edition_id=?",
+                  )
+                  .get(target.id)
+          if (pending) throw new BackupError("deletion blocked until shared budget adoption")
           const before = storedHashes(sqlite)
           sqlite.exec(
             "CREATE TEMP TABLE deletion_rows (table_name TEXT, row_id INTEGER, PRIMARY KEY(table_name, row_id))",

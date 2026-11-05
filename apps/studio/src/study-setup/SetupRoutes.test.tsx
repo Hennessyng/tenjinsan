@@ -79,6 +79,7 @@ it("shows a safe preparation limit and every unsent range without claiming conse
   fireEvent.click(await screen.findByRole("button", { name: "Send" }))
   // Then
   const alert = await screen.findByRole("alert")
+  expect(alert.textContent).toContain("Analysis window limit reached")
   expect(alert.textContent).toContain("analysis-window-limit")
   expect(alert.textContent).toContain("document.txt")
   expect(alert.textContent).toContain("[0, 12)")

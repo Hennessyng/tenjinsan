@@ -14,6 +14,7 @@ import {
   StudyId,
   StudySetupRevision,
   TransmissionGrant,
+  validatedBatchedSetupSources,
 } from "@reading-studio/contracts"
 import { asc, desc, eq, sql } from "drizzle-orm"
 import type { StorageContext } from "./database.ts"
@@ -99,9 +100,14 @@ export class SourceReader {
   getSetup(input: unknown): SetupRecord | null {
     const id = parseInput(SetupRevisionId, input, "setup ID")
     const row = this.context.db.select().from(setupRevisions).where(eq(setupRevisions.id, id)).get()
-    return row === undefined
-      ? null
-      : decodeRecord(StudySetupRevision, row.recordJson, "setup revision", id)
+    if (!row) return null
+    const setup = decodeRecord(StudySetupRevision, row.recordJson, "setup revision", id)
+    if (setup.batchedVerificationReserve) {
+      const normalization = this.getNormalization(setup.analysis.normalizationRevisionId)
+      if (!normalization) throw new TypeError("Missing batched normalization")
+      validatedBatchedSetupSources(setup, normalization)
+    }
+    return setup
   }
 
   getGrant(input: unknown): GrantRecord | null {

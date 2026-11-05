@@ -1,7 +1,11 @@
+import {
+  preparationAllowanceParams,
+  preparationReasonKey,
+} from "@reading-studio/contracts/setup-progress"
 import type { SourcePreparationFailure } from "@reading-studio/contracts/source"
 import { type ReactElement, useEffect, useRef } from "react"
 import { useLanguage } from "../i18n/LanguageProvider.tsx"
-import { sourceLocation } from "../source-viewer/SourceDetails.tsx"
+import { UnsentRanges } from "./UnsentRanges.tsx"
 
 export function PreparationRefusal({
   failure,
@@ -19,31 +23,26 @@ export function PreparationRefusal({
       <h2>{t("setup.refusal.title")}</h2>
       <p>
         {t("setup.refusal.reason", {
-          reason: t(
-            coverage.reason === "request-byte-limit"
-              ? "setup.refusal.requestLimit"
-              : coverage.reason === "analysis-window-limit"
-                ? "setup.refusal.windowLimit"
-                : "setup.refusal.emptyScope",
-          ),
+          reason: t(preparationReasonKey(coverage.reason)),
           required: coverage.requiredWindows,
           max: coverage.maxWindows,
-        })}{" "}
+        })}
+      </p>
+      <p>
         <code>{coverage.reason}</code>
       </p>
       <p>{t("setup.refusal.body")}</p>
+      <p>{t("setup.batched.windowBudget")}</p>
+      {coverage.allowance && (
+        <p>
+          {t("setup.preparation.allowance", preparationAllowanceParams(coverage.allowance))}{" "}
+          {t("setup.preparation.uncertain")}
+        </p>
+      )}
+      <UnsentRanges ranges={coverage.unsentRanges} />
       <p>
         <a href="/imports">{t("setup.refusal.import")}</a>
       </p>
-      <h3>{t("setup.refusal.unsent")}</h3>
-      <ul>
-        {coverage.unsentRanges.map((range) => (
-          <li key={`${range.resourcePath}-${range.blockId}-${range.start}`}>
-            {range.resourcePath} · {range.blockId} · UTF-16 [{range.start}, {range.end}) ·{" "}
-            {sourceLocation(range, t)}
-          </li>
-        ))}
-      </ul>
     </section>
   )
 }

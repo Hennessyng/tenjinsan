@@ -60,7 +60,9 @@ export class RevisionRepository {
           ),
         ),
       parent: parent ? Parent.parse(parent) : null,
-      analysis: workflow.findSuccessfulAnalysis(analysisCacheKey(setup.analysis)),
+      analysis: workflow.findSuccessfulAnalysis(analysisCacheKey(setup.analysis), {
+        setupId: setup.id,
+      }),
       grant: sources.getGrant(`grant-${setup.id}`),
       brief: briefs.current(identity.studyId),
       descendants: briefs.descendants(identity.studyId),

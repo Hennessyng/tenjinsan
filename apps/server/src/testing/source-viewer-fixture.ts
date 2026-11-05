@@ -5,18 +5,22 @@ import { tmpdir } from "node:os"
 import { join, resolve } from "node:path"
 import { getRequestListener } from "@hono/node-server"
 import { fixtureOutlineProvider } from "@reading-studio/generation/outline"
+import type { VerifiedRouteCapacity } from "@reading-studio/providers"
 import { openAuthStorage, openStorage } from "@reading-studio/storage"
 import { createApp } from "../app.ts"
 import { createOwnerAuth } from "../auth/auth.ts"
 import { createOwnerService } from "../auth/owner.ts"
 import { loadStudioAssets } from "../studio-assets.ts"
 import { localSubscriptionFixtureWorker } from "./local-subscription-worker.ts"
+import { managedServerSession } from "./managed-server-session.ts"
 
 export async function sourceViewerFixture(options?: {
   readonly providerAvailable?: boolean | (() => boolean)
   readonly studioAssets?: boolean
   readonly serverHost?: string
   readonly executeLocalSubscriptions?: boolean
+  readonly managedChatGPT?: boolean
+  readonly bookMapCapacity?: VerifiedRouteCapacity
   readonly onSetupSend?: NonNullable<Parameters<typeof createApp>[0]>["onSetupSend"]
 }) {
   const directory = await mkdtemp(join(tmpdir(), "source-viewer-"))
@@ -41,6 +45,10 @@ export async function sourceViewerFixture(options?: {
   const owner = authStorage.provisionedOwner()
   if (!owner) throw new TypeError("Missing owner")
   const storage = openStorage({ databasePath, privateDataRoot: join(directory, "private") })
+  const managed = options?.managedChatGPT
+    ? managedServerSession(storage, owner.id, origin)
+    : undefined
+  const capacity = options?.bookMapCapacity ?? managed?.capacity
   const root = join(directory, "private")
   for (const [id, ownerId] of [
     ["import-pending", owner.id],
@@ -133,7 +141,8 @@ export async function sourceViewerFixture(options?: {
   const app = createApp({
     ...(options?.onSetupSend ? { onSetupSend: options.onSetupSend } : {}),
     ...(options?.executeLocalSubscriptions ? { onSetupSend: localWorker.enqueue } : {}),
-    ...(options?.serverHost ? { serverHost: options.serverHost } : {}),
+    ...(options?.serverHost || managed ? { serverHost: options?.serverHost ?? "127.0.0.1" } : {}),
+    ...(capacity ? { bookMapCapacity: capacity } : {}),
     ...(options?.studioAssets
       ? { studioAssets: loadStudioAssets(resolve(import.meta.dirname, "../../../studio/dist")) }
       : {}),

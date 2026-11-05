@@ -37,6 +37,7 @@ export function queueQuestions(
 ): void {
   if (analysis.status !== "successful") return
   const setup = storage.sources.getSetup(setupId)
+  if (setup?.analysis.purpose) throw new QuestionsHandoffError("unauthorized")
   const grant = storage.sources.getGrant(grantId)
   if (
     !setup ||
@@ -44,7 +45,8 @@ export function queueQuestions(
     grant.setupRevisionId !== setup.id ||
     storage.sources.getLatestSetup(setup.studyId)?.id !== setup.id ||
     analysis.cacheKey !== analysisCacheKey(setup.analysis) ||
-    storage.workflow.findSuccessfulAnalysis(analysis.cacheKey)?.id !== analysis.id
+    storage.workflow.findSuccessfulAnalysis(analysis.cacheKey, { setupId, grantId })?.id !==
+      analysis.id
   )
     throw new QuestionsHandoffError("unauthorized")
   const bankStatus = questionBankStatus(storage, setup, analysis)

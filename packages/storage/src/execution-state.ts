@@ -48,6 +48,7 @@ export function transitionJob(record: JobRecord, variant: JobVariant): JobRecord
     checkpoint: record.checkpoint,
     cancellationRequested: record.cancellationRequested,
     usage: record.usage,
+    ...(record.foundationTask ? { foundationTask: record.foundationTask } : {}),
   }
   return parseInput(Job, { ...base, ...variant }, "job transition")
 }

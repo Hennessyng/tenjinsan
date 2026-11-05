@@ -36,11 +36,21 @@ Importing makes no provider call and grants no permission to transmit anything.
 - TXT uses fatal UTF-8 decoding. Text (including original line endings, whitespace
   and a UTF-8 BOM) is preserved exactly. UTF-16/32, malformed UTF-8 and NUL-bearing
   input reject. Locations contain original line starts and UTF-16 offsets.
-- PDF uses locally installed `pdfjs-dist` 6.4.299 in a short-lived Node child,
-  through the data-backed text-content API, without starting a viewer/script sandbox
-  or rendering. External asset URLs are unset; font-face/system-font loading and
-  worker fetch are disabled. The fetch guard is not a filesystem/OS sandbox.
-  Only selectable text is extracted, in PDF text-content order.
+- PDF uses pinned `@embedpdf/engine-runtime` / `engine-runtime-wasm32` 3.0.0-next.16
+  with `detect-libc` 2.1.2 in a short-lived Node child. Explicit local WASM bytes
+  and a checked WASM runtime kind prevent native fallback; the frozen dependency
+  graph excludes optional native payloads. No viewer/action/JavaScript environment
+  is started. Fetch is disabled, not a filesystem/OS sandbox. Missing text objects
+  are accounted using fresh copy-page batches; unexplained pages are visible omissions.
+  Raw outermost ActualText is used by actual scope identity, not string deduplication.
+  Only generated CRLF between eligible wide CJK/kana is joined; Latin, Hangul,
+  punctuation and source/ActualText newlines are not joined. No Unicode normalization
+  is added. Unverified unmarked Hebrew/Arabic/bidi text or object-order mismatch
+  excludes the whole page, including unrelated text. A native line-end hyphen is
+  recovered only from an identity-checked copy object with an exact observed dash
+  (U+002D or U+00AD), unchanged prefix and verified baseline change; output keeps
+  that character plus LF, without dehyphenation. Unproved cases exclude the whole
+  page. ActualText and ordinary same-line hyphens stay literal. See the notices.
   Physical page indices are one-based and are not publisher pagination or a
   promise of visual column-reading fidelity. Textless pages are visible omissions.
   There is no OCR, password collection, script execution or URL loading.
@@ -48,7 +58,9 @@ Importing makes no provider call and grants no permission to transmit anything.
 Whitespace-only/empty extraction rejects. Nonempty partial extraction remains
 usable with visible omissions. Blocks above 100,000 UTF-16 units are split
 losslessly (without splitting surrogate pairs), retaining format locators.
-Version-2 identities (DOCX normalizer 3 after the blank-paragraph repair) distinguish these normalizations from historical EPUB data;
+PDF parser 3 / normalizer 5 invalidate old PDF block/revision/analysis-cache identities;
+other format identities are unchanged (including DOCX normalizer 3). Explicit historical
+version tags do not run an old parser. Version-2 identities distinguish other formats from historical EPUB data;
 historical stored records and citations remain readable.
 
 ## Finite limits
@@ -58,19 +70,29 @@ historical stored records and citations remain readable.
 | EPUB | 50 MiB compressed; 200 MiB expanded; 5,000 entries; 20 MiB/member | existing XML ceilings; total normalized text/block ceilings below |
 | DOCX | 10 MiB compressed; 40 MiB expanded; 2,000 entries; 8 MiB/member | 128 XML nesting levels; 100,000 elements per XML part |
 | TXT | 4 MiB original UTF-8 | at most 4 Mi UTF-16 units before splitting |
-| PDF | 10 MiB original | 500 pages; 1,000,000 extracted UTF-16 units; 10 seconds wall time; 8 MiB child-output ceiling; 128 MiB V8 old-space ceiling |
+| PDF | 10 MiB original | 500 pages; 1,000,000 extracted UTF-16 units; 10 seconds wall time; 8 MiB child-output ceiling; 128 MiB V8 old-space and 128 MiB WASM linear-memory ceilings |
 
 All formats also cap persisted text at 8 Mi UTF-16 units and 20,000 blocks.
 Upload configuration may impose a lower byte/archive limit. ZIP actual output,
 not merely declared sizes, is bounded. Private directories/originals retain
 0700/0600 permissions. No entries are extracted to filesystem paths.
 
-PDF's V8 heap ceiling is **not a hard process RSS/native-memory or per-object /
-decompressed-stream quota**. PDF.js does not expose those granular limits here;
-the child is killed on time/output exhaustion and heap-abort is treated as a
-resource failure. This is not an OS sandbox or a global import concurrency quota.
+PDF's V8 and WASM ceilings are **not a hard total process RSS ceiling**. The adapter
+also caps 20,000 objects/page, 32 Form levels, 256 marks/object and 256 probe targets/page.
+Copy-only probes have cooperative 250 ms/page and 8 s/document deadlines; clock
+exhaustion refuses the entire document as `limit-exceeded`, never persisted partial
+coverage. Deterministic count caps retain explicit page omissions. Exact hyphen
+recovery is capped at sixteen singleton object probes per page within the same clock.
+The child is killed on wall-time/output exhaustion and
+heap-abort is treated as a resource failure. This is not an OS sandbox, a granular
+decompressed-stream quota or a global import concurrency quota.
 Do not confuse these import policies with PDF export limits. Operators needing
 a hard total-process memory ceiling must additionally enforce it at the host.
+
+Use frozen dependency installs. The selected lock graph intentionally omits the
+published runtime's optional native platforms; non-frozen installs can restore them.
+The workspace build's `check:pdf-runtime` validates both lock and installed trees.
+Linux/container frozen-install behavior remains unverified; no such install was run.
 
 ## Send coverage and original files
 

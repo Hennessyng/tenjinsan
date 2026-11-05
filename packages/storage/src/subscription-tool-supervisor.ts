@@ -48,9 +48,11 @@ process.stdout.on("error", stop)
 process.stdin.on("end", stop)
 process.stdin.pipe(child.stdin)
 child.stdout.pipe(process.stdout)
-child.once("close", () => {
+child.once("close", (code, signal) => {
   // Keep the credential-process lock until the child is reaped, including after the API parent dies.
   rmSync(scratch, { recursive: true, force: true })
   lock.close()
-  process.exit(0)
+  if (process.connected && process.send)
+    process.send({ kind: "tool-exit", code, signal }, () => process.exit(0))
+  else process.exit(0)
 })

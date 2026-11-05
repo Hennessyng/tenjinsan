@@ -1,17 +1,33 @@
-import type { LocalToolSession } from "@reading-studio/storage"
+import { contentDigest } from "@reading-studio/contracts"
+import { type LocalToolSession, rpcFrameObservation } from "@reading-studio/storage"
 import { z } from "zod"
 import type { StructuredRequest } from "./adapter.ts"
 import { ProviderError } from "./catalog.ts"
 import { codexTerminalFailure } from "./local-codex-error.ts"
-import { codexOutputFormat } from "./local-codex-schema.ts"
+import { codexOutputFormat, Item, Phase, Started, Terminal, Usage } from "./local-codex-schema.ts"
 import { localToolInput } from "./local-tool-request.ts"
 import type { ProviderReceipt } from "./provider-receipt.ts"
 
 export async function dispatchLocalCodex(
   session: LocalToolSession,
   request: StructuredRequest,
-  authorize: () => void,
+  execution:
+    | (() => void)
+    | {
+        readonly authorize: () => void
+        readonly binding: string
+        readonly maxFrameBytes: number
+      },
 ): Promise<ProviderReceipt> {
+  const wire =
+    typeof execution === "function"
+      ? {
+          authorize: execution,
+          binding: contentDigest(JSON.stringify(request)),
+          maxFrameBytes: 32000,
+        }
+      : execution
+  const { authorize } = wire
   const { rpc } = session
   const outputFormat = codexOutputFormat(request.schema)
   const mcp = z
@@ -23,33 +39,42 @@ export async function dispatchLocalCodex(
     if (method === "thread/environment/connected") environmentConnected = true
   })
   let started: z.infer<typeof Started>
+  const threadFrame = rpc.prepareRequest(
+    "thread/start",
+    {
+      model: request.model,
+      modelProvider: "openai",
+      allowProviderModelFallback: false,
+      ephemeral: true,
+      cwd: rpc.cwd,
+      runtimeWorkspaceRoots: [rpc.cwd],
+      environments: [],
+      dynamicTools: [],
+      selectedCapabilityRoots: [],
+      approvalPolicy: "never",
+      sandbox: "read-only",
+      baseInstructions:
+        "Use only the supplied study content. Return the requested JSON. Do not use tools or external sources.",
+      developerInstructions: "",
+      config: {
+        project_doc_max_bytes: 0,
+        web_search: "disabled",
+        "features.shell_tool": false,
+        "features.code_mode": false,
+        "features.multi_agent": false,
+        "features.hooks": false,
+        "features.plugins": false,
+        "features.apps": false,
+      },
+    },
+    wire.binding,
+  )
   try {
+    authorize()
     started = Started.parse(
-      await rpc.request("thread/start", {
-        model: request.model,
-        modelProvider: "openai",
-        allowProviderModelFallback: false,
-        ephemeral: true,
-        cwd: rpc.cwd,
-        runtimeWorkspaceRoots: [rpc.cwd],
-        environments: [],
-        dynamicTools: [],
-        selectedCapabilityRoots: [],
-        approvalPolicy: "never",
-        sandbox: "read-only",
-        baseInstructions:
-          "Use only the supplied study content. Return the requested JSON. Do not use tools or external sources.",
-        developerInstructions: "",
-        config: {
-          project_doc_max_bytes: 0,
-          web_search: "disabled",
-          "features.shell_tool": false,
-          "features.code_mode": false,
-          "features.multi_agent": false,
-          "features.hooks": false,
-          "features.plugins": false,
-          "features.apps": false,
-        },
+      await rpc.requestPrepared(threadFrame, 30000, {
+        maxBytes: wire.maxFrameBytes,
+        expectedBinding: wire.binding,
       }),
     )
   } finally {
@@ -63,10 +88,28 @@ export async function dispatchLocalCodex(
     started.instructionSources.length > 0
   )
     throw new ProviderError("subscription-unverified")
+  const turnFrame = rpc.prepareRequest(
+    "turn/start",
+    {
+      threadId: started.thread.id,
+      ...localToolInput("chatgpt-subscription", request),
+    },
+    wire.binding,
+  )
+  if (threadFrame.bytes + turnFrame.bytes > wire.maxFrameBytes)
+    throw new ProviderError("input-limit")
+  const appWire = {
+    version: "app-rpc-frame-1" as const,
+    layer: "app-server-stdin-frames" as const,
+    frames: [rpcFrameObservation(threadFrame), rpcFrameObservation(turnFrame)],
+    bytes: threadFrame.bytes + turnFrame.bytes,
+    downstreamInput: "unmeasured" as const,
+  }
   return new Promise<ProviderReceipt>((resolve, reject) => {
     let turnId: string | undefined
     let terminal: z.infer<typeof Terminal> | undefined
-    const outputs = new Map<string, string>()
+    const outputs = new Map<string, z.infer<typeof Item>["item"]>()
+    const unsupportedPhases = new Set<string>()
     let usage: ProviderReceipt["usage"] = { kind: "unknown" }
     let bytes = 0
     const fail = () => {
@@ -79,9 +122,24 @@ export async function dispatchLocalCodex(
       if (!turnId || !terminal || terminal.turn.id !== turnId) return
       unsubscribe()
       request.signal.removeEventListener("abort", fail)
+      if (
+        terminal.turn.status === "completed" &&
+        !rpc.clientRequestRejected &&
+        unsupportedPhases.has(turnId)
+      ) {
+        resolve({
+          kind: "error",
+          code: "protocol-error",
+          diagnostic: "unsupported-message-phase",
+          usage,
+          outputFormat,
+          appWire,
+        })
+        return
+      }
       resolve(
         terminal.turn.status === "completed" && !rpc.clientRequestRejected
-          ? { kind: "output", text: outputs.get(turnId) ?? "", usage, outputFormat }
+          ? { kind: "output", text: outputs.get(turnId)?.text ?? "", usage, outputFormat, appWire }
           : {
               kind: "error",
               ...codexTerminalFailure(
@@ -90,6 +148,7 @@ export async function dispatchLocalCodex(
               ),
               usage,
               outputFormat,
+              appWire,
             },
       )
     }
@@ -109,7 +168,30 @@ export async function dispatchLocalCodex(
             fail()
             return
           }
-          outputs.set(item.data.turnId, item.data.item.text)
+          const phase = Phase.safeParse(item.data.item.phase)
+          if (!phase.success) {
+            unsupportedPhases.add(item.data.turnId)
+            outputs.set(item.data.turnId, item.data.item)
+            return
+          }
+          const phaseValue = phase.data
+          switch (phaseValue) {
+            case "final_answer":
+              outputs.set(item.data.turnId, item.data.item)
+              break
+            case undefined:
+            case null:
+              if (outputs.get(item.data.turnId)?.phase !== "final_answer")
+                outputs.set(item.data.turnId, item.data.item)
+              break
+            case "commentary":
+            case "partial_answer":
+              break
+            default: {
+              const unreachable: never = phaseValue
+              throw new TypeError(`Unknown message phase: ${unreachable}`)
+            }
+          }
         }
       }
       if (method === "thread/tokenUsage/updated") {
@@ -138,11 +220,10 @@ export async function dispatchLocalCodex(
       throw error
     }
     void rpc
-      .request(
-        "turn/start",
-        { threadId: started.thread.id, ...localToolInput("chatgpt-subscription", request) },
-        90000,
-      )
+      .requestPrepared(turnFrame, 90000, {
+        maxBytes: wire.maxFrameBytes - threadFrame.bytes,
+        expectedBinding: wire.binding,
+      })
       .then((value) => {
         turnId = z.object({ turn: z.object({ id: z.string().max(256) }) }).parse(value).turn.id
         finish()
@@ -150,30 +231,3 @@ export async function dispatchLocalCodex(
       .catch(fail)
   })
 }
-const Started = z.object({
-  cwd: z.string(),
-  thread: z.object({ id: z.string().max(256) }),
-  model: z.string(),
-  modelProvider: z.string(),
-  instructionSources: z.array(z.string()),
-  sandbox: z.object({ type: z.literal("readOnly") }),
-})
-const Item = z.object({
-  turnId: z.string().max(256),
-  item: z.object({ type: z.literal("agentMessage"), text: z.string() }),
-})
-const Terminal = z.object({
-  turn: z.object({
-    id: z.string(),
-    status: z.string(),
-    error: z.object({ codexErrorInfo: z.unknown().optional() }).nullish(),
-  }),
-})
-const Usage = z.object({
-  tokenUsage: z.object({
-    last: z.object({
-      inputTokens: z.number().int().nonnegative(),
-      outputTokens: z.number().int().nonnegative(),
-    }),
-  }),
-})

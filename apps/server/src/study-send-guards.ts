@@ -25,6 +25,8 @@ export function subscriptionSendRefusal(
   setup: StudySetupRevision,
 ): SetupSchedulingFailure | null {
   if (!isSubscriptionProvider(setup.analysis.provider)) return null
+  if (setup.analysis.destination?.executionPolicy !== "tool-managed-v1")
+    return "route-re-review-required"
   if (!options.localSubscriptions || hasForwardedHeaders(context.req.raw.headers))
     return "local-only"
   if (
@@ -59,7 +61,16 @@ export async function checkSetupSend(
   const refuse = (code: SetupSchedulingFailure, status: 403 | 409 | 503) => ({
     code,
     response: context.req.path.startsWith("/api/")
-      ? context.json({ error: code, transmission: "not-sent" }, status)
+      ? context.json(
+          {
+            error: code,
+            transmission: "not-sent",
+            ...(code === "route-re-review-required"
+              ? { reviewUrl: `/sources/${input.setup.analysis.normalizationRevisionId}/setup` }
+              : {}),
+          },
+          status,
+        )
       : context.html(
           setupResult({
             title: translate(locale, "setup.unavailable"),
@@ -71,6 +82,19 @@ export async function checkSetupSend(
         ),
   })
   try {
+    if (
+      isSubscriptionProvider(input.setup.analysis.provider) &&
+      input.setup.analysis.destination?.executionPolicy !== "tool-managed-v1"
+    )
+      return refuse("route-re-review-required", 409)
+    if (
+      input.setup.analysis.purpose &&
+      !(
+        options.storage?.liveStudyGuard.target?.purpose &&
+        options.storage.liveStudyGuard.includes(input.setup.id)
+      )
+    )
+      return refuse("unauthorized", 409)
     if (isSubscriptionProvider(input.setup.analysis.provider)) {
       if (!options.localSubscriptions || hasForwardedHeaders(context.req.raw.headers))
         return refuse("local-only", 403)
@@ -82,7 +106,19 @@ export async function checkSetupSend(
       const currentRefusal = subscriptionSendRefusal(context, options, input.setup)
       if (currentRefusal) return refuse(currentRefusal, 409)
     }
-    const preparation = await preflightStudyDecision(context, { ...input, decision: "send" })
+    const used = new Set(
+      (options.storage?.execution.listSetupJobs(input.setup.id) ?? []).flatMap(
+        (job) =>
+          options.storage?.execution.listAttempts(job.runId).map((attempt) => attempt.id) ?? [],
+      ),
+    ).size
+    const preparation = await preflightStudyDecision(context, {
+      ...input,
+      decision: "send",
+      ...(options.bookMapCapacity ? { capacity: options.bookMapCapacity } : {}),
+      cap: options.storage?.liveStudyGuard.limit(input.setup.id) ?? 64,
+      used,
+    })
     if (preparation)
       return {
         code: SetupSchedulingFailure.parse(preparation.headers.get("X-Preparation-Refusal")),

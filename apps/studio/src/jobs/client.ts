@@ -18,6 +18,8 @@ export const JobStatus = z.strictObject({
   attempts: z.number(),
   retryRemaining: z.number(),
   callBudgetRemaining: z.number(),
+  callBudgetLimit: z.number().int().positive().optional(),
+  retired: z.boolean().optional(),
   runBudgetRemaining: z.number(),
   usage: z.discriminatedUnion("kind", [
     z.strictObject({ kind: z.literal("known"), inputTokens: z.number(), outputTokens: z.number() }),
@@ -29,6 +31,9 @@ export const JobStatus = z.strictObject({
   provider: z.string(),
   model: z.string(),
   inputCoverage: z.array(InputCoverage).optional(),
+  processingStep: z.enum(["chapter-map", "book-synthesis", "original-verification"]).optional(),
+  processingStrategy: z.enum(["complete-maps", "complete-maps-and-original"]).optional(),
+  semanticSupport: z.enum(["supported", "attention", "not-established"]).optional(),
 })
 export const JobList = z.strictObject({
   jobs: z.array(JobStatus),

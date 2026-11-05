@@ -15,7 +15,10 @@ import {
   TABLES,
   tableNamed,
 } from "./backup-schema.ts"
+import { archiveTables } from "./backup-tables.ts"
 import type { PrivateBlobStore } from "./blob-store.ts"
+import { captureFullBookAudits } from "./full-book-portable-capture.ts"
+import { validateFullBookImports } from "./full-book-portable-manifest.ts"
 
 export function digest(bytes: string | Uint8Array): string {
   return createHash("sha256").update(bytes).digest("hex")
@@ -28,7 +31,7 @@ export function referencedHashes(
   function visit(value: z.infer<ReturnType<typeof z.json>>, key = ""): void {
     if (
       typeof value === "string" &&
-      ["originalBlobHash", "contentHash", "responseHash"].includes(key)
+      ["originalBlobHash", "contentHash", "responseHash", "auditBlobHash"].includes(key)
     )
       hashes.add(value)
     else if (Array.isArray(value)) {
@@ -84,6 +87,7 @@ function historyScope(sqlite: Database.Database, row: Row, tableName: string) {
 }
 
 export function snapshot(sqlite: Database.Database, blobs: PrivateBlobStore): Payload {
+  const experimental = captureFullBookAudits(sqlite)
   const redactionKey = randomBytes(32)
   const history = sqlite
     .prepare("SELECT record_json FROM backup_history ORDER BY sequence")
@@ -96,6 +100,7 @@ export function snapshot(sqlite: Database.Database, blobs: PrivateBlobStore): Pa
       .prepare(`SELECT ${columns(table).join(",")} FROM ${table.name} ORDER BY rowid`)
       .all()
       .map((row) => safeRecord(table.name, parseRow(table, row), redactionKey))
+    if (table.name === "full_book_imports") rows.push(...experimental.map((entry) => entry.row))
     if (table.historical) {
       history.push(
         ...rows.map((row) =>
@@ -112,6 +117,7 @@ export function snapshot(sqlite: Database.Database, blobs: PrivateBlobStore): Pa
     return { name: table.name, rows }
   })
   const inline = new Map<string, Buffer>()
+  for (const entry of experimental) inline.set(entry.meta.id, entry.bytes)
   for (const table of ["publication_outputs", "external_attempts"]) {
     const column = table === "publication_outputs" ? "bytes" : "response_body"
     for (const raw of sqlite
@@ -128,7 +134,7 @@ export function snapshot(sqlite: Database.Database, blobs: PrivateBlobStore): Pa
   })
   return {
     version: 1,
-    schemaVersion: 10,
+    schemaVersion: 12,
     ownerHandle: OWNER_HANDLE,
     tables,
     history,
@@ -137,9 +143,11 @@ export function snapshot(sqlite: Database.Database, blobs: PrivateBlobStore): Pa
 }
 
 export function validatePayload(payload: Payload): void {
+  const expected = archiveTables(payload.schemaVersion)
   if (
-    payload.tables.length !== TABLES.length ||
-    new Set(payload.tables.map((table) => table.name)).size !== TABLES.length
+    payload.tables.length !== expected.length ||
+    new Set(payload.tables.map((table) => table.name)).size !== expected.length ||
+    payload.tables.some((table) => !expected.some((item) => item.name === table.name))
   )
     throw new BackupError("incomplete or duplicate table manifest")
   for (const entry of payload.tables) {
@@ -169,4 +177,5 @@ export function validatePayload(payload: Payload): void {
     if (!required.has(blob.hash) || digest(Buffer.from(blob.bytes, "base64")) !== blob.hash)
       throw new BackupError("blob hash mismatch")
   }
+  validateFullBookImports(payload)
 }

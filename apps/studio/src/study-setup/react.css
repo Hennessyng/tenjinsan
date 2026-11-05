@@ -2,12 +2,21 @@
   max-width: 46rem;
   margin-inline: auto;
 }
+.library .desk-main:has(.full-book-consent-panel, .full-book-run-panel) {
+  padding-block-end: var(--space-16);
+  scroll-padding-block: var(--space-6);
+}
+.source-app .full-book-consent-panel :is(h2, dt, label, button),
+.source-app .full-book-run-panel :is(h2, p, button, a) {
+  scroll-margin-block: var(--space-4);
+}
 .source-app .setup label {
   display: block;
   padding-block: var(--space-2);
   overflow-wrap: anywhere;
 }
 .source-app .setup select,
+.source-app .setup input[type="number"],
 .source-app .setup button {
   font: inherit;
   max-width: 100%;
@@ -18,6 +27,40 @@
 }
 .source-app .setup select {
   width: 100%;
+}
+.source-app .setup input[type="number"] {
+  display: block;
+  width: 100%;
+  margin-block-start: var(--space-2);
+}
+.source-app .full-book-consent-details {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+  gap: var(--space-2);
+  margin-block: var(--space-4);
+}
+.source-app .full-book-consent-details dt {
+  font-weight: 700;
+}
+.source-app .full-book-consent-panel input[type="checkbox"],
+.source-app .full-book-run-panel input[type="checkbox"] {
+  margin-inline-end: var(--space-2);
+}
+.source-app .full-book-consent-details dd {
+  margin: 0;
+}
+.source-app .full-book-consent-details code,
+.source-app .full-book-run-panel code {
+  display: block;
+  white-space: normal;
+  overflow-wrap: anywhere;
+}
+.source-app .setup-connection-details.full-book-budget {
+  grid-template-columns: minmax(0, 1fr) max-content;
+}
+.source-app .full-book-budget dd {
+  white-space: nowrap;
+  font-variant-numeric: tabular-nums;
 }
 .source-app .setup-provider-paper {
   min-width: 0;

@@ -33,7 +33,11 @@ class FileReader extends Reader<FileHandle> {
   }
 }
 
-async function inspectDirectory(reader: FileReader, limits: ArchiveLimits): Promise<number> {
+async function inspectDirectory(
+  reader: FileReader,
+  limits: ArchiveLimits,
+  allowEpubPadding: boolean,
+): Promise<number> {
   const size = Math.min(reader.size, 65557)
   const tail = Buffer.from(await reader.readUint8Array(reader.size - size, size))
   let end = tail.length - 22
@@ -43,6 +47,20 @@ async function inspectDirectory(reader: FileReader, limits: ArchiveLimits): Prom
       end + 22 + tail.readUInt16LE(end + 20) !== tail.length)
   )
     end--
+  let padding = 0
+  // Fixture-backed EPUB compatibility, not general ZIP trailer tolerance.
+  // Only one NUL after a comment-free EOCD may be hidden from the ZIP reader.
+  if (
+    end < 0 &&
+    allowEpubPadding &&
+    tail.length >= 23 &&
+    tail.at(-1) === 0 &&
+    tail.readUInt32LE(tail.length - 23) === 0x06054b50 &&
+    tail.readUInt16LE(tail.length - 3) === 0
+  ) {
+    end = tail.length - 23
+    padding = 1
+  }
   if (end < 0) throw new ArchiveError("invalid-archive")
   const count = tail.readUInt16LE(end + 10)
   const length = tail.readUInt32LE(end + 12)
@@ -63,6 +81,7 @@ async function inspectDirectory(reader: FileReader, limits: ArchiveLimits): Prom
     if (cursor > offset + length) throw new ArchiveError("invalid-archive")
   }
   if (cursor !== offset + length) throw new ArchiveError("invalid-archive")
+  reader.size -= padding
   return offset
 }
 
@@ -76,11 +95,7 @@ export async function inspectZip(
   },
 ) {
   const reader = new FileReader(file, options.bytes)
-  const zip = new ZipReader(reader, {
-    useWebWorkers: false,
-    checkSignature: true,
-    checkOverlappingEntry: true,
-  })
+  let zip: ZipReader<FileHandle> | undefined
   const files = new Set<string>()
   const paths = new Set<string>()
   let expanded = 0
@@ -89,7 +104,16 @@ export async function inspectZip(
   let mimetype = ""
   let encryption: string | undefined
   try {
-    const directoryOffset = await inspectDirectory(reader, options.limits)
+    const directoryOffset = await inspectDirectory(
+      reader,
+      options.limits,
+      options.format !== "docx",
+    )
+    zip = new ZipReader(reader, {
+      useWebWorkers: false,
+      checkSignature: true,
+      checkOverlappingEntry: true,
+    })
     for await (const entry of zip.getEntriesGenerator()) {
       entries++
       if (entries > options.limits.entries) throw new ArchiveError("limit-exceeded")
@@ -168,6 +192,6 @@ export async function inspectZip(
     if (error instanceof Error) throw new ArchiveError("invalid-archive", { cause: error })
     throw error
   } finally {
-    await zip.close()
+    await zip?.close()
   }
 }

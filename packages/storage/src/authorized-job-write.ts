@@ -17,6 +17,18 @@ export function appendAuthorizedJob(
   input: unknown,
 ): JobRecord {
   const submitted = parseInput(Job, input, "job")
+  const operation = () => writeAuthorizedJob(context, sources, submitted)
+  return sources.getSetup(submitted.setupRevisionId)?.analysis.purpose
+    ? context.sqlite.transaction(operation).immediate()
+    : operation()
+}
+function writeAuthorizedJob(
+  context: StorageContext,
+  sources: SourceRepository,
+  input: unknown,
+): JobRecord {
+  const submitted = parseInput(Job, input, "job")
+  context.liveStudyGuard.assertActive(submitted.setupRevisionId)
   if (submitted.stage === "outline" && !currentBriefApproved(context, submitted.inputRevisionId))
     throw new ContractBoundaryError("current brief approval required for outline job")
   const setup = sources.getSetup(submitted.setupRevisionId)
@@ -34,6 +46,7 @@ export function appendAuthorizedJob(
     "transmission authorization",
   )
   const record = parseInput(Job, { ...submitted, grant: authorization.grant }, "authoritative job")
+  context.liveStudyGuard.assertJob(record, true)
   parseInput(JobAuthorization, { job: record, authorization }, "job authorization")
   return writeRecord("job", record.id, () => {
     context.db

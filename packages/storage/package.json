@@ -6,7 +6,8 @@
   "sideEffects": false,
   "exports": {
     ".": "./src/index.ts",
-    "./test-support": "./tests/fixtures.ts"
+    "./test-support": "./tests/support.ts",
+    "./live-study-fixture": "./tests/live-study-fixture.ts"
   },
   "scripts": {
     "build": "tsc --noEmit -p tsconfig.json",

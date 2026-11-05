@@ -21,9 +21,22 @@ import { Archive, BackupError, type Payload } from "./backup-schema.ts"
 import { assertEmpty, insertPayload, stagingIdentity } from "./backup-transaction.ts"
 import { PrivateBlobStore } from "./blob-store.ts"
 import { openDatabase } from "./database.ts"
+import { assertFullBookPortable } from "./full-book-portable-capture.ts"
 import { withMaintenance } from "./maintenance.ts"
 
 export type LibraryPaths = { readonly databasePath: string; readonly privateDataRoot: string }
+
+function requireEmptyExperimentalDestination(sqlite: Database.Database) {
+  if (
+    sqlite
+      .prepare("SELECT 1 FROM sqlite_master WHERE type='table' AND name='full_book_consents'")
+      .get() &&
+    sqlite.prepare("SELECT 1 FROM full_book_consents LIMIT 1").get()
+  )
+    throw new BackupError(
+      "destination contains live experimental history; restore requires an empty domain library",
+    )
+}
 
 export function openMaintenanceDatabase(path: string): Database.Database {
   const sqlite = new Database(path, { fileMustExist: true, timeout: 100 })
@@ -39,11 +52,14 @@ export function captureLibrary(
 ): Buffer {
   const sqlite = openMaintenanceDatabase(paths.databasePath)
   try {
+    assertFullBookPortable(sqlite)
     return withMaintenance(
       sqlite,
       () =>
         sqlite
           .transaction(() => {
+            assertFullBookPortable(sqlite)
+            verifySourceGraph(sqlite)
             const payload = snapshot(sqlite, new PrivateBlobStore(paths.privateDataRoot))
             validatePayload(payload)
             return Buffer.from(JSON.stringify({ digest: digest(JSON.stringify(payload)), payload }))
@@ -102,11 +118,13 @@ export function restoreLibrary(
     stagePayload(archive.payload, staging)
     const sqlite = openMaintenanceDatabase(paths.databasePath)
     try {
+      requireEmptyExperimentalDestination(sqlite)
       withMaintenance(
         sqlite,
         () =>
           sqlite
             .transaction(() => {
+              requireEmptyExperimentalDestination(sqlite)
               sqlite.prepare("UPDATE maintenance_gate SET phase = 'restoring' WHERE id = 1").run()
               assertEmpty(sqlite)
               const owner = z

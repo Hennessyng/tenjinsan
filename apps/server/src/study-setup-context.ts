@@ -1,6 +1,6 @@
 import { NormalizationRevisionId, type StudySetupRevision } from "@reading-studio/contracts"
 import { translate, type UiLocale } from "@reading-studio/contracts/i18n"
-import { configuredCredential } from "@reading-studio/providers"
+import { configuredCredential, type VerifiedRouteCapacity } from "@reading-studio/providers"
 import type { SourceRepository, Storage } from "@reading-studio/storage"
 import { setupResult } from "@reading-studio/studio/study-setup"
 import { offeredModels } from "./provider-connections.ts"
@@ -10,6 +10,7 @@ export type SetupContextOptions = {
   readonly sources: SourceRepository
   readonly storage?: Storage
   readonly localSubscriptions?: boolean
+  readonly bookMapCapacity?: VerifiedRouteCapacity
   readonly available?: (provider: "openai" | "anthropic" | "openrouter" | "codex") => boolean
 }
 export function createSetupContext(options: SetupContextOptions) {

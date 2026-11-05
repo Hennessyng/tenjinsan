@@ -22,7 +22,7 @@ import {
 } from "./client.ts"
 import { PreparationRefusal } from "./PreparationRefusal.tsx"
 import { SetupChoices as ChoicesView } from "./SetupChoices.tsx"
-import { SetupReview as ReviewView } from "./SetupReview.tsx"
+import { SetupModeReview as ReviewView } from "./SetupModeReview.tsx"
 import { SetupSavedStatus } from "./SetupSavedStatus.tsx"
 
 type Page =

@@ -5,6 +5,8 @@ import type { SourceRepository } from "@reading-studio/storage"
 import { setupChoices, type setupResult, setupReview } from "@reading-studio/studio/study-setup"
 import type { Context, Hono } from "hono"
 import type { AppEnvironment } from "./middleware/access.ts"
+import { preparationReview } from "./study-preparation.ts"
+import type { SetupContextOptions } from "./study-setup-context.ts"
 import type { savedSetupDecision } from "./study-setup-send.ts"
 
 type Owned = {
@@ -30,6 +32,7 @@ export function configureSetupReadApi(
     grantId: string,
     context: Context<AppEnvironment>,
   ) => ReturnType<typeof savedSetupDecision>,
+  options: SetupContextOptions = { sources },
 ): void {
   app.get("/sources/:revision/setup", async (context) => {
     const locale = context.req.query("lang") === "ja" ? "ja" : "en"
@@ -62,8 +65,11 @@ export function configureSetupReadApi(
     if (grant?.kind === "active")
       return context.redirect(`/jobs?setup=${encodeURIComponent(setup.id)}`, 303)
     if (grant) return context.html(unavailable(revision, locale), 409)
+    const preparation = await preparationReview(options, setup, source.normalization)
     return context.html(
       setupReview({
+        deployment: options.localSubscriptions ? "local" : "hosted",
+        ...(preparation ? { preparation } : {}),
         locale,
         setup,
         normalization: source.normalization,
@@ -101,8 +107,11 @@ export function configureSetupReadApi(
     const grant = sources.getGrant(`grant-${setup.id}`)
     if (grant?.kind === "active") return context.json(savedDecision(setup, grant.id, context))
     if (grant) return context.json({ error: "Setup unavailable" }, 409)
+    const preparation = await preparationReview(options, setup, source.normalization)
     return context.json({
       setup,
+      deployment: options.localSubscriptions ? "local" : "hosted",
+      ...(preparation ? { preparation } : {}),
       normalization: source.normalization,
       attachment: { status: "unavailable", reason: "exact-format-support-unverified" },
       available: await available(

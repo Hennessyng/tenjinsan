@@ -37,6 +37,7 @@ export const JobAuthorization = z
       job.grant.kind === "active" &&
       job.setupRevisionId === authorization.setup.id &&
       job.grant.id === authorization.grant.id &&
+      JSON.stringify(job.grant.purpose) === JSON.stringify(authorization.grant.purpose) &&
       job.grant.ownerId === authorization.ownerId &&
       job.grant.installationId === authorization.installationId &&
       job.provider === authorization.setup.analysis.provider &&

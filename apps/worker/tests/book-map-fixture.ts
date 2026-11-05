@@ -1,12 +1,19 @@
 import { mkdtempSync } from "node:fs"
 import { tmpdir } from "node:os"
 import { join } from "node:path"
+import { LOCAL_CHATGPT_INFERENCE_POLICY, StudySetupRevision } from "@reading-studio/contracts"
 import {
   type BookMapDefinition,
   BookMapPipeline,
   bookMapDefinition,
+  storedBookPlan,
+  wholeBookFeasibility,
 } from "@reading-studio/generation"
-import type { ProviderReceipt, StructuredRequest } from "@reading-studio/providers"
+import type {
+  ProviderReceipt,
+  StructuredRequest,
+  VerifiedRouteCapacity,
+} from "@reading-studio/providers"
 import { ProviderRunner } from "@reading-studio/providers"
 import type { Storage } from "@reading-studio/storage"
 import { openStorage } from "@reading-studio/storage"
@@ -138,4 +145,58 @@ export function fixtureWorker(
     resolveStage: (job) => ({ kind: "structured", runner, request: pipeline.stage(job) }),
   })
   return { pipeline, worker }
+}
+
+export async function reviewedBookSetup(
+  fixture: ReturnType<typeof bookMapFixture>,
+  capacity: VerifiedRouteCapacity,
+) {
+  const setup = fixture.storage.sources.getSetup("setup-1")
+  const grant = fixture.storage.sources.getGrant("grant-1")
+  const normalization = fixture.storage.sources.getNormalization("normalization-1")
+  if (!setup || !grant || !normalization) throw new TypeError("Missing book fixture source")
+  const proposal = StudySetupRevision.parse({
+    ...setup,
+    id: "setup-whole",
+    analysis: {
+      ...setup.analysis,
+      scope: { ...setup.analysis.scope, kind: "whole-document" },
+      provider: "chatgpt-subscription",
+      model: capacity.model,
+      destination: capacity.destination,
+      analysisPromptVersion: "whole-book-2",
+      analysisSchemaVersion: "whole-book-2",
+      processing: {
+        preprocessingVersion: "packed-capacity-3",
+        synthesisVersion: "maps-original-check-2",
+        inferencePolicyVersion: LOCAL_CHATGPT_INFERENCE_POLICY,
+        capacityId: capacity.id,
+      },
+    },
+  })
+  const prepared = await wholeBookFeasibility({
+    setup: proposal,
+    normalization,
+    capacity,
+    cap: 64,
+    used: 0,
+  })
+  if (prepared.kind !== "ready")
+    throw new TypeError(`Synthetic book plan refused: ${prepared.failure.coverage.reason}`)
+  const approved = fixture.storage.sources.appendSetup({
+    record: {
+      ...proposal,
+      analysis: {
+        ...proposal.analysis,
+        processing: { ...proposal.analysis.processing, plan: storedBookPlan(prepared.windows) },
+      },
+    },
+    parentRevisionId: setup.id,
+  })
+  fixture.storage.sources.appendGrant({
+    ...grant,
+    id: "grant-whole",
+    setupRevisionId: approved.id,
+    destination: capacity.destination,
+  })
 }

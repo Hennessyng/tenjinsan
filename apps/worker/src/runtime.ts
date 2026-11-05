@@ -137,6 +137,7 @@ export class WorkerRuntime {
       if (
         error instanceof ProviderError &&
         (error.code === "subscription-unverified" ||
+          error.code === "route-re-review-required" ||
           error.code === "subscription-connection-changed")
       ) {
         const execution = this.options.storage.execution

@@ -31,6 +31,10 @@
     "./questions": {
       "types": "./src/questions.ts",
       "node": "./src/questions.ts"
+    },
+    "./full-book-test": {
+      "types": "./src/full-book-test.ts",
+      "node": "./src/full-book-test.ts"
     }
   },
   "scripts": {

@@ -1,0 +1,63 @@
+{
+  "version": "TEN29-offline-assessment-2",
+  "status": "anchors only; no human scores",
+  "threshold": {
+    "minimumEach": 1,
+    "minimumTotal": 12,
+    "maximumTotal": 14,
+    "criticalOverridesTotal": true
+  },
+  "dimensions": [
+    {
+      "id": "purpose-progression",
+      "0": "Materially wrong/absent purpose or progression, including a retained universal claim after reversal.",
+      "1": "Purpose and broad development are recognizable; noncritical omissions or imprecision remain.",
+      "2": "Purpose and material progression, including changes of position, are faithful and appropriately concise."
+    },
+    {
+      "id": "concepts-definitions",
+      "0": "A material definition/unit/category is invented, conflated or contradicted.",
+      "1": "Central definitions are usable but minor distinctions or explanation are incomplete.",
+      "2": "Material definitions/units and their limits are accurate; no policy is invented from a reference register."
+    },
+    {
+      "id": "relationships-conflicts",
+      "0": "A material causal/cross-part relationship or consensus is invented, or a genuine conflict is erased.",
+      "1": "Main relationships are supported but some noncritical connection/conflict explanation is incomplete.",
+      "2": "Supported relationships and unresolved disagreements are distinguished without inventing causation/consensus."
+    },
+    {
+      "id": "qualifications-uncertainty",
+      "0": "A material exception, late counterexample or unresolved issue is removed or falsely settled.",
+      "1": "Main limits remain but noncritical qualification detail is incomplete or awkward.",
+      "2": "Material conditions, counterevidence and uncertainty are retained with appropriate strength."
+    },
+    {
+      "id": "original-support",
+      "0": "A retained material claim lacks original support, misuses a correct quote, or retains an unresolved citation.",
+      "1": "Material claims are grounded but noncritical support precision/explanation is incomplete.",
+      "2": "Retained claims are supported by exact original context and citations; quotations are not treated as proof of unrelated conclusions."
+    },
+    {
+      "id": "author-application",
+      "0": "Narrator/author/critic/translator/quotation/application voices are materially conflated or untrusted text is treated as authority.",
+      "1": "Main voice distinctions hold but noncritical attribution/application boundaries are unclear.",
+      "2": "Source voices, interpretation and application are explicit; quoted instructions grant no authority."
+    },
+    {
+      "id": "language-readability",
+      "0": "Material meaning is unreadable or mistranslated in a language actually supplied/required.",
+      "1": "Meaning is usable but noncritical ambiguity/readability or bilingual alignment remains.",
+      "2": "Provided language is clear and faithful; applicable EN/JA distinctions and unresolved translation ambiguity are preserved."
+    }
+  ],
+  "criticalFlags": [
+    "incomplete-included-processing",
+    "material-retained-claim-error",
+    "missed-seeded-late-reversal",
+    "unresolved-retained-citation",
+    "unauthorized-authority-change",
+    "missed-seeded-critical-negative"
+  ],
+  "languagePolicy": "All seven dimensions remain scored0–2; explicitly record languagesProvided and enJaApplicability. No invented bilingual output or implicit denominator change."
+}

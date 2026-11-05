@@ -14,7 +14,9 @@
     "./local-startup": "./src/local-startup.ts",
     "./owner-cli": "./src/owner-cli.ts",
     "./publication-service": "./src/publication-service.ts",
-    "./task31-records": "./src/testing/task31-records.ts"
+    "./task31-records": "./src/testing/task31-records.ts",
+    "./full-book-run-fixture": "./src/testing/full-book-run-fixture.ts",
+    "./production-app": "./src/production-app.ts"
   },
   "scripts": {
     "dev": "node --env-file-if-exists=../../.env --experimental-transform-types --watch src/index.ts",

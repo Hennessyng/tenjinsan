@@ -6,8 +6,15 @@ import type { StorageContext, StorageDiagnostics } from "./database.ts"
 import { databaseDiagnostics, openDatabase } from "./database.ts"
 import { ContractBoundaryError, StoredRecordError } from "./errors.ts"
 import { type ExecutionRepository, SqliteExecutionRepository } from "./execution.ts"
+import { FullBookConsentRepository } from "./full-book-consent.ts"
+import { FullBookExecutionRepository } from "./full-book-execution.ts"
+import { FullBookManagedConsents } from "./full-book-managed-consent.ts"
+import { FullBookManagedRunner } from "./full-book-managed-runner.ts"
+import { FullBookRecoveryRepository } from "./full-book-recovery.ts"
 import { InterviewRepository } from "./interviews.ts"
 import { ensureLibraryOwner } from "./library-owner.ts"
+import { LiveStudyBudget } from "./live-budget-admin.ts"
+import type { LiveStudyGuard } from "./live-study-guard.ts"
 import { MaintenanceAdmission } from "./maintenance.ts"
 import {
   holdMaintenanceProcess,
@@ -54,6 +61,13 @@ export type StorageCounts = {
 }
 
 export interface Storage {
+  readonly fullBookRecovery: FullBookRecoveryRepository
+  readonly fullBookManaged: FullBookManagedRunner
+  readonly fullBookManagedConsents: FullBookManagedConsents
+  readonly fullBookExecution: FullBookExecutionRepository
+  readonly fullBookConsent: FullBookConsentRepository
+  readonly liveStudyBudget: LiveStudyBudget
+  readonly liveStudyGuard: LiveStudyGuard
   readonly setupScheduling: SetupSchedulingRepository
   readonly grokSubscriptionLogin: SubscriptionLogin
   readonly subscriptionLogin: SubscriptionLogin
@@ -73,6 +87,7 @@ export interface Storage {
   libraryOwnerId(): string
   diagnostics(): StorageDiagnostics
   counts(): StorageCounts
+  atomicWrite<T>(operation: () => T): T
   close(): void
 }
 
@@ -86,6 +101,13 @@ function countRows(context: StorageContext, table: string): number {
 }
 
 class SqliteStorage implements Storage {
+  readonly fullBookRecovery: FullBookRecoveryRepository
+  readonly fullBookManaged: FullBookManagedRunner
+  readonly fullBookManagedConsents: FullBookManagedConsents
+  readonly fullBookExecution: FullBookExecutionRepository
+  readonly fullBookConsent: FullBookConsentRepository
+  readonly liveStudyBudget: LiveStudyBudget
+  readonly liveStudyGuard: LiveStudyGuard
   readonly setupScheduling: SetupSchedulingRepository
   readonly grokSubscriptionLogin: SubscriptionLogin
   readonly subscriptionLogin: SubscriptionLogin
@@ -109,6 +131,8 @@ class SqliteStorage implements Storage {
     private readonly instanceId: string,
     privateDataRoot: string,
   ) {
+    this.liveStudyGuard = context.liveStudyGuard
+    this.liveStudyBudget = new LiveStudyBudget(context.sqlite)
     this.providerConnections = new ProviderConnections(privateDataRoot)
     this.setupScheduling = new SetupSchedulingRepository(context)
     this.subscriptionConnections = new SubscriptionConnections(context)
@@ -122,6 +146,15 @@ class SqliteStorage implements Storage {
     )
     this.maintenance = new MaintenanceAdmission(context)
     const sources = new SqliteSourceRepository(context)
+    this.fullBookConsent = new FullBookConsentRepository(context, sources)
+    this.fullBookExecution = new FullBookExecutionRepository(context, this.fullBookConsent)
+    this.fullBookManagedConsents = new FullBookManagedConsents(context, this.fullBookConsent)
+    this.fullBookRecovery = new FullBookRecoveryRepository(context, this.fullBookManagedConsents)
+    this.fullBookManaged = new FullBookManagedRunner({
+      grants: this.fullBookManagedConsents,
+      execution: this.fullBookExecution,
+      login: this.subscriptionLogin,
+    })
     this.reviews = new ReviewRepository(context)
     const analyses = new AnalysisRepository(context, sources)
     this.interviews = new InterviewRepository(context, sources, analyses)
@@ -138,6 +171,9 @@ class SqliteStorage implements Storage {
 
   libraryOwnerId(): string {
     return ensureLibraryOwner(this.context.sqlite)
+  }
+  atomicWrite<T>(operation: () => T): T {
+    return this.context.sqlite.transaction(operation).immediate()
   }
 
   diagnostics(): StorageDiagnostics {
@@ -202,7 +238,10 @@ export function openStorage(input: unknown): Storage {
   const processLock = holdMaintenanceProcess(databasePath)
   let context: StorageContext | undefined
   try {
-    context = openDatabase(databasePath)
+    context = openDatabase(
+      databasePath,
+      readProperty(input, "storage configuration", "liveStudyTarget"),
+    )
     const instanceId = registerMaintenanceInstance(context.sqlite, role)
     return new SqliteStorage(context, blobs, processLock, instanceId, privateDataRoot)
   } catch (error) {

@@ -4,7 +4,7 @@ import { join } from "node:path"
 import { PublicationSnapshot } from "@reading-studio/contracts"
 import { publicationFixture } from "@reading-studio/server/publication-fixture"
 import { ContractBoundaryError, openStorage } from "@reading-studio/storage"
-import Database from "better-sqlite3"
+import { FixtureDatabase as Database } from "@reading-studio/storage/test-support"
 import { afterEach, describe, expect, it } from "vitest"
 import { approvePublication } from "./publication-service.ts"
 

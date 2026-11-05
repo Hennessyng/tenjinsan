@@ -1,5 +1,6 @@
 import { Provider } from "@reading-studio/contracts/provider"
 import {
+  PreparationReview,
   SetupAnalysisProgress,
   SetupSchedulingFailure,
 } from "@reading-studio/contracts/setup-progress"
@@ -20,6 +21,7 @@ export const SetupReview = z.object({
       provider: Provider,
       model: z.string(),
       destination: SubscriptionDestination.optional(),
+      processing: z.object({ inferencePolicyVersion: z.string().optional() }).optional(),
       normalizationRevisionId: z.string(),
       scope: z.object({
         kind: Scope,
@@ -29,6 +31,8 @@ export const SetupReview = z.object({
   }),
   normalization: NormalizationRevision,
   available: z.boolean(),
+  deployment: z.enum(["local", "hosted"]).optional(),
+  preparation: PreparationReview.optional(),
 })
 export const SetupCreated = z.object({ setupId: z.string() })
 export const SetupDecision = z.discriminatedUnion("decision", [
@@ -40,6 +44,10 @@ export const SetupDecision = z.discriminatedUnion("decision", [
     questionsUrl: z.string().startsWith("/interviews/").optional(),
     schedulingFailure: SetupSchedulingFailure.nullable().default(null),
     canResume: z.boolean().default(false),
+    reviewRequired: z.boolean().default(false),
+    reviewUrl: z.string().startsWith("/sources/").optional(),
+    purpose: PreparationReview.shape.purpose,
+    terminal: z.literal("verified-analysis").optional(),
   }),
   z.object({ decision: z.literal("revise") }),
   z.object({ decision: z.literal("cancel") }),
@@ -50,4 +58,5 @@ export type SavedSetupDecision = Extract<z.infer<typeof SetupDecision>, { decisi
 export type SetupSelection = {
   readonly provider: z.infer<typeof Provider>
   readonly model: string
+  readonly purpose?: "analysis-evaluation-1"
 }

@@ -5,16 +5,17 @@ import {
   AnalysisRevisionId,
   type AnswerSubmission as AnswerRecord,
   AnswerSubmission,
-  contentDigest,
+  analysisInputIdentity,
   Digest,
   InputRevisionId,
-  LocatedSourceSpan,
   Question,
   type Question as QuestionRecord,
   QuestionRevisionId,
   StudyId,
 } from "@reading-studio/contracts"
 import { eq } from "drizzle-orm"
+import { validateAnalysisSources } from "./analysis-source-validation.ts"
+import { validateBatchedAnalysis } from "./batched-analysis-validation.ts"
 import type { StorageContext } from "./database.ts"
 import { ContractBoundaryError } from "./errors.ts"
 import { decodeRecord, encodeRecord, parseInput, readProperty, writeRecord } from "./records.ts"
@@ -25,6 +26,7 @@ import {
   questionRevisions,
 } from "./schema/index.ts"
 import type { SourceRepository } from "./sources.ts"
+import type { SuccessfulAnalysisBinding } from "./workflow.ts"
 
 export class AnalysisRepository {
   constructor(
@@ -35,7 +37,7 @@ export class AnalysisRepository {
   ensureSetupInput(input: unknown): ReturnType<typeof InputRevisionId.parse> {
     const setup = this.sources.getSetup(input)
     if (!setup) throw new ContractBoundaryError("analysis setup input")
-    const id = InputRevisionId.parse(`analysis-${contentDigest(setup.id)}`)
+    const id = InputRevisionId.parse(analysisInputIdentity(setup.id, setup.analysis.purpose))
     const existing = this.context.db
       .select()
       .from(inputRevisions)
@@ -53,15 +55,27 @@ export class AnalysisRepository {
     return id
   }
 
-  findSuccessful(input: unknown): AnalysisRecord | null {
+  findSuccessful(input: unknown, binding?: SuccessfulAnalysisBinding): AnalysisRecord | null {
     const key = parseInput(Digest, input, "analysis cache key")
     const rows = this.context.db
       .select()
       .from(analysisRevisions)
       .where(eq(analysisRevisions.cacheKey, key))
       .all()
-    const row = rows.find((row) => row.status === "successful")
-    return row ? decodeRecord(AnalysisRevision, row.recordJson, "analysis revision", row.id) : null
+    for (const row of rows) {
+      if (row.status !== "successful") continue
+      const record = decodeRecord(AnalysisRevision, row.recordJson, "analysis revision", row.id)
+      const batch = record.wholeBook?.batched
+      if (
+        binding &&
+        batch &&
+        (batch.setupId !== binding.setupId ||
+          (binding.grantId !== undefined && batch.grantId !== binding.grantId))
+      )
+        continue
+      return this.sourceChecked(record)
+    }
+    return null
   }
 
   append(input: unknown): AnalysisRecord {
@@ -75,18 +89,13 @@ export class AnalysisRepository {
       rawParent === null
         ? null
         : parseInput(AnalysisRevisionId, rawParent, "parent analysis revision ID")
-    const normalization = this.sources.getNormalization(record.cacheInput.normalizationRevisionId)
-    if (
-      normalization === null ||
-      normalization.editionId !== record.editionId ||
-      normalization.editionHash !== record.cacheInput.editionHash
-    ) {
-      throw new ContractBoundaryError("analysis normalization lineage")
-    }
-    for (const finding of [...record.claims, ...record.concepts, ...record.qualifications]) {
-      for (const span of finding.sources) {
-        parseInput(LocatedSourceSpan, { normalization, span }, "analysis source span")
-      }
+    this.sourceChecked(record)
+    const batch = record.wholeBook?.batched
+    if (batch) {
+      const previous = this.latestBatched(record.cacheKey, batch.setupId, batch.grantId)?.wholeBook
+        ?.batched
+      if (previous && previous.manifestHash !== batch.manifestHash)
+        throw new ContractBoundaryError("immutable batch manifest")
     }
     return writeRecord("analysis revision", record.id, () => {
       this.context.db
@@ -189,7 +198,39 @@ export class AnalysisRepository {
       .get()
     return row === undefined
       ? null
-      : decodeRecord(AnalysisRevision, row.recordJson, "analysis revision", id)
+      : this.sourceChecked(decodeRecord(AnalysisRevision, row.recordJson, "analysis revision", id))
+  }
+
+  private sourceChecked(record: AnalysisRecord): AnalysisRecord {
+    const normalization = this.sources.getNormalization(record.cacheInput.normalizationRevisionId)
+    if (
+      !normalization ||
+      normalization.editionId !== record.editionId ||
+      normalization.editionHash !== record.cacheInput.editionHash
+    )
+      throw new ContractBoundaryError("analysis normalization lineage")
+    validateAnalysisSources(record, normalization)
+    validateBatchedAnalysis(record, normalization, { context: this.context, sources: this.sources })
+    return record
+  }
+  latestBatched(cacheKey: string, setupId: string, grantId: string): AnalysisRecord | null {
+    const rows = this.context.db
+      .select()
+      .from(analysisRevisions)
+      .where(eq(analysisRevisions.cacheKey, cacheKey))
+      .all()
+    let found: AnalysisRecord | null = null
+    for (const row of rows) {
+      const record = this.sourceChecked(
+        decodeRecord(AnalysisRevision, row.recordJson, "analysis revision", row.id),
+      )
+      const state = record.wholeBook?.batched
+      if (state?.setupId !== setupId || state.grantId !== grantId || !state.manifest) continue
+      if (found && found.wholeBook?.batched?.manifestHash !== state.manifestHash)
+        throw new ContractBoundaryError("immutable batch manifest")
+      found = record
+    }
+    return found
   }
 
   getQuestion(input: unknown): QuestionRecord | null {

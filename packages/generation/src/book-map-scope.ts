@@ -3,9 +3,17 @@ import {
   NormalizedStudySetup,
   SourcePreparationFailure,
   type StudySetupRevision,
+  wholeBookScope,
 } from "@reading-studio/contracts"
 import { ProviderError } from "@reading-studio/providers"
 import type { SourceWindow } from "./book-map-output.ts"
+import { restoreBookPlan } from "./restore-book-plan.ts"
+import {
+  type ChapterGroup,
+  packGroups,
+  WHOLE_BOOK_VERSION,
+  wholeBookGroups,
+} from "./whole-book-scope.ts"
 
 export const WINDOW_CHARACTERS = 12_000
 const MAX_WINDOWS = 128
@@ -14,10 +22,65 @@ export function prepareBookMapScope(
   setup: StudySetupRevision,
   normalization: NormalizationRevision,
 ):
-  | { readonly kind: "ready"; readonly windows: readonly SourceWindow[] }
+  | {
+      readonly kind: "ready"
+      readonly windows: readonly SourceWindow[]
+      readonly groups?: readonly ChapterGroup[]
+    }
   | { readonly kind: "limited"; readonly failure: SourcePreparationFailure } {
   const linked = NormalizedStudySetup.safeParse({ setup, normalization })
   if (!linked.success) throw new ProviderError("unauthorized")
+  if (setup.analysis.analysisPromptVersion === WHOLE_BOOK_VERSION) {
+    if (JSON.stringify(setup.analysis.scope) !== JSON.stringify(wholeBookScope(normalization)))
+      throw new ProviderError("unauthorized")
+    const groups = wholeBookGroups(setup, normalization)
+    if (
+      setup.analysis.processing?.preprocessingVersion === "packed-capacity-3" ||
+      setup.analysis.processing?.preprocessingVersion === "batched-capacity-4" ||
+      setup.analysis.processing?.preprocessingVersion === "batched-room-5"
+    ) {
+      const windows = setup.analysis.processing.plan
+        ? restoreBookPlan(setup, groups)
+        : groups.flatMap((group) => {
+            const ranges = group.ranges.filter((range) => range.text.length > 0)
+            const first = ranges[0]
+            return first
+              ? [
+                  {
+                    ...first,
+                    ranges,
+                    groupId: group.id,
+                    text: ranges.map((range) => range.text).join(""),
+                  },
+                ]
+              : []
+          })
+      if (windows.length > 0) return { kind: "ready", windows, groups }
+    }
+    const windows = packGroups(groups)
+    if (windows.length > 0 && windows.length <= MAX_WINDOWS)
+      return { kind: "ready", groups, windows }
+    return {
+      kind: "limited",
+      failure: SourcePreparationFailure.parse({
+        error: "scope-limit",
+        coverage: {
+          transmission: "not-sent",
+          reason: windows.length === 0 ? "empty-text-scope" : "analysis-window-limit",
+          requiredWindows: windows.length,
+          maxWindows: MAX_WINDOWS,
+          unsentRanges: groups.flatMap((group) =>
+            group.ranges.map(({ resourcePath, blockId, start, end }) => ({
+              resourcePath,
+              blockId,
+              start,
+              end,
+            })),
+          ),
+        },
+      }),
+    }
+  }
   const blocks = setup.analysis.scope.selected.flatMap((selection) => {
     const resource = normalization.resources.find(
       (resource) => resource.path === selection.resourcePath,

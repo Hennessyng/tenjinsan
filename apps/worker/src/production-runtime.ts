@@ -14,12 +14,19 @@ import {
   ProviderAdapter,
   ProviderRunner,
   preflightSubscription,
+  type VerifiedRouteCapacity,
 } from "@reading-studio/providers"
 import { renderPublicationOutput } from "@reading-studio/server/publication-service"
-import { openStorage } from "@reading-studio/storage"
+import {
+  configuredLiveStudyTarget,
+  LiveStudyGuardError,
+  openStorage,
+} from "@reading-studio/storage"
 import { z } from "zod"
-import { advanceQuestionHandoff, recoverQuestionHandoffs } from "./production-handoffs.ts"
+import { runAnalysisEvaluation } from "./analysis-evaluation-runtime.ts"
+import { advanceProductionStage, recoverQuestionHandoffs } from "./production-handoffs.ts"
 import { questionsStage, saveQuestions } from "./production-questions.ts"
+import { resolveProductionStage } from "./production-stage.ts"
 import { WorkerRuntime } from "./runtime.ts"
 
 const Config = z.object({
@@ -35,8 +42,12 @@ const Config = z.object({
   STUDIO_MATRIX_RENDER_FAILURE: z.literal("enabled").optional(),
 })
 
-export async function runProductionWorker(signal: AbortSignal): Promise<void> {
+export async function runProductionWorker(
+  signal: AbortSignal,
+  capacity?: VerifiedRouteCapacity,
+): Promise<void> {
   const config = Config.parse(process.env)
+  const liveStudyTarget = configuredLiveStudyTarget(process.env["STUDIO_LIVE_STUDY_TARGET"])
   const origins = z
     .array(z.url())
     .min(1)
@@ -51,10 +62,13 @@ export async function runProductionWorker(signal: AbortSignal): Promise<void> {
     )
   if (config.STUDIO_MATRIX_RENDER_FAILURE && !config.STUDIO_PROVIDER_BASE_URL)
     throw new TypeError("Matrix renderer fault requires a loopback provider")
+  if (liveStudyTarget && (!localSubscriptions || config.STUDIO_PROVIDER_BASE_URL))
+    throw new LiveStudyGuardError("target-mismatch")
   const storage = openStorage({
     databasePath: config.DATABASE_PATH,
     privateDataRoot: config.PRIVATE_DATA_ROOT,
     runtimeRole: "worker",
+    liveStudyTarget,
   })
   const adapters = {
     ...(configuredCredential("openrouter")
@@ -79,10 +93,38 @@ export async function runProductionWorker(signal: AbortSignal): Promise<void> {
       : {}),
   }
   try {
+    if (liveStudyTarget?.purpose) {
+      const grant = liveStudyTarget.grantId && storage.sources.getGrant(liveStudyTarget.grantId)
+      if (!grant) throw new LiveStudyGuardError("target-mismatch")
+      await runAnalysisEvaluation({
+        storage,
+        ownerId: grant.ownerId,
+        installationId: grant.installationId,
+        localSubscriptions,
+        ...(capacity ? { capacity } : {}),
+        signal,
+      })
+      return
+    }
+    if (liveStudyTarget) {
+      const reservedAttempts = storage.liveStudyGuard.used()
+      const attemptLimit = storage.liveStudyGuard.limit(liveStudyTarget.setupRevisionId)
+      const shared = storage.liveStudyGuard.sharedStatus(liveStudyTarget.setupRevisionId)
+      console.info(
+        JSON.stringify({
+          event: "live-study-scoped",
+          pid: process.pid,
+          attemptLimit,
+          reservedAttempts,
+          ...(shared ? { cumulativeReserved: shared.used, cumulativeLimit: shared.limit } : {}),
+        }),
+      )
+      if (reservedAttempts >= attemptLimit) return
+    }
     const startupAdmission = storage.maintenance.enter()
     if (startupAdmission !== null)
       try {
-        recoverQuestionHandoffs(storage, localSubscriptions)
+        recoverQuestionHandoffs(storage, localSubscriptions, capacity)
         for (const job of storage.execution.listCompletedLessonJobs()) {
           if (job.provider === "openai") continue
           const setup = storage.sources.getSetup(job.setupRevisionId)
@@ -112,7 +154,13 @@ export async function runProductionWorker(signal: AbortSignal): Promise<void> {
           localSubscriptions,
           ownerId: job.grant.ownerId,
           installationId: job.grant.installationId,
+          ...(capacity ? { capacity } : {}),
         }
+        if (
+          storage.sources.getSetup(job.setupRevisionId)?.analysis.analysisPromptVersion ===
+          "whole-book-2"
+        )
+          return resolveProductionStage({ ...authority, clock: () => new Date() }, job)
         await preflightSubscription(authority, job)
         return {
           kind: "structured" as const,
@@ -149,6 +197,12 @@ export async function runProductionWorker(signal: AbortSignal): Promise<void> {
       },
     })
     while (!signal.aborted) {
+      if (
+        liveStudyTarget &&
+        storage.liveStudyGuard.used() >=
+          storage.liveStudyGuard.limit(liveStudyTarget.setupRevisionId)
+      )
+        break
       const result = await worker.runNext()
       const postJobAdmission = storage.maintenance.enter()
       if (postJobAdmission !== null)
@@ -158,7 +212,10 @@ export async function runProductionWorker(signal: AbortSignal): Promise<void> {
             result.job.state === "completed" &&
             result.job.stage === "analysis"
           ) {
-            advanceQuestionHandoff(storage, result.job.grant, localSubscriptions)
+            advanceProductionStage(storage, result.job, {
+              localSubscriptions,
+              ...(capacity ? { capacity } : {}),
+            })
           }
           if (
             result.kind === "provider" &&

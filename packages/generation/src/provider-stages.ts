@@ -12,6 +12,7 @@ import {
   selectedEvidence,
 } from "@reading-studio/providers"
 import type { Storage } from "@reading-studio/storage"
+import { interpretationVerified } from "./interpretation-check.ts"
 import { lessonJobId, loadSectionDraft } from "./lesson-checkpoints.ts"
 import { LessonFixtureDraft, LessonGenerationError } from "./lesson-contracts.ts"
 import { validateLessonDraft } from "./lesson-validation.ts"
@@ -153,6 +154,12 @@ export function saveGenerationStage(storage: Storage, job: JobRecord): void {
   if (job.stage === "outline") {
     const brief = storage.briefs.approved(job.inputRevisionId)
     if (!brief) throw new ProviderError("unauthorized")
+    if (
+      storage.sources.getSetup(job.setupRevisionId)?.analysis.analysisPromptVersion ===
+        "whole-book-2" &&
+      !interpretationVerified(storage, job)
+    )
+      return
     const request = storage.outlines.request(job.id.slice("outline-".length))
     if (request) {
       const current = storage.outlines.current(brief.studyId)

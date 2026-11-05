@@ -53,6 +53,8 @@ it("discloses within-resource extraction omissions on native review without an a
   expect(result).toContain("Unsupported illustration")
   expect(result).not.toContain('type="checkbox"')
   expect(result).toContain('name="decision" value="send"')
+  expect(result).toContain('aria-describedby="setup-send-reason"')
+  expect(result).toContain('id="setup-send-reason"')
 })
 
 it("renders Japanese server setup choices without changing source paths or provider IDs", async () => {

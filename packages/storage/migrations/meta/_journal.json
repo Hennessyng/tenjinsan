@@ -120,6 +120,62 @@
       "when": 1791048438980,
       "tag": "0016_setup_scheduling",
       "breakpoints": true
+    },
+    {
+      "idx": 17,
+      "version": "6",
+      "when": 1791048438981,
+      "tag": "0017_live_study_guard",
+      "breakpoints": true
+    },
+    {
+      "idx": 18,
+      "version": "6",
+      "when": 1791048438982,
+      "tag": "0018_shared_live_budget",
+      "breakpoints": true
+    },
+    {
+      "idx": 19,
+      "version": "6",
+      "when": 1791048438983,
+      "tag": "0019_full_book_consent",
+      "breakpoints": true
+    },
+    {
+      "idx": 20,
+      "version": "6",
+      "when": 1791048438984,
+      "tag": "0020_full_book_execution",
+      "breakpoints": true
+    },
+    {
+      "idx": 21,
+      "version": "6",
+      "when": 1791048438985,
+      "tag": "0021_full_book_imports",
+      "breakpoints": true
+    },
+    {
+      "idx": 22,
+      "version": "6",
+      "when": 1791048438986,
+      "tag": "0022_full_book_managed",
+      "breakpoints": true
+    },
+    {
+      "idx": 23,
+      "version": "6",
+      "when": 1791048438987,
+      "tag": "0023_full_book_not_needed",
+      "breakpoints": true
+    },
+    {
+      "idx": 24,
+      "version": "6",
+      "when": 1791048438988,
+      "tag": "0024_first_map_recovery",
+      "breakpoints": true
     }
   ]
 }

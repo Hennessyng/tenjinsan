@@ -1,8 +1,13 @@
-import { LocalSubscriptionProvider } from "@reading-studio/contracts/subscriptions"
+import {
+  LOCAL_CHATGPT_INFERENCE_POLICY,
+  LocalSubscriptionProvider,
+} from "@reading-studio/contracts/subscriptions"
 import type { ReactElement } from "react"
 import type { z } from "zod"
 import { useLanguage } from "../i18n/LanguageProvider.tsx"
 import type { SetupReview as ReviewSchema } from "./client.ts"
+import { PreparationPlan } from "./PreparationPlan.tsx"
+import { sendBlockedKey } from "./send-blocked.ts"
 import { ToolManagedNotice } from "./ToolManagedNotice.tsx"
 
 type Review = z.infer<typeof ReviewSchema>
@@ -19,10 +24,24 @@ export function SetupReview({
   const { t } = useLanguage()
   const { setup, normalization, available } = value
   const observed = setup.analysis.destination?.observedAccount
+  const evaluation = Boolean(value.preparation?.purpose)
+  const versioned = value.preparation !== undefined || setup.analysis.processing !== undefined
+  const current =
+    !versioned ||
+    (setup.analysis.provider === "chatgpt-subscription" &&
+      setup.analysis.processing?.inferencePolicyVersion === LOCAL_CHATGPT_INFERENCE_POLICY &&
+      value.deployment === "local")
+  const blockedKey = versioned
+    ? sendBlockedKey({ current, available, preparation: value.preparation })
+    : available
+      ? null
+      : "setup.review.providerUnavailable"
+  const sendReason = busy ? t("setup.sendingNote") : blockedKey ? t(blockedKey) : null
   return (
     <section className="setup" aria-busy={busy}>
       <p className="eyebrow">{t("setup.review.eyebrow")}</p>
       <h1>{t("setup.review")}</h1>
+      {value.preparation?.purpose && <p role="status">{t("setup.analysisOnlyPurpose")}</p>}
       <h2>
         {setup.analysis.provider} / {setup.analysis.model}
       </h2>
@@ -36,8 +55,8 @@ export function SetupReview({
           <dd>{observed.planType}</dd>
         </dl>
       )}
-      <p>
-        {t("setup.review.scope", {
+      <p data-consent-scope>
+        {t(evaluation ? "setup.review.analysisOnlyScope" : "setup.review.scope", {
           scope: t(
             setup.analysis.scope.kind === "whole-document"
               ? "brief.scope.whole"
@@ -66,6 +85,7 @@ export function SetupReview({
       </ul>
       <p>{t("setup.review.original")}</p>
       <p>{t("setup.review.windows")}</p>
+      {value.preparation && <PreparationPlan value={value.preparation} />}
       <h2>{t("setup.review.selected")}</h2>
       <ul data-selected>
         {setup.analysis.scope.selected.map((resource) => (
@@ -104,17 +124,30 @@ export function SetupReview({
         <p role="status">{t("setup.review.providerUnavailable")}</p>
       )}
       <div className="setup-actions">
-        <button type="button" disabled={!available || busy} onClick={() => onDecision("send")}>
+        {sendReason && (
+          <p id="setup-send-reason" role="status">
+            {sendReason}
+          </p>
+        )}
+        <button
+          type="button"
+          disabled={Boolean(blockedKey) || busy}
+          aria-describedby={sendReason ? "setup-send-reason" : undefined}
+          onClick={() => onDecision("send")}
+        >
           {t(busy ? "setup.sending" : "setup.send")}
         </button>
-        <button type="button" disabled={busy} onClick={() => onDecision("revise")}>
-          {t("brief.revise")}
-        </button>
+        {evaluation ? (
+          <p>{t("setup.analysisOnlyImmutable")}</p>
+        ) : (
+          <button type="button" disabled={busy} onClick={() => onDecision("revise")}>
+            {t("brief.revise")}
+          </button>
+        )}
         <button type="button" disabled={busy} onClick={() => onDecision("cancel")}>
           {t("setup.cancel")}
         </button>
       </div>
-      {busy && <p role="status">{t("setup.sendingNote")}</p>}
       <p>
         <small>{t("setup.revision", { id: setup.id })}</small>
       </p>

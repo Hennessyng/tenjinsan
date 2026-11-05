@@ -18,18 +18,20 @@ export function SetupSavedStatus({
         <p role="alert">{t("setup.schedulingBlocked", { code: value.schedulingFailure })}</p>
       )}
       <p role="status" data-analysis-progress={value.analysisProgress}>
-        {t(`setup.progress.${value.analysisProgress}`)}
+        {value.terminal === "verified-analysis"
+          ? t("setup.verifiedAnalysis")
+          : t(`setup.progress.${value.analysisProgress}`)}
       </p>
       <p data-grant={value.grantId}>{t("setup.consentSaved")}</p>
       <p>
         <a href={value.progressUrl}>{t("setup.viewProgress")}</a>
       </p>
-      {value.canResume && (
+      {value.canResume && !value.terminal && (
         <button type="button" disabled={busy} onClick={onResume}>
           {t("setup.resumeScheduling")}
         </button>
       )}
-      {value.analysisProgress === "questions-ready" && (
+      {value.analysisProgress === "questions-ready" && !value.purpose && (
         <a href={value.questionsUrl ?? "/interviews"}>{t("setup.openQuestions")}</a>
       )}
     </>

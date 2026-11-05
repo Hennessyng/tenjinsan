@@ -70,13 +70,18 @@ export async function sourceCommand<T>(
       }
       const refusal = z
         .object({
-          error: z.enum(["Selected provider unavailable", "subscription-connection-changed"]),
+          error: z.enum([
+            "Selected provider unavailable",
+            "provider-unavailable",
+            "subscription-connection-changed",
+          ]),
         })
         .safeParse(body)
       if (refusal.success)
         throw new SourceRequestError(
           response.status,
-          refusal.data.error === "Selected provider unavailable"
+          refusal.data.error === "Selected provider unavailable" ||
+            refusal.data.error === "provider-unavailable"
             ? "provider-unavailable"
             : "connection-changed",
         )

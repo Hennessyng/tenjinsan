@@ -49,11 +49,16 @@ for (const width of [375, 768, 1280]) {
       await page
         .getByRole("combobox", { name: "Provider and model" })
         .selectOption({ label: "Anthropic / Claude Sonnet 4.6" })
-      await page.getByRole("radio", { name: /^Whole document/ }).check()
+      await expect(
+        page.getByText(
+          "This setup includes every extracted resource and block, main chapters and supplementary text alike. There is nothing to select.",
+        ),
+      ).toBeVisible()
       await page.getByRole("button", { name: "Review transmission", exact: true }).click()
       await expect(page.getByRole("heading", { name: "Review transmission" })).toBeVisible()
       const setup = fixture.sourceStorage.sources.getLatestSetup(study.id)
       if (!setup) throw new TypeError("Missing reviewed setup")
+      expect(setup.analysis.scope.kind).toBe("whole-document")
       await page.goto(`${interview}?lang=en`)
       await expect(page.getByRole("heading", { name: "Review setup before sending" })).toBeVisible()
       expect(fixture.sourceStorage.counts()).toMatchObject({ grants: 0, jobs: 0, attempts: 0 })

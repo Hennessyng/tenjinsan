@@ -13,6 +13,7 @@ import {
   SetupRevisionId,
   StudyId,
   StudySetupRevision,
+  validatedBatchedSetupSources,
 } from "@reading-studio/contracts"
 import type { StorageContext } from "./database.ts"
 import { ContractBoundaryError } from "./errors.ts"
@@ -213,6 +214,7 @@ export class SqliteSourceRepository implements SourceRepository {
     const normalization = this.getNormalization(record.analysis.normalizationRevisionId)
     if (normalization === null) throw new ContractBoundaryError("setup normalization lineage")
     parseInput(NormalizedStudySetup, { setup: record, normalization }, "normalized study setup")
+    if (record.batchedVerificationReserve) validatedBatchedSetupSources(record, normalization)
     return writeRecord("setup revision", record.id, () => {
       this.context.db
         .insert(setupRevisions)
