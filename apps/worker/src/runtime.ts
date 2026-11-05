@@ -138,7 +138,9 @@ export class WorkerRuntime {
         error instanceof ProviderError &&
         (error.code === "subscription-unverified" ||
           error.code === "route-re-review-required" ||
-          error.code === "subscription-connection-changed")
+          error.code === "subscription-connection-changed" ||
+          error.code === "capacity-unknown" ||
+          error.code === "capacity-limit")
       ) {
         const execution = this.options.storage.execution
         const lease = this.lease(claimed)
