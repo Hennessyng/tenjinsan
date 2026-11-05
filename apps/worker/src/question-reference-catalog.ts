@@ -60,7 +60,7 @@ export function questionReferenceCatalog(raw: unknown) {
         span.start < block.start ||
         span.end > block.end ||
         block.text.slice(span.start, span.end) !== span.originalFragment ||
-        (span.pageLabel !== undefined && span.pageLabel !== block.pageLabel)
+        span.pageLabel !== block.pageLabel
       )
         throw new QuestionReferenceError("evidence")
       spans.set(JSON.stringify(span), span)

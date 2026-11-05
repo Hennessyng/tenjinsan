@@ -1,5 +1,8 @@
 import { afterEach, expect, it } from "vitest"
-import { questionReferenceCatalog } from "../src/question-reference-catalog.ts"
+import {
+  QuestionReferenceError,
+  questionReferenceCatalog,
+} from "../src/question-reference-catalog.ts"
 import { questionIdentityFixture } from "./question-identity-fixture.ts"
 
 const fixtures: ReturnType<typeof questionIdentityFixture>[] = []
@@ -35,6 +38,32 @@ it("binds approved evidence to immutable source and context", () => {
     questionReferenceCatalog({ ...input, contextRevisionId: "other-context" }).citations[0]?.id,
   ).not.toBe(first.id)
   expect(() => catalog.resolve("foreign-reference")).toThrow()
+})
+
+it("rejects a span that drops the approved page label", () => {
+  // Given
+  const fixture = questionIdentityFixture()
+  fixtures.push(fixture)
+  const current = fixture.scope("omitted-page")
+  const normalization = fixture.storage.sources.getNormalization(
+    current.setup.analysis.normalizationRevisionId,
+  )
+  const finding = current.analysis.claims[0]
+  const span = finding?.sources[0]
+  if (!normalization || !finding || !span?.pageLabel)
+    throw new TypeError("Missing synthetic evidence")
+  const { pageLabel: _pageLabel, ...unlabeled } = span
+  const input = {
+    setup: current.setup,
+    analysis: { ...current.analysis, claims: [{ ...finding, sources: [unlabeled] }] },
+    normalization,
+    contextRevisionId: current.input.context.revisionId,
+  }
+  // When / Then
+  expect(() => questionReferenceCatalog(input)).toThrow(QuestionReferenceError)
+  expect(() => questionReferenceCatalog(input)).toThrow(
+    expect.objectContaining({ code: "evidence" }),
+  )
 })
 
 it.each(["source-hash", "quote-bytes", "range", "page-label"] as const)(
