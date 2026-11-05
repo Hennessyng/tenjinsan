@@ -5,6 +5,7 @@ import { z } from "zod"
 import { persistedQuestionIdentity } from "../src/persisted-question-identity.ts"
 import { questionsStage, saveQuestions } from "../src/production-questions.ts"
 import { questionIdentityFixture } from "./question-identity-fixture.ts"
+import { referenceDraft } from "./question-reference-fixture.ts"
 
 const fixtures: ReturnType<typeof questionIdentityFixture>[] = []
 beforeEach(() => {
@@ -69,7 +70,7 @@ it("isolates repeated model IDs across studies/analyses while preserving legacy 
   })
   const partial = Question.parse({ ...partialLens.question, ...partialIdentity })
   storage.workflow.appendQuestion({ record: partial, parentRevisionId: null })
-  const { job } = capture(current, output)
+  const { job } = capture(current, referenceDraft(storage, current, output))
   // When
   expect(() => saveQuestions(storage, job)).not.toThrow()
   const bank = storage.interviews.latest(current.setup.studyId)
@@ -172,7 +173,9 @@ it("refuses a genuine same-slot immutable conflict without overwriting or publis
       prompt: { en: "Different content in the same slot", ja: "同じ枠内の異なる内容" },
     })),
   }
-  const second = capture(current, changed, { alternate: "questions-conflicting-import" })
+  const second = capture(current, referenceDraft(storage, current, changed), {
+    alternate: "questions-conflicting-import",
+  })
   let refusal: unknown
   // When
   try {
